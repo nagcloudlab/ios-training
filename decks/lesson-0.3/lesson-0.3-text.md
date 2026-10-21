@@ -88,3 +88,27 @@ Historically UIKit apps used `UIApplicationDelegate`; modern UIKit apps may also
 *Authored for the deck:* Part 8 shows two short snippets side by side: a UIKit `AppDelegate` with `application(_:didFinishLaunchingWithOptions:)`, and a SwiftUI `@main` `NPayApp` with a `WindowGroup` observing `scenePhase`.
 
 > *The shared text ends here ("Compare application entry approaches — UIKit — Delegate-driven approach").*
+
+## Deck changes after the Unit 00 audit
+
+The text above is unchanged. The deck now differs from it as follows.
+
+**Corrections**
+- Part 2 lifecycle diagram: on launch the scene is **inactive** while its first frame is drawn, then becomes **active** (the earlier diagram went from not running straight to active). Leaving goes inactive → background → suspended → possibly terminated. The simulator's first scenario says the same.
+- Part 1 no longer implies scenes are optional: Apple's TN3187 says apps built with SDKs released after iOS 26 must adopt the scene-based lifecycle.
+
+**Cuts**
+- Part 8 (SwiftUI vs UIKit lifecycle, and its two authored snippets) is removed from the deck: Lesson 0.4 owns that material, and the shared text was truncated there. The end slide now points to Lesson 0.4 instead of promising content already shown.
+
+**Consistency**
+- The shopping-mall analogy is replaced by the unit's hotel analogy (from 0.1): NPay's suite is the process, each room of the suite is a scene, the guest is the user.
+- Non-NPay examples became NPay: scenes "NPay accounts" / "NPay statement"; "open NPay in three different situations"; the registration form is NPay's account-opening form; the balance example uses ₹25,000.
+
+**Authored additions (flagged)**
+- Outcomes slide replaces the "learning journey" agenda.
+- "Where we are" map slide (scene, SpringBoard, sandbox lit) with Last time (0.2) / Today.
+- One-line pointers: launches from a notification or link (Unit 10: 10.6, 10.8), BackgroundTasks (10.7), drafts and state restoration (6.9), storage choices (Lesson 0.9).
+- Recap slide before the review.
+- Review grows from 1 to 5 questions (the text's timer question plus: scenes in different states; which value is a scenePhase; what happens to a suspended app under memory pressure; spaced review from 0.2: who reloads the balance after termination).
+- "Where this goes next" slide: 0.4, 6.9, 8.8, 10.7, 10.8.
+- Lab: predict NPay's scene state and process condition for seven event cards (answers in the speaker notes).

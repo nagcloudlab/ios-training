@@ -133,3 +133,33 @@ Tap NPay → iOS starts or activates the app → SwiftUI shows DashboardView →
 
 ## What's next — Unit 1: Swift Language Mastery
 1. Swift language design and compilation 2. Variables, constants and type system 3. Optionals 4. Functions, parameters and closures 5. Structs, classes and value semantics 6. Enums, protocols and extensions 7. Generics and error handling 8. ARC and ownership in practice 9. Async/await, actors, structured concurrency 10. Build the NPay domain model.
+
+## Deck changes after the Unit 00 audit
+
+The deck now differs from the text above as follows (authored items are marked *authored*).
+
+- **Corrections**
+  - Status check is `(200..<300).contains(http.statusCode)`, not `== 200`.
+  - The launch stepper ends "scene connects (inactive) → first frame → active".
+  - The model is `Balance` with `balanceMinor: Int64`. The ViewModel is `DashboardViewModel`; the action is **Refresh balance** (was "Check Balance").
+- **Merged:** Stage three (the tap) and Stage four (the API request) are now one part. The request is a short `BalanceService` recall slide (Lesson 0.8 owns the detail). Parts are now 11; dividers use short titles ("Launching NPay", …) and keep "Stage N" in the lead.
+- **Token:** the "just put it all in UserDefaults" challenge and the token review item are removed. The storage table recalls "Keychain, never UserDefaults (Lesson 0.7)" in one line and keeps the principle callout. The statement PDF row says Caches with file protection.
+- **Fewer clicks (91 → 40):**
+  - The architecture, security, data-return and app-entry diagrams are shown whole.
+  - Lifecycle is a recall table (Lesson 0.3) and memory is a recall slide (Lesson 0.6).
+  - The 12-step flow is one teal sweep.
+- *Authored:*
+  - **Opening and recap**
+    - an outcomes slide
+    - a "Where we are" map that moves the teal through every region, one stage per click
+    - a recap slide
+  - **Architecture review** (5 items):
+    - Problem: blocking a Button
+    - multiple choice: offline cached balance
+    - Good design: await plus a loading state
+    - predict-the-output: `[weak self]` deinit, a spaced item from 0.6
+    - Problem: a POST retry with no idempotency protection
+  - **Wrap-up**
+    - "Where this goes next" (1.5, 1.8, 1.9, 1.10, 12.9)
+    - the Unit 00 checkpoint: the text's final challenge on a blank NPay map, plus a rubric slide; it replaces "Your challenge"
+    - the end line "Next: Unit 01 — Swift Language Mastery"

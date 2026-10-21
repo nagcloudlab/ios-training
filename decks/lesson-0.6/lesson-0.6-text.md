@@ -277,3 +277,33 @@ Weak capture addresses ownership of self; explicit invalidation addresses the ti
 4. Should every closure capture self weakly? **No.**
 
 **Next:** how iOS protects applications from one another.
+
+## Deck changes after the Unit 00 audit
+
+The deck (`tools/gen06.py`) now differs from the text above as follows. Items marked *authored* are not in the original text.
+
+**Corrections**
+- Stack vs heap: a struct stored in a class, an array or an escaping closure lives on the heap; the optimizer may stack-promote a class *instance* that never escapes (the text said "a class reference variable").
+- Copy-on-write is a property of the standard collections (Array, Dictionary, Set, String), not of every struct; your own structs get it only if built that way (pointer to Lesson 1.5).
+- `unowned`: accessing it after deallocation *traps* (a deliberate crash); `unowned(unsafe)` removes the check and is undefined behaviour (pointer to Lesson 1.8).
+- Leaks instrument: it *does* report unreachable cycles; what it misses is memory that is still reachable but no longer needed (a running timer, an unbounded cache). The tools slide is now a table: Memory Graph / Allocations (generations) / Leaks.
+- Timer: the **run loop** keeps a scheduled repeating timer alive until `invalidate()`; the ViewModel's own `timer` property only lets it invalidate it (the text said the controller holding the timer was part of the cycle).
+- Timer code now compiles in Swift 6: `@MainActor @Observable final class DashboardViewModel`, block body in `MainActor.assumeIsolated { … }`. `deinit` can no longer call `timer?.invalidate()` (main-actor state from a nonisolated deinit), so the problem slide shows `deinit` printing, and the fix calls `stopAutoRefresh()` when the dashboard goes away.
+
+**Cuts and merges**
+- "Break the cycle with weak" merged into the retain-cycle slide (the fix is one callout).
+- The `CreditCard`/unowned code slide (with "Teach weak first…" trainer wording) removed; Part 9 is one slide: comparison table + weak/unowned examples + pointer to 1.8.
+- Code slides trimmed to ≤ 12 lines each (Customer, Person/Apartment, timer).
+
+**Consistency (NPay)**
+- Examples use NPay: `transferTotal()`, `Account.balanceMinor: Int64` (paise), `DashboardViewModel` for the closure and timer examples, a merchant-logo cache, "Refreshing balance" every 30 s.
+- Analogies: office building and conference-room booking replaced by the course's restaurant-kitchen analogy (cutting board = stack, pantry = heap, a cook using an ingredient = strong reference).
+- Strong / weak / unowned is now a diagram (reference → instance → what happens when it is deallocated) instead of three text cards.
+
+**Authored additions**
+- "Where we are" slide (NPay architecture map, Memory lit; last time = Lesson 0.5).
+- Recap slide before the review.
+- Review now has 5 questions: a multiple choice (what keeps an instance alive), a predict-the-output (two variables sharing a `Customer`), the retain-cycle and `[weak self]` questions from the text, and a spaced item from Lesson 0.5 (which thread a main-thread timer fires on). The text's copy-on-write question was dropped (covered on the comparison slide).
+- "Where this goes next" slide: 1.4, 1.5, 1.8, 8.3, 8.8, 8.9.
+- Lab (Swift command line, no Xcode): `cycle.swift` with two `ScreenModel`s; predict which `deinit` prints (only "Dashboard deinit"), then fix with `[weak self]` (both print).
+- End slide: "Next: Lesson 0.7 — iOS Security Architecture".

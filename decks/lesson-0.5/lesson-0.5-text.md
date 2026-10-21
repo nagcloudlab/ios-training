@@ -132,3 +132,28 @@ Time Profiler (CPU time) · Hangs (unresponsive periods) · Allocations · Leaks
 4. Does `@MainActor` make a slow calculation faster? **No** — isolation, not acceleration.
 
 **Next: Lesson 0.6 — iOS Memory Architecture & ARC:** stack vs heap, structs vs classes, reference counting, strong and weak references, retain cycles, memory leaks.
+
+## Deck changes after the Unit 00 audit
+
+The deck (`index.html`, built by `tools/gen05.py`) now differs from the text above as follows. Items marked *authored* are not in the original text.
+
+**Corrections**
+- Main thread vs MainActor table: "MainActor can suspend at await points" became "code waiting at `await` lets other main-actor work run first", plus a line on **actor reentrancy** (state can change across `await`; re-check it), pointing to Unit 08 · 8.4.
+- Three kinds of work: asynchronous I/O now means **network** requests. Most file APIs (`Data(contentsOf:)`, `write(to:)`) are synchronous, so large reads and writes stay off the main actor.
+- Frame budget: the display does not refresh at a fixed rate. It is 60 Hz, or up to 120 Hz on ProMotion displays, which adapt their rate.
+- Where work runs: a one-line pointer to Swift 6.2's `@concurrent` and `nonisolated(nonsending)` (Units 01 · 1.9, 08 · 8.1). Concept only. *Authored.*
+- No trainer language: the Instruments method now reads "Reproduce the slow path, measure, one targeted change, measure again".
+
+**Consistency (NPay canon)**
+- Analogy: the receptionist became the course's restaurant-kitchen analogy. The main thread is the head chef who plates every dish, the RunLoop is the order rail, and a frame is a dish sent out each tick.
+- Examples are NPay throughout: the "Refresh balance" button (blocking and async versions), `DashboardViewModel` (`@MainActor @Observable final`, formatting `balanceMinor` paise as INR), `fetchBalance()` from `api.npay.example`, `totalSpent` over a million transactions, and a balance change from ₹25,000 to ₹24,750.
+- "body is a description" is labelled as a recall from Lesson 0.2, which owns that idea.
+
+**Added** (*authored*)
+- "Where we are" slide: the shared NPay map (Main thread lit), with a Last time (0.4) / Today bridge.
+- LIVE DEMO in Part 4: a breakpoint in the Refresh balance action, reading the main-thread backtrace (run loop → event dispatch → SwiftUI → closure).
+- Recap slide (map + three points).
+- Review: five questions with mixed verdicts — multiple choice (what freezes the UI: B, `Thread.sleep`), predict-the-output (1, 2, 3 with a new `Task`), async ≠ background (No), reentrancy (Yes), and a spaced review from 0.2 (`body` redraw: No).
+- "Where this goes next": 1.9, 3.9, 8.1, 8.4, 8.7.
+- Lab, "Predict the print order": a Swift command-line exercise. With `await`, it prints A, C, B, D, E; with a blocking call it prints A, C, D, B, E. Both versions were compiled and run under Swift 6; the full starter file is in the notes.
+- The end slide names the next lesson: Lesson 0.6 — iOS Memory Architecture & ARC.

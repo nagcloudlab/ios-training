@@ -29,7 +29,7 @@
     <div class="cols c3 stagger step">
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></span><p>Who owns the <b>authoritative</b> balance</p></div>
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>The layers from <b>SwiftUI</b> to the <b>server</b></p></div>
-      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></span><p>What an <b>HTTP request</b> is, and where <b>HTTPS</b> fits</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></span><p>What an <b>HTTP request</b> is, where <b>HTTPS</b> fits, and where the <b>token</b> comes from</p></div>
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>How <b>URLSession</b> and <b>await</b> work together</p></div>
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>How <b>Codable</b> turns JSON into a model</p></div>
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></span><p>Why <b>error handling</b> is part of the architecture</p></div>
@@ -37,6 +37,45 @@
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>The goal: explain the complete path, SwiftUI to ViewModel to networking service to URLSession to HTTPS to the server, and back as JSON to a model, the ViewModel and SwiftUI. Plus why networking is asynchronous, why security is layered and why error handling is architecture.</p>
+    <span class="notes-label">CONNECT</span><p>First, where this lesson sits on the NPay map.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.8 &middot; Where we are</p>
+  <h2>Today: the network path</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 366" style="max-height:360px" role="img" aria-labelledby="map08">
+        <title id="map08">NPay architecture map</title>
+        <rect class="wire dash" x="16" y="20" width="828" height="182" rx="16"/>
+        <text class="mono" x="32" y="42">NPAY PROCESS · SANDBOX</text>
+        <text class="mono" x="16" y="228">IOS</text>
+        <g class="nd"><rect class="sh" x="32" y="58" width="190" height="56" rx="12"/><use href="#i-phone" x="46" y="73" width="26" height="26"/><text x="84" y="83">View</text><text class="sm" x="84" y="101">SwiftUI screen</text></g>
+        <g class="nd"><rect class="sh" x="236" y="58" width="190" height="56" rx="12"/><use href="#i-layout" x="250" y="73" width="26" height="26"/><text x="288" y="83">ViewModel</text><text class="sm" x="288" y="101">screen state</text></g>
+        <g class="nd lit"><rect class="sh" x="440" y="58" width="190" height="56" rx="12"/><use href="#i-link" x="454" y="73" width="26" height="26"/><text x="492" y="83">Service</text><text class="sm" x="492" y="101">talks to the bank</text></g>
+        <g class="nd"><rect class="sh" x="644" y="58" width="190" height="56" rx="12"/><use href="#i-code" x="658" y="73" width="26" height="26"/><text x="696" y="83">Model</text><text class="sm" x="696" y="101">balance, transactions</text></g>
+        <g class="nd"><rect class="sh" x="32" y="132" width="260" height="56" rx="12"/><use href="#i-thread" x="46" y="147" width="26" height="26"/><text x="84" y="157">Main thread</text><text class="sm" x="84" y="175">RunLoop · events · frames</text></g>
+        <g class="nd"><rect class="sh" x="306" y="132" width="260" height="56" rx="12"/><use href="#i-memory" x="320" y="147" width="26" height="26"/><text x="358" y="157">Memory</text><text class="sm" x="358" y="175">stack · heap · ARC</text></g>
+        <g class="nd"><rect class="sh" x="580" y="132" width="254" height="56" rx="12"/><use href="#i-frame" x="594" y="147" width="26" height="26"/><text x="632" y="157">Scene</text><text class="sm" x="632" y="175">foreground · background</text></g>
+        <g class="nd"><rect class="sh" x="16" y="238" width="180" height="56" rx="12"/><use href="#i-grid" x="30" y="253" width="26" height="26"/><text x="68" y="263">SpringBoard</text><text class="sm" x="68" y="281">launches apps</text></g>
+        <g class="nd"><rect class="sh" x="210" y="238" width="170" height="56" rx="12"/><use href="#i-key" x="224" y="253" width="26" height="26"/><text x="262" y="263">Keychain</text><text class="sm" x="262" y="281">secrets</text></g>
+        <g class="nd"><rect class="sh" x="394" y="238" width="232" height="56" rx="12"/><use href="#i-db" x="408" y="253" width="26" height="26"/><text x="446" y="263">Storage</text><text class="sm" x="446" y="281">UserDefaults · SwiftData</text></g>
+        <g class="nd lit"><rect class="sh" x="640" y="238" width="204" height="56" rx="12"/><use href="#i-frameworks" x="654" y="253" width="26" height="26"/><text x="692" y="263">Frameworks</text><text class="sm" x="692" y="281">SwiftUI · URLSession</text></g>
+        <g class="nd"><rect class="sh" x="16" y="308" width="410" height="56" rx="12"/><use href="#i-kernel" x="30" y="323" width="26" height="26"/><text x="68" y="333">Kernel</text><text class="sm" x="68" y="351">processes · sandbox · code signing</text></g>
+        <g class="nd"><rect class="sh" x="440" y="308" width="404" height="56" rx="12"/><use href="#i-chip" x="454" y="323" width="26" height="26"/><text x="492" y="333">Hardware</text><text class="sm" x="492" y="351">CPU · memory · Secure Enclave</text></g>
+        <g class="nd lit"><rect class="sh" x="920" y="238" width="216" height="56" rx="12"/><use href="#i-bank" x="934" y="253" width="26" height="26"/><text x="972" y="263">Bank API server</text><text class="sm" x="972" y="281">authoritative balance</text></g>
+        <path class="wire" d="M224 86H234M229 81l5 5-5 5"/>
+        <path class="wire" d="M428 86H438M433 81l5 5-5 5"/>
+        <path class="wire" d="M632 86H642M637 81l5 5-5 5"/>
+        <path class="wire lit" d="M848 266H916M911 261l5 5-5 5M853 261l-5 5 5 5"/>
+        <text class="sm" x="882" y="256" text-anchor="middle">HTTPS</text>
+      </svg>
+    </div>
+    <div class="bridge"><span><b>Last time</b>Lesson 0.7: the sandbox and signing protect NPay; its token belongs in the Keychain.</span><span><b>Today</b>Follow one &ldquo;Refresh balance&rdquo; from the Service, through URLSession and HTTPS, to the bank and back.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last time: the walls around NPay, and the Keychain for its token. Today we leave the device. The teal path is today: the Service in NPay, Apple&rsquo;s URLSession in the frameworks, HTTPS on the wire, and the bank&rsquo;s API server, which owns the real balance. The View and ViewModel at the top start and finish the trip.</p>
     <span class="notes-label">CONNECT</span><p>Start with the problem.</p>
   </aside>
 </section>
@@ -59,11 +98,11 @@
   <div class="body cols middle" style="grid-template-columns:.7fr 1.3fr">
     <div class="diagram">
       <svg class="art" viewBox="0 0 210 420" style="max-height:440px" role="img" aria-labelledby="s4scr">
-        <title id="s4scr">Illustrative NPay screen: available balance 25,000 rupees, a Refresh Balance button, a recent coffee shop transaction of 250 rupees</title>
+        <title id="s4scr">Illustrative NPay screen: available balance 25,000 rupees, a Refresh balance button, a recent coffee shop transaction of 250 rupees</title>
         <use href="#d-iphone" x="0" y="0" width="210" height="420"/>
         <text x="105" y="70" text-anchor="middle" style="font-size:20px;font-weight:800">NPay</text>
         <g class="nd"><rect class="sh" x="26" y="88" width="158" height="78" rx="12"/><text class="sm" x="105" y="116" text-anchor="middle">Available balance</text><text x="105" y="148" text-anchor="middle" style="font-size:22px;font-weight:700">&#8377;25,000</text></g>
-        <g class="nd lit"><rect class="sh" x="26" y="178" width="158" height="40" rx="12"/><text class="sm" x="105" y="203" text-anchor="middle">Refresh Balance</text></g>
+        <g class="nd lit"><rect class="sh" x="26" y="178" width="158" height="40" rx="12"/><text class="sm" x="105" y="203" text-anchor="middle">Refresh balance</text></g>
         <text class="mono" x="26" y="250">RECENT TRANSACTION</text>
         <g class="nd"><rect class="sh" x="26" y="260" width="158" height="44" rx="10"/><text class="sm" x="38" y="287">Coffee Shop</text><text class="sm" x="174" y="287" text-anchor="end">&#8722;&#8377;250</text></g>
       </svg>
@@ -79,58 +118,13 @@
     <span class="notes-label">ASK</span><p>Is the bank balance stored inside the SwiftUI screen, in iPhone memory, or on the bank’s server?</p>
     <span class="notes-label">EXPECT</span><p>The authoritative balance normally belongs to the bank’s backend. The app may temporarily hold a copy to display it.</p>
     <span class="notes-label">SAY</span><p>That gives three responsibilities: the server maintains authoritative account information, the networking layer communicates with the backend, and SwiftUI displays the result.</p>
-    <span class="notes-label">CONNECT</span><p>Here is how those responsibilities stack up.</p>
+    <span class="notes-label">CONNECT</span><p>Now follow a single tap all the way to the server and back.</p>
   </aside>
 </section>
 
 <section class="slide chapter">
   <div class="body">
     <p class="kicker">Part 2</p>
-    <h2>The big picture</h2>
-    <p class="lead">iOS networking architecture</p>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Five layers between the tap and the bank.</p>
-    <span class="notes-label">CONNECT</span><p>Follow them top to bottom.</p>
-  </aside>
-</section>
-
-<section class="slide">
-  <p class="kicker">Part 2 &middot; Architecture &middot; conceptual</p>
-  <h2>From view to server</h2>
-  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
-    <div>
-      <div class="diagram">
-      <svg class="art" viewBox="0 0 600 360" style="max-height:400px" role="img" aria-labelledby="s6arch">
-        <title id="s6arch">SwiftUI view, ViewModel, networking service, URLSession and Foundation, bank API server</title>
-        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="600" height="56" rx="12"/><use href="#i-phone" x="14" y="15" width="26" height="26"/><text x="52" y="25">SwiftUI View</text><text class="sm" x="52" y="43">the user taps Refresh</text></g>
-        <path class="wire" d="M300 56V70M293.0 63l7 7 7-7"/>
-        <g class="nd" data-lit="2"><rect class="sh" x="0" y="76" width="600" height="56" rx="12"/><use href="#i-layout" x="14" y="91" width="26" height="26"/><text x="52" y="101">ViewModel</text><text class="sm" x="52" y="119">coordinates loading and screen state</text></g>
-        <path class="wire" d="M300 132V146M293.0 139l7 7 7-7"/>
-        <g class="nd" data-lit="3"><rect class="sh" x="0" y="152" width="600" height="56" rx="12"/><use href="#i-link" x="14" y="167" width="26" height="26"/><text x="52" y="177">Networking service</text><text class="sm" x="52" y="195">builds and performs the API request</text></g>
-        <path class="wire" d="M300 208V222M293.0 215l7 7 7-7"/>
-        <g class="nd" data-lit="4"><rect class="sh" x="0" y="228" width="600" height="56" rx="12"/><use href="#i-frameworks" x="14" y="243" width="26" height="26"/><text x="52" y="253">URLSession / Foundation</text><text class="sm" x="52" y="271">Apple&rsquo;s high-level networking APIs</text></g>
-        <path class="wire" d="M300 284V298M293.0 291l7 7 7-7"/>
-        <g class="nd" data-lit="5"><rect class="sh" x="0" y="304" width="600" height="56" rx="12"/><use href="#i-bank" x="14" y="319" width="26" height="26"/><text x="52" y="329">Bank API server</text><text class="sm" x="52" y="347">processes authorized requests</text></g>
-      </svg>
-    </div>
-      <p class="small muted" style="margin:8px 0 0">Conceptual. URLSession uses lower-level networking and system services internally.</p>
-    </div>
-    <div>
-      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
-      <div class="rule step">SwiftUI does <b>not</b> implement HTTP. <b>URLSession</b> is a Foundation API, and MVVM is a code organization pattern, not an OS requirement.</div>
-    </div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Click down the layers: the SwiftUI view where the user taps Refresh; the ViewModel coordinating loading and screen state; the networking service building and performing the API request; URLSession, Apple’s high-level networking API in Foundation; and the bank’s API server processing authorized requests.</p>
-    <span class="notes-label">SAY</span><p>SwiftUI does not implement HTTP networking; URLSession is a Foundation API. And MVVM is a code organization pattern, not something iOS requires.</p>
-    <span class="notes-label">CONNECT</span><p>Now follow a single tap through all of it.</p>
-  </aside>
-</section>
-
-<section class="slide chapter">
-  <div class="body">
-    <p class="kicker">Part 3</p>
     <h2>What happens when the user taps Refresh?</h2>
     <p class="lead">One request, nine steps</p>
   </div>
@@ -141,7 +135,7 @@
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 3 &middot; Request journey &middot; conceptual</p>
+  <p class="kicker">Part 2 &middot; Request journey &middot; conceptual</p>
   <h2>A Refresh tap, step by step</h2>
   <div class="body">
     <div class="diagram">
@@ -155,31 +149,34 @@
         <g class="nd" data-lit="5"><rect class="sh" x="632.5" y="0" width="114" height="52" rx="12"/><text x="648.5" y="32">Server</text></g>
         <g class="nd" data-lit="6"><rect class="sh" x="759.0" y="0" width="114" height="52" rx="12"/><text x="775.0" y="32">Service</text></g>
         <g class="nd" data-lit="7"><rect class="sh" x="885.5" y="0" width="114" height="52" rx="12"/><text x="901.5" y="32">ViewModel</text></g>
-        <g class="nd" data-lit="8"><rect class="sh" x="1012.0" y="0" width="114" height="52" rx="12"/><text x="1028.0" y="32">SwiftUI</text></g>
+        <g class="nd" data-lit="8+"><rect class="sh" x="1012.0" y="0" width="114" height="52" rx="12"/><text x="1028.0" y="32">SwiftUI</text></g>
         <g class="fade" data-lit="0"><text class="mono" x="0" y="104">STEP 1 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">User taps Refresh</text><text x="0" y="174" style="font-size:19px;font-weight:400">The button action starts an asynchronous operation.</text></g>
-        <g class="fade" data-lit="1"><text class="mono" x="0" y="104">STEP 2 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">Loading starts</text><text x="0" y="174" style="font-size:19px;font-weight:400">The ViewModel sets the loading state and calls the service.</text></g>
+        <g class="fade" data-lit="1"><text class="mono" x="0" y="104">STEP 2 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">Loading starts</text><text x="0" y="174" style="font-size:19px;font-weight:400">DashboardViewModel sets the loading state and calls BalanceService.</text></g>
         <g class="fade" data-lit="2"><text class="mono" x="0" y="104">STEP 3 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">Request is built</text><text x="0" y="174" style="font-size:19px;font-weight:400">The service builds the URL, method and headers.</text></g>
         <g class="fade" data-lit="3"><text class="mono" x="0" y="104">STEP 4 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">Request is sent</text><text x="0" y="174" style="font-size:19px;font-weight:400">URLSession performs the request; the task suspends at await.</text></g>
         <g class="fade" data-lit="4"><text class="mono" x="0" y="104">STEP 5 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">Encrypted transport</text><text x="0" y="174" style="font-size:19px;font-weight:400">TLS protects the request on its way to the server.</text></g>
         <g class="fade" data-lit="5"><text class="mono" x="0" y="104">STEP 6 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">Server responds</text><text x="0" y="174" style="font-size:19px;font-weight:400">The bank API checks authorization and returns JSON.</text></g>
         <g class="fade" data-lit="6"><text class="mono" x="0" y="104">STEP 7 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">Response decoded</text><text x="0" y="174" style="font-size:19px;font-weight:400">The service validates the status and decodes the JSON into a model.</text></g>
-        <g class="fade" data-lit="7"><text class="mono" x="0" y="104">STEP 8 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">State updates</text><text x="0" y="174" style="font-size:19px;font-weight:400">The ViewModel formats the balance and clears loading.</text></g>
-        <g class="fade" data-lit="8"><text class="mono" x="0" y="104">STEP 9 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">Screen updates</text><text x="0" y="174" style="font-size:19px;font-weight:400">SwiftUI re-renders with the new balance.</text></g>
+        <g class="fade" data-lit="7"><text class="mono" x="0" y="104">STEP 8 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">State updates</text><text x="0" y="174" style="font-size:19px;font-weight:400">The ViewModel formats &#8377;25,000 and clears loading.</text></g>
+        <g class="fade" data-lit="8+"><text class="mono" x="0" y="104">STEP 9 OF 9</text><text x="0" y="140" style="font-size:26px;font-weight:700">Screen updates</text><text x="0" y="174" style="font-size:19px;font-weight:400">SwiftUI re-renders with the new balance.</text></g>
       </svg>
     </div>
     <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step">SwiftUI does <b>not</b> implement HTTP: <b>URLSession</b> is a Foundation API. MVVM is a way to organize code, not an iOS requirement.</div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Step one: the user taps Refresh and the button action starts an asynchronous operation. Click through: the ViewModel starts loading, the service builds the request, URLSession sends it while the task suspends, TLS protects it in transit, the server checks authorization and returns JSON, the service validates and decodes it, the ViewModel updates state, and SwiftUI re-renders.</p>
     <span class="notes-label">ASK</span><p>At which step is the main thread free to handle other taps?</p>
     <span class="notes-label">EXPECT</span><p>From step 4 until the response returns: the task is suspended, not blocking a thread.</p>
+    <span class="notes-label">SAY</span><p>Notice who does what. SwiftUI does not implement HTTP networking; URLSession, a Foundation API, does. And MVVM is a code organization pattern, not something iOS requires.</p>
     <span class="notes-label">CONNECT</span><p>Look closer at what is actually sent in step 3.</p>
   </aside>
 </section>
 
 <section class="slide chapter">
   <div class="body">
-    <p class="kicker">Part 4</p>
+    <p class="kicker">Part 3</p>
     <h2>What is an HTTP request?</h2>
     <p class="lead">A structured message from client to server</p>
   </div>
@@ -190,7 +187,7 @@
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 4 &middot; HTTP request</p>
+  <p class="kicker">Part 3 &middot; HTTP request</p>
   <h2>Anatomy of a request</h2>
   <div class="body cols middle" style="grid-template-columns:1.2fr 1fr">
     <div class="cw"><div class="ch"><span>HTTP request</span></div><pre class="tree" style="font-size:18px;border-radius:0 0 12px 12px">GET /api/accounts/123/balance HTTP/1.1
@@ -211,29 +208,30 @@ Authorization: Bearer &lt;token&gt;</pre></div>
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 4 &middot; Methods</p>
+  <p class="kicker">Part 3 &middot; Methods</p>
   <h2>Common HTTP methods</h2>
   <div class="body top">
     <table class="tbl">
-      <tr><th>Method</th><th>Typical purpose</th></tr>
-      <tr><td><code>GET</code></td><td>Retrieve a resource</td></tr>
-      <tr><td><code>POST</code></td><td>Submit data or initiate an operation</td></tr>
-      <tr><td><code>PUT</code></td><td>Replace a resource</td></tr>
-      <tr><td><code>PATCH</code></td><td>Partially update a resource</td></tr>
-      <tr><td><code>DELETE</code></td><td>Request deletion</td></tr>
+      <tr><th>Method</th><th>Typical purpose</th><th>Idempotent?</th></tr>
+      <tr><td><code>GET</code></td><td>Retrieve a resource</td><td>Yes</td></tr>
+      <tr><td><code>POST</code></td><td>Submit data or initiate an operation</td><td>No</td></tr>
+      <tr><td><code>PUT</code></td><td>Replace a resource</td><td>Yes</td></tr>
+      <tr><td><code>PATCH</code></td><td>Partially update a resource</td><td>Not guaranteed</td></tr>
+      <tr><td><code>DELETE</code></td><td>Request deletion</td><td>Yes</td></tr>
     </table>
     <div class="gap"></div>
-    <div class="rule step">Methods describe <b>intended semantics</b>. The server still decides how to process the request and enforces <b>authorization</b>.</div>
+    <div class="rule step" data-label="Idempotent">Sending the request <b>twice</b> has the same effect as sending it <b>once</b>. Methods describe intent; the server still decides and enforces <b>authorization</b>.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>GET retrieves, POST submits or starts an operation, PUT replaces, PATCH partially updates, DELETE requests deletion. These describe intent; the server decides how to process each request and enforces authorization.</p>
+    <span class="notes-label">SAY</span><p>GET retrieves, POST submits or starts an operation, PUT replaces, PATCH partially updates, DELETE requests deletion.</p>
+    <span class="notes-label">SAY</span><p>The last column matters for retries. A request is idempotent when sending it twice has the same effect as sending it once. GET, PUT and DELETE are defined that way; POST is not; PATCH is not guaranteed. These describe intent; the server decides how to process each request and enforces authorization. Unit 05, lesson 5.1, goes deeper.</p>
     <span class="notes-label">CONNECT</span><p>How is the request protected on its way?</p>
   </aside>
 </section>
 
 <section class="slide chapter">
   <div class="body">
-    <p class="kicker">Part 5</p>
+    <p class="kicker">Part 4</p>
     <h2>Where does HTTPS fit?</h2>
     <p class="lead">Protecting data in transit</p>
   </div>
@@ -244,7 +242,7 @@ Authorization: Bearer &lt;token&gt;</pre></div>
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 5 &middot; HTTPS &middot; conceptual</p>
+  <p class="kicker">Part 4 &middot; HTTPS &middot; conceptual</p>
   <h2>An encrypted, authenticated channel</h2>
   <div class="body">
     <div class="diagram">
@@ -266,13 +264,44 @@ Authorization: Bearer &lt;token&gt;</pre></div>
     <span class="notes-label">SAY</span><p>Click: HTTPS uses TLS to protect data in transit and to authenticate the server under the TLS trust model.</p>
     <span class="notes-label">ASK</span><p>Is HTTPS enough to make a banking app secure?</p>
     <span class="notes-label">EXPECT</span><p>No. It protects the connection. Authentication, authorization, token handling and backend security are still needed, as in Lesson 0.7.</p>
+    <span class="notes-label">SAY</span><p>iOS also pushes apps toward HTTPS: App Transport Security expects secure connections by default. Unit 07, lesson 7.6, covers TLS, ATS and certificate trust.</p>
+    <span class="notes-label">CONNECT</span><p>HTTPS carries the sign-in too. Where does the bearer token come from?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Signing in &middot; conceptual</p>
+  <h2>Where the token comes from</h2>
+  <div class="body cols middle" style="grid-template-columns:1.15fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 640 342" style="max-height:400px" role="img" aria-labelledby="s14log">
+        <title id="s14log">Open the signed sandboxed app, sign in over HTTPS, receive a token, store it in the Keychain, send it with later requests</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="640" height="54" rx="12"/><use href="#i-bank" x="14" y="14" width="26" height="26"/><text x="52" y="24">User opens NPay</text><text class="sm" x="52" y="42">the signed app runs inside its sandbox</text></g>
+        <path class="wire" d="M320 54V66M313.0 59l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="72" width="640" height="54" rx="12"/><use href="#i-user" x="14" y="86" width="26" height="26"/><text x="52" y="96">User signs in</text><text class="sm" x="52" y="114">credentials go to the backend over HTTPS</text></g>
+        <path class="wire" d="M320 126V138M313.0 131l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="144" width="640" height="54" rx="12"/><use href="#i-globe" x="14" y="158" width="26" height="26"/><text x="52" y="168">Backend returns a token</text><text class="sm" x="52" y="186">the app checks the response</text></g>
+        <path class="wire" d="M320 198V210M313.0 203l7 7 7-7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="216" width="640" height="54" rx="12"/><use href="#i-key" x="14" y="230" width="26" height="26"/><text x="52" y="240">Token goes in the Keychain</text><text class="sm" x="52" y="258">never UserDefaults (Lesson 0.7)</text></g>
+        <path class="wire" d="M320 270V282M313.0 275l7 7 7-7"/>
+        <g class="nd" data-lit="5+"><rect class="sh" x="0" y="288" width="640" height="54" rx="12"/><use href="#i-send" x="14" y="302" width="26" height="26"/><text x="52" y="312">Later requests carry it</text><text class="sm" x="52" y="330">Authorization: Bearer &lt;token&gt;</text></g>
+      </svg>
+    </div>
+    <div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <div class="rule step" data-label="401 means">The token is missing, invalid or <b>expired</b>: ask the user to sign in again. Production apps also need backend authorization, token refresh and session handling.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through a sign-in at a conceptual level. The user opens NPay, a signed app running in its sandbox. The user signs in, and the credentials go to the backend over HTTPS. The backend returns a token, which the app checks. The token goes into the Keychain, never UserDefaults, as in Lesson 0.7. Every later request carries it in the Authorization header we just saw.</p>
+    <span class="notes-label">SAY</span><p>When the server answers 401, the token is missing, invalid or expired, so the app asks the user to sign in again. This is only one part of secure banking: backend authorization, token lifecycle and refresh, session handling, fraud controls and threat modeling all matter. Unit 05, lesson 5.5, builds token refresh; Unit 07, lesson 7.10, builds the secure login.</p>
     <span class="notes-label">CONNECT</span><p>Now the code that sends the request: URLSession.</p>
   </aside>
 </section>
 
 <section class="slide chapter">
   <div class="body">
-    <p class="kicker">Part 6</p>
+    <p class="kicker">Part 5</p>
     <h2>What is URLSession?</h2>
     <p class="lead">Apple&rsquo;s API for network transfers</p>
   </div>
@@ -283,42 +312,39 @@ Authorization: Bearer &lt;token&gt;</pre></div>
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 6 &middot; URLSession</p>
+  <p class="kicker">Part 5 &middot; URLSession</p>
   <h2>Fetching the balance</h2>
   <div class="body cols middle" style="grid-template-columns:1.25fr 1fr">
     <div>
-      <div class="cw"><div class="ch"><span>BalanceService.swift</span></div><pre class="cb" style="font-size:14px">import Foundation
+      <div class="cw"><div class="ch"><span>BalanceService.swift</span></div><pre class="cb" style="font-size:13px">import Foundation
 
-func fetchBalance() async throws -&gt; Data {
-    let url = URL(
-        string: &quot;https://api.npay.example/balance&quot;
-    )!
-
-    let (data, response) =
-        try await URLSession.shared.data(from: url)
-
-    guard let httpResponse = response as? HTTPURLResponse,
-          httpResponse.statusCode == 200 else {
-        throw URLError(.badServerResponse)
+struct BalanceService {
+    func fetchBalance() async throws -&gt; Balance {
+        let url = URL(string: &quot;https://api.npay.example/balance&quot;)!
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let http = response as? HTTPURLResponse,
+              (200..&lt;300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        return try JSONDecoder().decode(Balance.self, from: data)
     }
-
-    return data
 }</pre></div>
-      <p class="small muted" style="margin:8px 0 0">The URL is fictional; no production authentication or validation beyond the status check.</p>
+      <p class="small muted" style="margin:8px 0 0">The URL is fictional; no authentication header yet. <code>Balance</code> is defined in Part 6.</p>
     </div>
-    <div class="points v stages"><div class="step"><span class="q-num">1</span><span><b>Create the URL</b><small></small></span></div><div class="step"><span class="q-num">2</span><span><b>Ask URLSession</b><small>to perform the request</small></span></div><div class="step"><span class="q-num">3</span><span><b>Suspend at await</b><small>while the operation is pending</small></span></div><div class="step"><span class="q-num">4</span><span><b>Receive</b><small>the response or an error</small></span></div><div class="step"><span class="q-num">5</span><span><b>Validate</b><small>the response</small></span></div><div class="step"><span class="q-num">6</span><span><b>Return</b><small>the data</small></span></div></div>
+    <div class="points v stages"><div class="step"><span class="q-num">1</span><span><b>Create the URL</b><small></small></span></div><div class="step"><span class="q-num">2</span><span><b>Ask URLSession</b><small>to perform the request</small></span></div><div class="step"><span class="q-num">3</span><span><b>Suspend at await</b><small>while the operation is pending</small></span></div><div class="step"><span class="q-num">4</span><span><b>Receive</b><small>the response or an error</small></span></div><div class="step"><span class="q-num">5</span><span><b>Validate</b><small>any 2xx status</small></span></div><div class="step"><span class="q-num">6</span><span><b>Decode</b><small>into a Balance (Part 6)</small></span></div></div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Six steps: create the URL, ask URLSession to perform the request, suspend at await while it is pending, receive the response or an error, validate the response, and return the data.</p>
+    <span class="notes-label">SAY</span><p>Six steps: create the URL, ask URLSession to perform the request, suspend at await while it is pending, receive the response or an error, validate the response, and decode it. Validation accepts any status from 200 up to 299, not only 200: a 2xx code means success. Anything else becomes an error the ViewModel can show.</p>
     <span class="notes-label">ASK</span><p>Does await mean a thread is blocked until the response arrives?</p>
     <span class="notes-label">EXPECT</span><p>No. The asynchronous task suspends while the networking operation proceeds, as in Lesson 0.5.</p>
+    <span class="notes-label">SAY</span><p>Unit 05, lesson 5.2, builds the full service with URLRequest, headers and timeouts.</p>
     <span class="notes-label">CONNECT</span><p>The server answered with JSON bytes. How do they become a Swift value?</p>
   </aside>
 </section>
 
 <section class="slide chapter">
   <div class="body">
-    <p class="kicker">Part 7</p>
+    <p class="kicker">Part 6</p>
     <h2>What is Codable?</h2>
     <p class="lead">From JSON to a Swift model</p>
   </div>
@@ -329,7 +355,7 @@ func fetchBalance() async throws -&gt; Data {
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 7 &middot; Codable</p>
+  <p class="kicker">Part 6 &middot; Codable</p>
   <h2>Decoding the balance</h2>
   <div class="body">
     <div class="cols" style="align-items:start">
@@ -338,22 +364,22 @@ func fetchBalance() async throws -&gt; Data {
   &quot;currency&quot;: &quot;INR&quot;,
   &quot;balanceMinor&quot;: 2500000
 }</pre></div>
-      <div class="cw"><div class="ch"><span>BalanceResponse.swift</span></div><pre class="cb" style="font-size:15px">struct BalanceResponse: Decodable {
+      <div class="cw"><div class="ch"><span>Balance.swift</span></div><pre class="cb" style="font-size:15px">struct Balance: Decodable {
     let accountId: String
     let currency: String
     let balanceMinor: Int64
 }
 
-let response = try JSONDecoder().decode(
-    BalanceResponse.self,
-    from: data
-)</pre></div>
+// BalanceService ends with exactly this step:
+func decode(_ data: Data) throws -&gt; Balance {
+    try JSONDecoder().decode(Balance.self, from: data)
+}</pre></div>
     </div>
     <div class="gap"></div>
     <div class="rule step" data-label="Minor units"><code>balanceMinor</code> is in the smallest currency unit: 2,500,000 paise is <b>&#8377;25,000</b>. Integer minor units avoid floating-point errors in money.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>The JSON has an account ID, a currency and balanceMinor, the amount in the smallest unit. For INR, 2,500,000 paise is &#8377;25,000. A Decodable struct with matching properties, and JSONDecoder turns the bytes into a BalanceResponse.</p>
+    <span class="notes-label">SAY</span><p>The JSON has an account ID, a currency and balanceMinor, the amount in the smallest unit. For INR, 2,500,000 paise is &#8377;25,000. A Decodable struct, Balance, has matching properties, and JSONDecoder in BalanceService turns the bytes into a Balance. If a key is missing or has the wrong type, decoding throws.</p>
     <span class="notes-label">SAY</span><p>Integer minor units, or an appropriate decimal type, avoid the floating-point issues that are dangerous in financial calculations.</p>
     <span class="notes-label">CONNECT</span><p>How does that model reach the screen? MVVM.</p>
   </aside>
@@ -361,7 +387,7 @@ let response = try JSONDecoder().decode(
 
 <section class="slide chapter">
   <div class="body">
-    <p class="kicker">Part 8</p>
+    <p class="kicker">Part 7</p>
     <h2>Connecting networking to SwiftUI</h2>
     <p class="lead">MVVM in the request path</p>
   </div>
@@ -372,7 +398,7 @@ let response = try JSONDecoder().decode(
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 8 &middot; MVVM &middot; conceptual</p>
+  <p class="kicker">Part 7 &middot; MVVM &middot; conceptual</p>
   <h2>A ViewModel in the request path</h2>
   <div class="body cols middle" style="grid-template-columns:1fr 1.2fr">
     <div>
@@ -389,43 +415,34 @@ let response = try JSONDecoder().decode(
       </svg>
     </div>
       <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
-      <p class="small muted" style="margin:10px 0 0">A teaching skeleton: the networking service is intentionally not implemented.</p>
+      <p class="small muted" style="margin:10px 0 0">The view owns it: <code>@State private var model = DashboardViewModel()</code></p>
     </div>
-    <div class="cw"><div class="ch"><span>BalanceViewModel.swift</span></div><pre class="cb" style="font-size:12.5px;line-height:1.34;padding:12px 20px">import Foundation
-import Observation
-
-@MainActor
-@Observable
-final class BalanceViewModel {
-
+    <div class="cw"><div class="ch"><span>DashboardViewModel.swift</span></div><pre class="cb" style="font-size:14px">@MainActor @Observable
+final class DashboardViewModel {
     var balanceText = &quot;—&quot;
-    var isLoading = false
     var errorMessage: String?
+    private let service = BalanceService()
 
-    func loadBalance() async {
-        isLoading = true
-        defer { isLoading = false }
-
+    func refreshBalance() async {
         do {
-            // Call an injected networking service.
-            // Decode the response and format the balance.
-            balanceText = &quot;₹25,000&quot;
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+            let balance = try await service.fetchBalance()
+            balanceText = (Decimal(balance.balanceMinor) / 100)
+                .formatted(.currency(code: &quot;INR&quot;))
+        } catch { errorMessage = error.localizedDescription }
     }
 }</pre></div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Click down: the view displays the balance and loading state; the ViewModel coordinates the API call and updates observable state; the service uses URLSession and decodes; the server returns authorized account information.</p>
-    <span class="notes-label">SAY</span><p>The ViewModel is @MainActor and @Observable: it sets isLoading, uses defer to clear it however the function exits, and on error stores a message. The networking service call is a comment on purpose; this is a skeleton.</p>
+    <span class="notes-label">SAY</span><p>DashboardViewModel is @MainActor, so its state changes happen on the main actor, and @Observable, so SwiftUI redraws when balanceText changes. It awaits BalanceService, formats the minor units as rupees for display, and on error stores a message. Formatting is the ViewModel’s job, not the view’s.</p>
+    <span class="notes-label">LIVE DEMO</span><p>Extend the ViewModel in Xcode: add var isLoading = false; at the top of refreshBalance set isLoading = true and add defer { isLoading = false }, so loading clears however the function exits. Inject the service through init(service: BalanceService = BalanceService()). In DashboardView, own it with @State private var model = DashboardViewModel(), show ProgressView() while model.isLoading, Text(model.balanceText) otherwise, and a Button("Refresh balance") { Task { await model.refreshBalance() } }. Unit 04, lesson 4.5, covers injection properly.</p>
     <span class="notes-label">CONNECT</span><p>Not every request succeeds. What then?</p>
   </aside>
 </section>
 
 <section class="slide chapter">
   <div class="body">
-    <p class="kicker">Part 9</p>
+    <p class="kicker">Part 8</p>
     <h2>When the network fails</h2>
     <p class="lead">Errors are part of the architecture</p>
   </div>
@@ -436,7 +453,7 @@ final class BalanceViewModel {
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 9 &middot; Failure explorer &middot; illustrative</p>
+  <p class="kicker">Part 8 &middot; Failure explorer &middot; illustrative</p>
   <h2>Five possible outcomes</h2>
   <div class="body">
     <div class="diagram">
@@ -456,11 +473,11 @@ final class BalanceViewModel {
     </div>
     <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
     <div class="gap"></div>
-    <div class="rule step" data-label="Retries">Do not retry every failure automatically. Consider HTTP semantics, <b>idempotency</b>, authentication and rate limits. Retrying a <b>money transfer</b> without idempotency protection can cause serious problems.</div>
+    <div class="rule step" data-label="Retries">Do not retry every failure automatically. Consider whether the request is <b>idempotent</b> (Part 3), authentication and rate limits. Retrying a <b>money transfer</b> without idempotency protection can cause serious problems.</div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Success: the server returns valid data. Click through: no network connection, 401 unauthorized, a timeout, and a 500 server error. Each needs a different message and a different next step.</p>
-    <span class="notes-label">SAY</span><p>Do not teach students to retry every failed request automatically. Retries must consider HTTP semantics, idempotency, authentication, rate limits and the business operation.</p>
+    <span class="notes-label">SAY</span><p>Do not retry every failed request automatically. Retries must consider HTTP semantics, whether the request is idempotent, authentication, rate limits and the business operation. A timed-out POST may already have moved the money. Unit 05, lesson 5.6, covers timeouts, retries and backoff.</p>
     <span class="notes-label">ASK</span><p>Should every failed money-transfer POST be retried automatically?</p>
     <span class="notes-label">EXPECT</span><p>No. Without idempotency protection a retry can transfer the money twice.</p>
     <span class="notes-label">CONNECT</span><p>One more case: the user leaves the app mid-request.</p>
@@ -469,7 +486,7 @@ final class BalanceViewModel {
 
 <section class="slide chapter">
   <div class="body">
-    <p class="kicker">Part 10</p>
+    <p class="kicker">Part 9</p>
     <h2>Networking and background execution</h2>
     <p class="lead">Connecting to Lesson 0.3</p>
   </div>
@@ -480,145 +497,19 @@ final class BalanceViewModel {
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 10 &middot; Background transfers</p>
+  <p class="kicker">Part 9 &middot; Background transfers</p>
   <h2>What happens when the app is backgrounded?</h2>
   <div class="body">
     <div class="cols stretch">
       <div class="card step"><span class="label">Normal foreground request</span><p>Not automatically guaranteed to <b>continue indefinitely</b> once the app is suspended.</p></div>
-      <div class="card accent step"><span class="label">Background URLSession</span><p>For supported <b>uploads and downloads</b> that must survive suspension or termination, subject to system scheduling.</p></div>
+      <div class="card accent step"><span class="label">Background URLSession</span><p><b>Uploads and downloads</b> only, handed to the system so they can finish while NPay is suspended or terminated, on the system&rsquo;s schedule.</p></div>
     </div>
     <div class="gap"></div>
-    <div class="rule step" data-label="Important">Background URLSession is <b>not</b> a way to run arbitrary Swift code continuously after the app is suspended.</div>
+    <div class="rule step" data-label="Important">It is <b>not</b> a way to keep your own code running, and if the user <b>force-quits</b> NPay from the app switcher, its background transfers are <b>cancelled</b>.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>A normal foreground URLSession request is not guaranteed to continue indefinitely after the app is backgrounded and suspended. For supported transfers that must survive suspension or even process termination, iOS provides background URLSession configurations, for appropriate uploads and downloads, under system scheduling and restrictions.</p>
-    <span class="notes-label">SAY</span><p>Background URLSession is not a general mechanism for running arbitrary code after suspension.</p>
-    <span class="notes-label">CONNECT</span><p>Let's check your understanding.</p>
-  </aside>
-</section>
-
-<section class="slide chapter">
-  <div class="body">
-    <p class="kicker">Review</p>
-    <h2>Check your understanding</h2>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Four questions. Everyone commits to an answer before it is revealed.</p>
-  </aside>
-</section>
-
-<section class="slide question" data-title="Does SwiftUI directly manage HTTP transport?">
-  <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 1 of 4</p>
-    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i></div>
-  </div>
-  <div class="body">
-    <div class="q-row">
-      <div class="q-card">
-        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
-        <span class="label">Question</span>
-        <p class="q-text">Does SwiftUI directly manage HTTP transport?</p>
-      </div>
-      <div class="q-panel">
-        <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">SwiftUI displays state. URLSession, a Foundation API, performs the network transfer.</p>
-          <p class="q-trap"><b>Common trap:</b> Thinking the view does the networking.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Some say yes because the tap starts in a view.</p>
-    <span class="notes-label">SAY</span><p>No. SwiftUI displays state. URLSession, a Foundation API, performs the network transfer.</p>
-    <span class="notes-label">CONNECT</span><p>Next question.</p>
-  </aside>
-</section>
-
-<section class="slide question" data-title="Does await necessarily block an operating-system thread?">
-  <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 2 of 4</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i></div>
-  </div>
-  <div class="body">
-    <div class="q-row">
-      <div class="q-card">
-        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
-        <span class="label">Question</span>
-        <p class="q-text">Does <code>await</code> necessarily block an operating-system thread?</p>
-      </div>
-      <div class="q-panel">
-        <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">The task suspends while the request proceeds; the thread can do other work.</p>
-          <p class="q-trap"><b>Common trap:</b> Treating await like a blocking call.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Many say yes.</p>
-    <span class="notes-label">SAY</span><p>No. The task suspends while the request proceeds; the thread can do other work.</p>
-    <span class="notes-label">CONNECT</span><p>Next question.</p>
-  </aside>
-</section>
-
-<section class="slide question" data-title="Is HTTPS sufficient to secure a banking application?">
-  <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 3 of 4</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
-  </div>
-  <div class="body">
-    <div class="q-row">
-      <div class="q-card">
-        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></div>
-        <span class="label">Question</span>
-        <p class="q-text">Is HTTPS sufficient to secure a banking application?</p>
-      </div>
-      <div class="q-panel">
-        <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">It protects data in transit. Authentication, authorization, token handling and backend security are still required.</p>
-          <p class="q-trap"><b>Common trap:</b> Equating an encrypted connection with a secure app.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
-    <span class="notes-label">SAY</span><p>No. It protects data in transit. Authentication, authorization, token handling and backend security are still required.</p>
-    <span class="notes-label">CONNECT</span><p>Next question.</p>
-  </aside>
-</section>
-
-<section class="slide question" data-title="Should every failed money-transfer POST be retried automatically?">
-  <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 4 of 4</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
-  </div>
-  <div class="body">
-    <div class="q-row">
-      <div class="q-card">
-        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-send"/></svg></div>
-        <span class="label">Question</span>
-        <p class="q-text">Should every failed money-transfer POST be retried automatically?</p>
-      </div>
-      <div class="q-panel">
-        <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">Without idempotency protection, a retry can repeat the transfer. Retries must respect semantics and the business operation.</p>
-          <p class="q-trap"><b>Common trap:</b> Retrying everything by reflex.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Many say yes; ask what happens if the first attempt actually succeeded.</p>
-    <span class="notes-label">SAY</span><p>No. Without idempotency protection, a retry can repeat the transfer. Retries must respect semantics and the business operation.</p>
+    <span class="notes-label">SAY</span><p>A normal foreground URLSession request is not guaranteed to continue indefinitely after the app is backgrounded and suspended. For transfers that must survive suspension or even termination by the system, iOS provides background URLSession configurations. They support upload and download tasks only, not ordinary data tasks, and the system schedules them.</p>
+    <span class="notes-label">SAY</span><p>Background URLSession is not a way to run arbitrary code after suspension. And if the user force-quits the app from the app switcher, the system cancels its background transfers. Unit 05, lesson 5.8, builds one; Unit 10, lesson 10.7, covers BackgroundTasks.</p>
     <span class="notes-label">CONNECT</span><p>One last look at the whole path.</p>
   </aside>
 </section>
@@ -658,6 +549,237 @@ final class BalanceViewModel {
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Click and watch the whole path: SwiftUI to the ViewModel, the service, URLSession, HTTPS, the server; then back as JSON, decoded into a model, through the ViewModel to SwiftUI.</p>
     <span class="notes-label">SAY</span><p>And why: networking must be asynchronous, security is layered, and error handling is part of the application architecture.</p>
+    <span class="notes-label">CONNECT</span><p>Now the recap on the map.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.8 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 366" style="max-height:300px" role="img" aria-labelledby="rmap08">
+        <title id="rmap08">NPay architecture map</title>
+        <rect class="wire dash" x="16" y="20" width="828" height="182" rx="16"/>
+        <text class="mono" x="32" y="42">NPAY PROCESS · SANDBOX</text>
+        <text class="mono" x="16" y="228">IOS</text>
+        <g class="nd"><rect class="sh" x="32" y="58" width="190" height="56" rx="12"/><use href="#i-phone" x="46" y="73" width="26" height="26"/><text x="84" y="83">View</text><text class="sm" x="84" y="101">SwiftUI screen</text></g>
+        <g class="nd"><rect class="sh" x="236" y="58" width="190" height="56" rx="12"/><use href="#i-layout" x="250" y="73" width="26" height="26"/><text x="288" y="83">ViewModel</text><text class="sm" x="288" y="101">screen state</text></g>
+        <g class="nd lit"><rect class="sh" x="440" y="58" width="190" height="56" rx="12"/><use href="#i-link" x="454" y="73" width="26" height="26"/><text x="492" y="83">Service</text><text class="sm" x="492" y="101">talks to the bank</text></g>
+        <g class="nd"><rect class="sh" x="644" y="58" width="190" height="56" rx="12"/><use href="#i-code" x="658" y="73" width="26" height="26"/><text x="696" y="83">Model</text><text class="sm" x="696" y="101">balance, transactions</text></g>
+        <g class="nd"><rect class="sh" x="32" y="132" width="260" height="56" rx="12"/><use href="#i-thread" x="46" y="147" width="26" height="26"/><text x="84" y="157">Main thread</text><text class="sm" x="84" y="175">RunLoop · events · frames</text></g>
+        <g class="nd"><rect class="sh" x="306" y="132" width="260" height="56" rx="12"/><use href="#i-memory" x="320" y="147" width="26" height="26"/><text x="358" y="157">Memory</text><text class="sm" x="358" y="175">stack · heap · ARC</text></g>
+        <g class="nd"><rect class="sh" x="580" y="132" width="254" height="56" rx="12"/><use href="#i-frame" x="594" y="147" width="26" height="26"/><text x="632" y="157">Scene</text><text class="sm" x="632" y="175">foreground · background</text></g>
+        <g class="nd"><rect class="sh" x="16" y="238" width="180" height="56" rx="12"/><use href="#i-grid" x="30" y="253" width="26" height="26"/><text x="68" y="263">SpringBoard</text><text class="sm" x="68" y="281">launches apps</text></g>
+        <g class="nd"><rect class="sh" x="210" y="238" width="170" height="56" rx="12"/><use href="#i-key" x="224" y="253" width="26" height="26"/><text x="262" y="263">Keychain</text><text class="sm" x="262" y="281">secrets</text></g>
+        <g class="nd"><rect class="sh" x="394" y="238" width="232" height="56" rx="12"/><use href="#i-db" x="408" y="253" width="26" height="26"/><text x="446" y="263">Storage</text><text class="sm" x="446" y="281">UserDefaults · SwiftData</text></g>
+        <g class="nd lit"><rect class="sh" x="640" y="238" width="204" height="56" rx="12"/><use href="#i-frameworks" x="654" y="253" width="26" height="26"/><text x="692" y="263">Frameworks</text><text class="sm" x="692" y="281">SwiftUI · URLSession</text></g>
+        <g class="nd"><rect class="sh" x="16" y="308" width="410" height="56" rx="12"/><use href="#i-kernel" x="30" y="323" width="26" height="26"/><text x="68" y="333">Kernel</text><text class="sm" x="68" y="351">processes · sandbox · code signing</text></g>
+        <g class="nd"><rect class="sh" x="440" y="308" width="404" height="56" rx="12"/><use href="#i-chip" x="454" y="323" width="26" height="26"/><text x="492" y="333">Hardware</text><text class="sm" x="492" y="351">CPU · memory · Secure Enclave</text></g>
+        <g class="nd lit"><rect class="sh" x="920" y="238" width="216" height="56" rx="12"/><use href="#i-bank" x="934" y="253" width="26" height="26"/><text x="972" y="263">Bank API server</text><text class="sm" x="972" y="281">authoritative balance</text></g>
+        <path class="wire" d="M224 86H234M229 81l5 5-5 5"/>
+        <path class="wire" d="M428 86H438M433 81l5 5-5 5"/>
+        <path class="wire" d="M632 86H642M637 81l5 5-5 5"/>
+        <path class="wire lit" d="M848 266H916M911 261l5 5-5 5M853 261l-5 5 5 5"/>
+        <text class="sm" x="882" y="256" text-anchor="middle">HTTPS</text>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="tip" data-label="Recap"><div class="points"><div><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg><span><b>The server owns the balance</b><small>NPay shows a copy</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-check"/></svg><span><b>Validate, then decode</b><small>any 2xx status, then Codable into a Balance</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-send"/></svg><span><b>Retry with care</b><small>only when repeating is safe: idempotent requests</small></span></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. The bank’s server owns the authoritative balance; NPay holds a copy to display. BalanceService validates the status, any 2xx, before decoding JSON into a Balance. And retries are a design decision: repeat a request only when doing so twice is safe.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Five questions. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Who owns the authoritative ₹25,000?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Who owns the authoritative &#8377;25,000?</p><ol class="q-opts"><li>The SwiftUI view</li><li>DashboardViewModel</li><li>The bank&rsquo;s server</li><li>UserDefaults on the iPhone</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">The backend owns the real balance. The ViewModel holds a copy for display.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating the number on screen as the source of truth.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B because the ViewModel holds balanceText.</p>
+    <span class="notes-label">SAY</span><p>C. The backend owns the real balance. The ViewModel holds a copy for display.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="fetchBalance() gets HTTP 401 with a JSON error body. What happens?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text"><code>fetchBalance()</code> gets HTTP 401 with a JSON error body. What happens?</p><ol class="q-opts"><li>It decodes the error body as a Balance</li><li>It throws <code>URLError(.badServerResponse)</code></li><li>It returns a balance of &#8377;0</li><li>URLSession retries automatically</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">401 is outside 200..&lt;300, so the guard fails and the function throws before decoding. The ViewModel shows the error.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming URLSession throws for HTTP error codes on its own.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A or D. URLSession only throws for transport failures; status codes are the app&rsquo;s job.</p>
+    <span class="notes-label">SAY</span><p>B. 401 is outside 200..&lt;300, so the guard fails and the function throws before decoding. The ViewModel shows the error.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Is HTTPS sufficient to secure a banking application?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Is HTTPS sufficient to secure a banking application?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It protects data in transit. Authentication, authorization, token handling and backend security are still required.</p>
+          <p class="q-trap"><b>Common trap:</b> Equating an encrypted connection with a secure app.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It protects data in transit. Authentication, authorization, token handling and backend security are still required.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Spaced review from 0.5. While fetchBalance() awaits the server, can the main thread handle another tap?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Spaced review from 0.5. While <code>fetchBalance()</code> awaits the server, can the main thread handle another tap?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">The task is suspended at await, not blocking the thread, so the main thread keeps running its RunLoop.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating await like a blocking call.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Spaced review from 0.5. Some say no.</p>
+    <span class="notes-label">SAY</span><p>Yes. The task is suspended at await, not blocking the thread, so the main thread keeps running its RunLoop.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="A money-transfer POST timed out. What is the safe next step?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-send"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">A money-transfer POST timed out. What is the safe next step?</p><ol class="q-opts"><li>Retry it immediately, unchanged</li><li>Retry it three times quickly</li><li>Send it again as a GET</li><li>Retry with the same idempotency key, so the server can spot a duplicate</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">D</span>
+          <p class="q-why">POST is not idempotent and the first attempt may have succeeded. An idempotency key lets the server apply it only once.</p>
+          <p class="q-trap"><b>Common trap:</b> Retrying everything by reflex.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A; ask what happens if the first attempt actually succeeded.</p>
+    <span class="notes-label">SAY</span><p>D. POST is not idempotent and the first attempt may have succeeded. An idempotency key lets the server apply it only once.</p>
+    <span class="notes-label">CONNECT</span><p>Where these ideas go next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.8 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">5.1</td><td><b>HTTP, REST &amp; idempotency</b></td><td>methods and safe retries</td></tr><tr><td class="mono">5.2</td><td><b>URLSession &amp; URLRequest</b></td><td>the full BalanceService</td></tr><tr><td class="mono">5.3</td><td><b>Codable, dates &amp; custom decoding</b></td><td>decoding real bank responses</td></tr><tr><td class="mono">5.5</td><td><b>Auth headers &amp; token refresh</b></td><td>the bearer token and 401</td></tr><tr><td class="mono">5.8</td><td><b>Uploads, downloads &amp; background sessions</b></td><td>transfers that outlive suspension</td></tr><tr><td class="mono">7.6</td><td><b>TLS, ATS &amp; certificate trust</b></td><td>what HTTPS protects, and how</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Today was the architecture. Unit 05 builds it: HTTP semantics and idempotency, a full URLSession service, Codable with dates and custom decoding, auth headers and token refresh, and background transfers. Unit 07, lesson 7.6, goes inside TLS and App Transport Security.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.8 &middot; Lab</p>
+  <h2>Decode a balance, classify a status</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Swift on the command line only; no Xcode project needed.</p><ol class="lab"><li>Save <code>lab.swift</code> and <b>predict</b> its output.</li><li>Run <code>swiftc lab.swift -o lab &amp;&amp; ./lab</code>.</li><li>Rename the JSON key to <code>"balance"</code>. What error do you get?</li><li>Write <code>classify(_ status:)</code> for 200, 204, 401, 404, 500, 503.</li></ol></div>
+    <div><div class="cw"><div class="ch"><span>lab.swift (excerpt)</span></div><pre class="cb" style="font-size:13px">struct Balance: Decodable {
+    let accountId: String
+    let currency: String
+    let balanceMinor: Int64
+}
+let json = Data(&quot;&quot;&quot;
+    {&quot;accountId&quot;: &quot;123&quot;, &quot;currency&quot;: &quot;INR&quot;,
+     &quot;balanceMinor&quot;: 2500000}
+    &quot;&quot;&quot;.utf8)
+let balance = try JSONDecoder().decode(Balance.self, from: json)
+let rupees = Decimal(balance.balanceMinor) / 100
+print(rupees.formatted(.currency(code: &quot;INR&quot;)))</pre></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>LIVE DEMO / lab script. Full lab.swift: import Foundation, then the excerpt on the slide. It prints ₹25,000.00 (the exact format depends on the locale). Renaming the key to "balance" throws DecodingError.keyNotFound for balanceMinor. Model answer for classify: switch status { case 200..&lt;300: "success: decode the body"; case 401: "sign in again"; case 400..&lt;500: "request problem: don’t retry as-is"; case 500..&lt;600: "server problem: try again later"; default: "unexpected" }, then loop over [200, 204, 401, 404, 500, 503] and print each. Discussion: 204 is a success with no body, so decoding it as a Balance would fail.</p>
     <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
   </aside>
 </section>
@@ -666,10 +788,10 @@ final class BalanceViewModel {
   <div class="body">
     <p class="kicker">Lesson 0.8 complete</p>
     <h2>iOS Networking Architecture:<br>From App to Server</h2>
-    <p class="lead" style="max-width:820px;margin:0 auto">SwiftUI &rarr; ViewModel &rarr; Service &rarr; URLSession &rarr; HTTPS &rarr; Server, and back.</p>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 0.9 &mdash; iOS Data Storage Architecture</p>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>You can now explain the complete path of a network request in an iOS app, why it is asynchronous, why its security is layered, and why error handling belongs in the architecture.</p>
+    <span class="notes-label">SAY</span><p>You can now explain the complete path of a network request in an iOS app, why it is asynchronous, why its security is layered, and why error handling belongs in the architecture. Next lesson: once the balance arrives, what should NPay keep on the device, and where?</p>
   </aside>
 </section>
 

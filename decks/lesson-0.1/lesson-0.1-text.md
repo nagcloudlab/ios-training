@@ -6,6 +6,9 @@
 > It is based on the original lesson text, extended with everything the slides and speaker notes add
 > (seven-step launch, SpringBoard, compilation, dyld, first frame, performance, review answers).
 > The running example app is **NPay**, a fictional SwiftUI banking app.
+> Updated after the Unit 00 audit: corrected launch order (inactive → first frame → active), lifecycle cut to a preview
+> (Lessons 0.3/0.4 own it), memory regions moved to Lesson 0.6. *Authored for the audit:* the NPay map, the Swift reading kit,
+> the recap, "Where this goes next", the paper lab and the rebalanced review.
 
 Our first question is deceptively simple:
 
@@ -18,9 +21,16 @@ By the end of this lesson you should be able to explain the journey from tapping
 1. Distinguish an installed **bundle**, a running **process** and a **scene**.
 2. Explain the **platform layers** and the boundaries between them.
 3. Narrate a **tap** all the way to the **first frame**.
-4. Explain **launch vs activation** and the **app lifecycle**.
+4. Explain **cold launch vs warm activation** and where the **lifecycle** begins.
 5. Place **Mach-O**, **dyld**, `@main`, `WindowGroup` and `body` correctly.
 6. Spot **startup performance** risks and plan how to measure them.
+
+### Where we are: the NPay map
+
+One architecture map runs through the whole unit: NPay's code (View → ViewModel → Service → Model, the main thread, memory, the scene) inside its **sandbox**; iOS underneath (SpringBoard, Keychain, storage, frameworks); the kernel and hardware at the bottom; the bank's API server on the right, reached over HTTPS. Each lesson lights up its own part. Today: **SpringBoard → kernel → sandboxed process → first view**.
+
+- **Last time:** first lesson of the course; no iOS knowledge assumed.
+- **Today:** one tap, all the way to NPay's first frame.
 
 ---
 
@@ -46,7 +56,7 @@ Simplified conceptual architecture, not a literal iOS system call stack. In NPay
 |---|---|---|
 | **App bundle** | On disk | Signed executable, resources and metadata. Exists even when nothing runs. |
 | **Process** | In memory | OS-managed execution: virtual address space and threads. Created only when needed. |
-| **Scene** | On screen | A system-managed UI instance. Lives inside a process; one process can host several (notably on iPad). |
+| **Scene** | A UI instance | A system-managed UI instance (a window). It can be in the foreground or the background, and the system can disconnect it while the process lives on; one process can host several (notably on iPad). |
 
 A **recipe book** (bundle) is not a **working kitchen** (process). The **dining room** (scene) is where the user interacts. An installed app can have zero running processes.
 
@@ -58,6 +68,8 @@ A **recipe book** (bundle) is not a **working kitchen** (process). The **dining 
 - **System services** provide shared facilities.
 - **Frameworks** give your app approved ways to use those facilities.
 - **The sandbox** prevents one guest from entering another guest's room.
+
+This hotel is the unit's analogy for the platform and its security boundary. Later: the **front desk** is SpringBoard, the **room key** is code signing and entitlements (Lesson 0.7), the **in-room safe** is the Keychain (Lesson 0.7). Inside the process we use a second picture, the **kitchen** (Part 3).
 
 The important idea: **your app does not own the iPhone. It runs under the operating system's supervision.**
 
@@ -91,14 +103,14 @@ Imagine tapping NPay. Before the first screen appears, the system must set up a 
 | 3 | **Process created** | The OS creates the process: identity, virtual memory, a main thread, the sandbox. |
 | 4 | **Executable and libraries load** | The dynamic loader, dyld, prepares the executable and required dynamic libraries. |
 | 5 | **Swift entry point** | The runtime is ready and Swift's entry point starts your App type. |
-| 6 | **Scene created** | iOS creates a scene, and WindowGroup supplies the root view. |
-| 7 | **First frame on screen** | SwiftUI evaluates the views, lays them out, and the first frame is displayed. |
+| 6 | **Scene created** | iOS connects a scene (still **inactive**); WindowGroup supplies the root view. |
+| 7 | **First frame on screen** | SwiftUI renders the first frame; **then** the scene becomes **active** and receives touches. |
 
 Not always a new process: if NPay is already running in the background, iOS may simply bring it to the foreground. Launching a process and activating an existing app are different operations, which matters later for lifecycle management and state restoration.
 
 ### SpringBoard handles the tap
 
-1. **A system process.** Part of iOS; none of NPay's code runs here. SpringBoard starts when the iPhone boots. The Home Screen is SpringBoard's interface; the NPay icon is just an image from NPay's bundle that SpringBoard draws. Nothing in our Swift code, not even `@main`, can react to the tap itself.
+1. **A system process.** Part of iOS; none of NPay's code runs here. SpringBoard starts when the iPhone boots. The Home Screen is SpringBoard's interface; the NPay icon is just an image from NPay's bundle that SpringBoard draws. Nothing in our Swift code, not even `@main`, can react to the tap itself. In the hotel picture, SpringBoard is the **front desk**: guests ask it for their room, but it never goes inside.
 2. **Owns the Home Screen.** Draws icons and badges and runs the app switcher. An app can set a badge number through notification APIs, but SpringBoard draws it. Switcher cards are snapshots, so an app is not necessarily running while you see its card.
 3. **Coordinates the launch.** On a tap it does not start NPay itself; it asks the system to open the app. Meanwhile the system plays the icon animation and shows the app's **launch screen** (a static placeholder) until the first frame is ready.
 
@@ -121,20 +133,11 @@ If the process is still alive, the system reuses it; if not, it builds everythin
 On disk, an app is **executable code and resources**. A **process** is a running instance of it. The OS establishes:
 
 - Process identity and resources
-- A **virtual address space** with mapped regions
+- Its own **virtual memory** (a private address space)
 - At least one execution **thread**
 - **Sandbox** and code-signing enforcement
 
-### Simplified process memory
-
-| Region | Holds |
-|---|---|
-| Code / text | Machine instructions, mapped executable code |
-| Global and static data | Global variables and static storage |
-| Heap | Dynamically allocated objects and storage |
-| Thread stacks | Function call frames and local execution state |
-
-Illustrative regions, not the actual address order or a complete memory map. Virtual addresses are not physical RAM addresses, and mapping an executable does not mean it was all copied into RAM. **Swift value types are not guaranteed to live on the stack**: "struct on the stack, class on the heap" is not a reliable rule. A Swift `Task` is not the same thing as a thread. Code signing proves origin and integrity, not that the app is free of vulnerabilities; a sandboxed app can share data only through authorized mechanisms such as app groups or the share sheet.
+Virtual memory means each process sees its own private address space; virtual addresses are not physical RAM addresses. What lives inside that space (stack, heap, and how ARC frees objects) is **Lesson 0.6**. Code signing proves origin and integrity, not that the app is free of vulnerabilities; a sandboxed app can share data only through authorized mechanisms such as app groups or the share sheet.
 
 ### Program, process, thread
 
@@ -143,11 +146,9 @@ Illustrative regions, not the actual address order or a complete memory map. Vir
 | Program | Code stored on disk |
 | Process | Running instance of a program |
 | Thread | Execution path inside a process |
-| Main thread | Handles the app's primary UI events |
-| Heap | Dynamic memory storage |
-| Stack | Execution storage for one thread |
+| Main thread | Handles the app's UI and user events |
 
-A restaurant's **recipe book** is the program on disk. **Opening the restaurant**, hiring staff and preparing the kitchen is starting a process. The **workers** are threads doing tasks inside it. Memory management, ARC and Swift concurrency come in later lessons.
+A kitchen's **recipe book** is the program on disk. **Opening the kitchen** is starting a process. The **cooks** are threads; the **head chef**, who plates every dish the guest sees, is the main thread. This kitchen is the unit's analogy for everything inside the process (Lesson 0.5 adds the order rail, the RunLoop). Memory (stack, heap, ARC) is Lesson 0.6; threads and the RunLoop are Lesson 0.5.
 
 ---
 
@@ -183,7 +184,22 @@ NPay Mach-O → dyld → load dependencies (SwiftUI, Foundation, libswiftCore)
 
 dyld prepares executable images and their dependencies at runtime. System frameworks come from the **dyld shared cache**, prepared ahead of time by Apple, which is why they load quickly; your own embedded frameworks do not get that benefit.
 
-Before a play begins, the **stage crew** (dyld) prepares props and sets. The crew is not the **playwright** (compiler).
+**Remember:** dyld **loads and links** code that was compiled earlier, on your Mac. It never compiles anything.
+
+### Swift reading kit *(authored)*
+
+You don't write Swift in this unit, but you read it. Six patterns cover almost every snippet:
+
+| You see | Read it as |
+|---|---|
+| `@main` | "The program's Swift code starts with this type." |
+| `struct NPayApp: App` | A type NPayApp that **conforms to** `App`: it provides what `App` requires. |
+| `var body: some View` | A computed property returning **one specific** view type, without spelling out its name. |
+| `WindowGroup { DashboardView() }` | A **trailing closure**: the block in braces is passed in as the last argument. |
+| `@State private var balanceText` | A **property wrapper**: SwiftUI stores the value; changing it updates the screen. |
+| `try await service.fetchBalance()` | `await`: may pause here **without blocking** the thread. `try`: may throw an error. |
+
+Read, don't write: Unit 01 teaches each of these properly (closures 1.4, protocols 1.6, concurrency 1.9).
 
 ### The `@main` declaration
 
@@ -255,29 +271,47 @@ Views compose into a tree; the frameworks render it. `body` is not an imperative
 ### The first-frame journey
 
 ```
-Scene active → Evaluate view bodies → Reconcile (what changed) → Layout (size & place)
-             → Graphics (composite) → First frame on screen
+Scene connects (still inactive) → Evaluate view bodies → Reconcile (what changed)
+  → Layout (size & place) → Graphics (composite) → First frame on screen → scene becomes active
 ```
+
+The order matters: the scene connects in the **inactive** state, the first frame is drawn, and only then does the scene become **active** and start receiving touches.
 
 `body` may be re-evaluated without redrawing the entire screen. The first frame can be visible while the main thread is still busy with heavy synchronous work; until it finishes, taps wait in line. **First visible frame and fully interactive are not the same milestone.**
 
 ---
 
-## Part 6 — The application lifecycle
+## Part 6 — The application lifecycle (preview)
 
-An iOS app doesn't simply start, run forever and exit. The system manages its execution based on user activity and available resources.
+An iOS app doesn't simply start, run forever and exit: after the first frame, iOS decides when it runs. This part is a preview; **Lesson 0.3** goes deep on process vs scene, suspension and termination, and **Lesson 0.4** on reading `scenePhase` in SwiftUI.
+
+```
+Not running ──launch──→ Inactive ⇄ Active
+                          ↓   ↑
+                       Background ──→ Suspended
+Suspended ┄┄ iOS may terminate ┄┄→ Not running
+```
 
 | State | Meaning |
 |---|---|
 | Not running | No process |
+| Inactive | Visible, not receiving events (where every launch and return starts) |
 | Active | Receiving user interaction |
-| Inactive | Foreground, temporarily not receiving events |
-| Background | Not foreground; limited permitted execution |
-| Suspended | Process kept in memory, code not executing |
+| Background | Not visible; limited permitted execution |
+| Suspended | Process kept in memory, no code running |
 
-A common path, not every possible transition. **iOS can terminate a suspended app**, and scene lifecycle states differ from process execution states.
+Not running and suspended are **process** states; inactive, active and background are **scene phases**. A common path, not every possible transition.
 
-### Observing the scene phase
+**In the demo** (trainer runs it; predict each row first):
+
+| Action | Scene phase |
+|---|---|
+| Launch NPay | inactive, then active |
+| Pull down Notification Center | inactive |
+| Go to the Home Screen | inactive, then background |
+| Return to NPay | inactive, then active |
+
+Demo code (typechecks, iOS 17+; Lesson 0.4 explains it):
 
 ```swift
 import SwiftUI
@@ -291,54 +325,11 @@ struct NPayApp: App {
             DashboardView()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
-            switch newPhase {
-            case .active:
-                print("Scene active")
-            case .inactive:
-                print("Scene inactive")
-            case .background:
-                print("Scene background")
-            @unknown default:
-                break
-            }
+            print("Scene phase: \(oldPhase) → \(newPhase)")
         }
     }
 }
 ```
-
-- `.active` — in front and receiving interaction
-- `.inactive` — visible, temporarily not receiving events
-- `.background` — not visible: save data, pause work
-
-`@unknown default` keeps the switch future-proof if Apple adds a phase.
-
----
-
-## Part 7 — Practice
-
-### Lab: observe startup and lifecycle
-
-On your Mac:
-
-1. In Xcode, create an iOS App project named **LifecycleLab**.
-2. Choose **SwiftUI** and **Swift**.
-3. Replace the generated entry point with the scene-phase example, keeping your project's app type name.
-4. Run it in the iPhone Simulator.
-5. Watch the debug console while moving between the app and the Home Screen.
-
-| Action | What to observe |
-|---|---|
-| Launch the app | Initial UI appears; the scene typically becomes active |
-| Open Notification Center | The scene may become inactive |
-
-> The original text ends at this table; further experiment rows were not provided.
-
-### Hands-on exercises
-
-- **A: Responsibility map** — draw Home Screen system UI, the NPay process, its scene, a SwiftUI view, the kernel and hardware. Explain every boundary.
-- **B: Cold vs warm** — draw both launch paths. Mark which stages a warm activation can reuse, and explain why survival is not guaranteed.
-- **C: Source to binary** — on a Mac, find your built app in Xcode's build products and run `file` and `otool -l` on the executable. Use the real path; don't guess bundle paths.
-- **D: Blank screen** — the app shows a blank screen at launch. Write three hypotheses and the measurement that would test each one.
 
 ---
 
@@ -379,26 +370,72 @@ One tap crosses **five ownership boundaries** before the first frame appears. On
 | "dyld compiles the app." | Compilation is build time; dyld loads at runtime. |
 | "SwiftUI `body` paints the screen." | It describes UI; the frameworks render it. |
 
-### Check your understanding
+### Recap *(authored)*
 
-1. **Which layer schedules threads?** The kernel: Darwin/XNU handles scheduling and memory.
-2. **Can your app read another app's files or freely access the camera?** No. Approved APIs and permissions only; the OS mediates.
-3. **Does the tap immediately call `NPayApp.body`?** No. Your Swift code hasn't started yet.
-4. **Will returning after 10 minutes always be a warm activation?** No. The OS may have ended the process.
-5. **Is a suspended app running code?** No. The process is kept, code is not executing, and iOS may terminate it.
-6. **Is a process the same as a thread?** No. The process is the container; threads are workers inside it.
-7. **Is Mach-O the Swift programming language?** No. It is a binary format; Swift compiles into it.
-8. **Does dyld compile Swift source?** No. Compilation is build time; dyld loads at runtime.
-9. **Does `DashboardView()` draw pixels?** No. It creates a view value; the framework renders it.
-10. **Is `body` an imperative paint method?** No. It returns a tree of view values.
-11. **Can the first screen be visible but unresponsive?** Yes. If the main thread is blocked, taps wait in line.
+- **System first** — SpringBoard and the kernel act before any NPay code runs.
+- **Bundle ≠ process ≠ scene** — files on disk, a running instance, a UI instance.
+- **Describe, then render** — inactive → first frame → active.
+
+### Check your understanding *(rebalanced after the audit)*
+
+1. **Which layer schedules NPay's threads?** A SwiftUI · B NPay's `App` type · C the kernel · D SpringBoard. **C.** The kernel (Darwin/XNU) schedules every thread and manages memory.
+2. **Can NPay read another app's files, or use the camera without asking?** **No.** The sandbox keeps each app in its own room; the camera needs an approved API and the user's permission.
+3. **You tap NPay on a cold launch. Which runs first?** A `NPayApp.body` · B `DashboardView.body` · C dyld loading the executable · D the Refresh balance button. **C.** The process must exist and dyld must load the executable before any Swift entry point; then `@main`, then `body`.
+4. **You come back to NPay after 10 minutes. Is it a warm activation?** **Not always.** Only if the process survived; iOS may have ended it, and then it is a cold launch.
+5. **Can one NPay process run several threads at the same time?** **Yes.** The process is the container; threads are the cooks inside it, and the main thread is one of them.
+6. **Where is NPay's Swift code turned into machine code?** A on the iPhone at launch, by dyld · B on your Mac, at build time · C on the first tap, by SpringBoard · D interpreted line by line. **B.** dyld only loads and links.
+7. **Predict:** `balanceText` starts as "₹25,000"; the button sets it to "₹25,480". After one tap, what does SwiftUI do? A repaints the whole screen · B re-evaluates `body` and updates the changed text · C nothing until the next launch · D creates a new process. **B.**
+8. **Can the first screen be visible but unresponsive?** **Yes.** If the main thread is still busy, taps wait in line.
+
+### Where this goes next
+
+| Lesson | Topic | Builds on today |
+|---|---|---|
+| 0.3 | App lifecycle: process, scenes & suspension | what happens after the first frame |
+| 0.6 | Memory architecture & ARC | what lives inside the process's memory |
+| 1.1 | Swift design, compiler, SIL & LLVM | the build pipeline from source to Mach-O |
+| 2.1 | Declarative UI, View & body | views as descriptions |
+| 2.2 | Xcode projects, simulator & previews | the project that builds and runs NPay |
+| 8.9 | Instruments & measurement | measuring launch instead of guessing |
+
+---
+
+## Practice
+
+### Lab: order the launch, read the bundle *(authored; no Xcode needed)*
+
+1. Put the cards in order: tap, SpringBoard, launch request, process + sandbox, dyld, `@main`, scene (inactive), first frame, active.
+2. Mark each card's owner: system, loader, your code or frameworks.
+3. Cross out the cards a warm activation can skip.
+4. Label every item in the bundle: executable, metadata, resources or signature.
+
+```
+NPay.app/
+├── NPay
+├── Info.plist
+├── Assets.car
+├── PrivacyInfo.xcprivacy
+├── embedded.mobileprovision
+├── _CodeSignature/
+│   └── CodeResources
+└── Frameworks/
+```
+
+*Answers:* NPay = Mach-O executable; Info.plist = metadata; Assets.car = compiled resources; PrivacyInfo.xcprivacy = metadata (privacy manifest); embedded.mobileprovision = signing (provisioning profile, device builds only); _CodeSignature/CodeResources = signature; Frameworks/ = embedded libraries that dyld loads. A warm activation skips launch request to `@main`: the process already exists.
+
+### Hands-on exercises
+
+- **A: Responsibility map** — draw Home Screen system UI, the NPay process, its scene, a SwiftUI view, the kernel and hardware. Explain every boundary.
+- **B: Cold vs warm** — draw both launch paths. Mark which stages a warm activation can reuse, and explain why survival is not guaranteed.
+- **C: Source to binary (optional, Mac)** — find your built app in Xcode's build products and run `file` and `otool -l` on the executable. Use the real path; don't guess bundle paths.
+- **D: Blank screen** — the app shows a blank screen at launch. Write three hypotheses and the measurement that would test each one.
 
 ### Your challenge
 
-"Starting from the moment I tap the NPay icon, explain what the **system** owns, what our **Swift code** owns, what happens only on a **new process launch**, and how a view description becomes the **first visible frame**."
+"Starting from the moment I tap the NPay icon, explain what the **system** owns, what our **Swift code** owns, what happens only on a **new process launch**, and how a view description becomes the **first visible frame**." A rehearsal for the Unit 00 checkpoint in Lesson 0.10.
 
 - **System owns:** SpringBoard, process creation, sandbox, scheduling
 - **Your code owns:** `@main`, `App`, `WindowGroup`, `DashboardView`, `@State`
-- **The bridge:** evaluate → layout → graphics → first frame
+- **The bridge:** scene connects (inactive) → evaluate → layout → graphics → first frame → active
 
-**Next:** how should we organize the code inside the running app — views, state, services and data? (Lesson 0.2)
+**Next:** Lesson 0.2 — iOS App Architecture: Who Does What?

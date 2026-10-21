@@ -33,14 +33,53 @@
         <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-process"/></svg></span><p>Distinguish an installed <b>bundle</b>, a running <b>process</b> and a <b>scene</b></p></div>
         <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Explain the <b>platform layers</b> and the boundaries between them</p></div>
         <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-tap"/></svg></span><p>Narrate a <b>tap</b> all the way to the <b>first frame</b></p></div>
-        <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></span><p>Explain <b>launch vs activation</b> and the <b>app lifecycle</b></p></div>
+        <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></span><p>Explain <b>cold launch vs warm activation</b> and where the <b>lifecycle</b> begins</p></div>
         <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></span><p>Place <b>Mach-O</b>, <b>dyld</b>, <code>@main</code>, <code>WindowGroup</code> and <code>body</code> correctly</p></div>
         <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Spot <b>startup performance</b> risks and plan how to measure them</p></div>
     </div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Six outcomes. All of them hang off one question: what happens after you tap the icon? Keep that question in mind; every slide answers a piece of it.</p>
-    <span class="notes-label">CONNECT</span><p>First, the big picture of how any iOS app works.</p>
+    <span class="notes-label">CONNECT</span><p>First, where this lesson sits on the NPay map.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.1 &middot; Where we are</p>
+  <h2>Today: from a tap to the first frame</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 366" style="max-height:400px" role="img" aria-labelledby="map01">
+        <title id="map01">NPay architecture map</title>
+        <rect class="wire dash" data-lit="3+" x="16" y="20" width="828" height="182" rx="16"/>
+        <text class="mono" x="32" y="42">NPAY PROCESS · SANDBOX</text>
+        <text class="mono" x="16" y="228">IOS</text>
+        <g class="nd" data-lit="4+"><rect class="sh" x="32" y="58" width="190" height="56" rx="12"/><use href="#i-phone" x="46" y="73" width="26" height="26"/><text x="84" y="83">View</text><text class="sm" x="84" y="101">SwiftUI screen</text></g>
+        <g class="nd"><rect class="sh" x="236" y="58" width="190" height="56" rx="12"/><use href="#i-layout" x="250" y="73" width="26" height="26"/><text x="288" y="83">ViewModel</text><text class="sm" x="288" y="101">screen state</text></g>
+        <g class="nd"><rect class="sh" x="440" y="58" width="190" height="56" rx="12"/><use href="#i-link" x="454" y="73" width="26" height="26"/><text x="492" y="83">Service</text><text class="sm" x="492" y="101">talks to the bank</text></g>
+        <g class="nd"><rect class="sh" x="644" y="58" width="190" height="56" rx="12"/><use href="#i-code" x="658" y="73" width="26" height="26"/><text x="696" y="83">Model</text><text class="sm" x="696" y="101">balance, transactions</text></g>
+        <g class="nd"><rect class="sh" x="32" y="132" width="260" height="56" rx="12"/><use href="#i-thread" x="46" y="147" width="26" height="26"/><text x="84" y="157">Main thread</text><text class="sm" x="84" y="175">RunLoop · events · frames</text></g>
+        <g class="nd"><rect class="sh" x="306" y="132" width="260" height="56" rx="12"/><use href="#i-memory" x="320" y="147" width="26" height="26"/><text x="358" y="157">Memory</text><text class="sm" x="358" y="175">stack · heap · ARC</text></g>
+        <g class="nd"><rect class="sh" x="580" y="132" width="254" height="56" rx="12"/><use href="#i-frame" x="594" y="147" width="26" height="26"/><text x="632" y="157">Scene</text><text class="sm" x="632" y="175">foreground · background</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="16" y="238" width="180" height="56" rx="12"/><use href="#i-grid" x="30" y="253" width="26" height="26"/><text x="68" y="263">SpringBoard</text><text class="sm" x="68" y="281">launches apps</text></g>
+        <g class="nd"><rect class="sh" x="210" y="238" width="170" height="56" rx="12"/><use href="#i-key" x="224" y="253" width="26" height="26"/><text x="262" y="263">Keychain</text><text class="sm" x="262" y="281">secrets</text></g>
+        <g class="nd"><rect class="sh" x="394" y="238" width="232" height="56" rx="12"/><use href="#i-db" x="408" y="253" width="26" height="26"/><text x="446" y="263">Storage</text><text class="sm" x="446" y="281">UserDefaults · SwiftData · files</text></g>
+        <g class="nd" data-lit="4+"><rect class="sh" x="640" y="238" width="204" height="56" rx="12"/><use href="#i-frameworks" x="654" y="253" width="26" height="26"/><text x="692" y="263">Frameworks</text><text class="sm" x="692" y="281">SwiftUI · URLSession</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="16" y="308" width="410" height="56" rx="12"/><use href="#i-kernel" x="30" y="323" width="26" height="26"/><text x="68" y="333">Kernel</text><text class="sm" x="68" y="351">processes · sandbox · code signing</text></g>
+        <g class="nd"><rect class="sh" x="440" y="308" width="404" height="56" rx="12"/><use href="#i-chip" x="454" y="323" width="26" height="26"/><text x="492" y="333">Hardware</text><text class="sm" x="492" y="351">CPU · memory · Secure Enclave</text></g>
+        <g class="nd"><rect class="sh" x="920" y="238" width="216" height="56" rx="12"/><use href="#i-bank" x="934" y="253" width="26" height="26"/><text x="972" y="263">Bank API server</text><text class="sm" x="972" y="281">authoritative balance</text></g>
+        <path class="wire" d="M224 86H234M229 81l5 5-5 5"/>
+        <path class="wire" d="M428 86H438M433 81l5 5-5 5"/>
+        <path class="wire" d="M632 86H642M637 81l5 5-5 5"/>
+        <path class="wire" d="M848 266H916M911 261l5 5-5 5M853 261l-5 5 5 5"/>
+        <text class="sm" x="882" y="256" text-anchor="middle">HTTPS</text>
+      </svg>
+    </div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="bridge"><span><b>Last time</b>First lesson of the course: no iOS knowledge assumed.</span><span><b>Today</b>One tap, all the way to NPay&rsquo;s first frame.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This is the map we use for the whole unit: NPay&rsquo;s code at the top inside its sandbox, iOS underneath, the kernel and hardware at the bottom, the bank on the right. Every lesson lights up the part it covers. Today we follow one tap: click by click, SpringBoard receives it, the kernel creates the process, the sandbox surrounds it, and finally SwiftUI puts the first view on screen.</p>
+    <span class="notes-label">CONNECT</span><p>Start with the big picture of how any iOS app works.</p>
   </aside>
 </section>
 
@@ -116,11 +155,11 @@
       <div class="card accent step anim-up">
         <span class="icon-badge" style="margin-bottom:12px"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></span>
         <span class="label">Scene</span>
-        <h3>On screen</h3>
+        <h3>A UI instance</h3>
         <ul>
-          <li>System-managed UI instance</li>
-          <li>Lives inside a process</li>
-          <li>One process can host multiple</li>
+          <li>System-managed UI (a window)</li>
+          <li>Foreground or background</li>
+          <li>One process can host several</li>
         </ul>
       </div>
     </div>
@@ -131,7 +170,7 @@
     </div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>These three concepts are often confused. The bundle is files on disk. The process is an execution environment created by the OS. The scene is a UI instance — not the same as the process.</p>
+    <span class="notes-label">SAY</span><p>These three concepts are often confused. The bundle is files on disk. The process is an execution environment created by the OS. The scene is a UI instance — not the same as the process. It is not simply "what is on screen": a scene can move to the background, and the system can disconnect it while the process lives on.</p>
     <span class="notes-label">ASK</span><p>Can an installed app have zero running processes?</p>
     <span class="notes-label">EXPECT</span><p>Yes. Installation does not create a process.</p>
     <span class="notes-label">CONNECT</span><p>So what does NPay actually run on? Let's look at the platform beneath it.</p>
@@ -180,7 +219,8 @@
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Before the technical names, a picture. iOS is the hotel management system: it runs the building. Your app is a guest occupying one room. The kernel controls the critical resources and who gets access to them. System services are the shared facilities every guest uses. Frameworks are the approved ways your app uses those facilities. And the sandbox stops one guest walking into another guest's room.</p>
     <span class="notes-label">ASK</span><p>Can NPay walk into another app's room and read its files?</p>
-    <span class="notes-label">EXPECT</span><p>No. The sandbox keeps each app in its own room. Sharing happens only through approved routes, which in the hotel would be the front desk.</p>
+    <span class="notes-label">EXPECT</span><p>No. The sandbox keeps each app in its own room. Sharing happens only through approved routes that the hotel management provides.</p>
+    <span class="notes-label">SAY</span><p>Keep this hotel for the whole unit. Soon we meet the front desk (SpringBoard), the room key (code signing, Lesson 0.7) and the in-room safe (the Keychain, Lesson 0.7).</p>
     <span class="notes-label">CONNECT</span><p>Now the same building with its real names: five layers.</p>
   </aside>
 </section>
@@ -334,8 +374,8 @@
         <g class="fade" data-lit="3"><text class="mono" x="0" y="172">STEP 3 OF 7</text><text x="0" y="206" style="font-size:24px;font-weight:700">Process created</text><text x="0" y="238" style="font-size:19px;font-weight:400">The OS creates the process: identity, virtual memory, a main thread, the sandbox.</text></g>
         <g class="fade" data-lit="4"><text class="mono" x="0" y="172">STEP 4 OF 7</text><text x="0" y="206" style="font-size:24px;font-weight:700">Executable and libraries load</text><text x="0" y="238" style="font-size:19px;font-weight:400">The dynamic loader, dyld, prepares the executable and required dynamic libraries.</text></g>
         <g class="fade" data-lit="5"><text class="mono" x="0" y="172">STEP 5 OF 7</text><text x="0" y="206" style="font-size:24px;font-weight:700">Swift entry point</text><text x="0" y="238" style="font-size:19px;font-weight:400">The runtime is ready and Swift's entry point starts your App type.</text></g>
-        <g class="fade" data-lit="6"><text class="mono" x="0" y="172">STEP 6 OF 7</text><text x="0" y="206" style="font-size:24px;font-weight:700">Scene created</text><text x="0" y="238" style="font-size:19px;font-weight:400">iOS creates a scene, and WindowGroup supplies the root view.</text></g>
-        <g class="fade" data-lit="7+"><text class="mono" x="0" y="172">STEP 7 OF 7</text><text x="0" y="206" style="font-size:24px;font-weight:700">First frame on screen</text><text x="0" y="238" style="font-size:19px;font-weight:400">SwiftUI evaluates the views, lays them out, and the first frame is displayed.</text></g>
+        <g class="fade" data-lit="6"><text class="mono" x="0" y="172">STEP 6 OF 7</text><text x="0" y="206" style="font-size:24px;font-weight:700">Scene created</text><text x="0" y="238" style="font-size:19px;font-weight:400">iOS connects a scene (still inactive); WindowGroup supplies the root view.</text></g>
+        <g class="fade" data-lit="7+"><text class="mono" x="0" y="172">STEP 7 OF 7</text><text x="0" y="206" style="font-size:24px;font-weight:700">First frame on screen</text><text x="0" y="238" style="font-size:19px;font-weight:400">SwiftUI renders the first frame; then the scene becomes active.</text></g>
       </svg>
     </div>
     <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
@@ -346,6 +386,7 @@
     <span class="notes-label">SAY</span><p>Seven steps, one per click. Each one is a separate responsibility, and most of them happen before a single line of our Swift code runs.</p>
     <span class="notes-label">SAY</span><p>Notice the last point: tapping an icon does not always create a new process. If the app is still running in the background, iOS may just bring it forward.</p>
     <span class="notes-label">SAY</span><p>Launching a process and activating an existing app are different operations. That distinction matters later for lifecycle management and state restoration.</p>
+    <span class="notes-label">SAY</span><p>Steps six and seven in the right order: the scene connects in the inactive state, the first frame is drawn, and only then does the scene become active and start receiving touches.</p>
     <span class="notes-label">CONNECT</span><p>Let's zoom into step one: who actually receives the tap?</p>
   </aside>
 </section>
@@ -412,7 +453,7 @@
     <i class="step cue"></i>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>One: SpringBoard is a system process that starts when the iPhone boots. The Home Screen is SpringBoard's interface, not NPay's. The NPay icon is just an image from NPay's bundle that SpringBoard draws, so showing it never runs NPay's code, and nothing in our Swift code can react to the tap itself.</p>
+    <span class="notes-label">SAY</span><p>One: SpringBoard is a system process that starts when the iPhone boots. The Home Screen is SpringBoard's interface, not NPay's. The NPay icon is just an image from NPay's bundle that SpringBoard draws, so showing it never runs NPay's code, and nothing in our Swift code can react to the tap itself. In the hotel picture, SpringBoard is the front desk: guests ask it for their room, but it never goes inside.</p>
     <span class="notes-label">SAY</span><p>Two: it owns the system interface around apps: the icon grid, folders and badges, and the app switcher. Our app can set a badge number through notification APIs, but SpringBoard draws it. Switcher cards are snapshots, so an app is not necessarily running while you see its card.</p>
     <span class="notes-label">SAY</span><p>Three: on a tap it does not start NPay itself. It asks the system to open the app. If NPay's process is still alive, the system just brings it forward; if not, it creates a new process. Meanwhile the system plays the icon animation and shows the app's launch screen until the first frame is ready.</p>
     <span class="notes-label">SAY</span><p>When you tap the icon, you're interacting with SpringBoard — a system process. SpringBoard hands a launch or activation request to the system. The exact private daemons and IPC hops are undocumented and change between iOS versions, so we keep this conceptual. Your NPay code is not involved yet.</p>
@@ -480,34 +521,32 @@
       <p>The OS establishes:</p>
       <ul>
         <li class="step">Process identity &amp; resources</li>
-        <li class="step"><b>Virtual address space</b> with mapped regions</li>
+        <li class="step">Its own <b>virtual memory</b></li>
         <li class="step">At least one execution <b>thread</b></li>
         <li class="step"><b>Sandbox</b> &amp; signing enforcement</li>
       </ul>
+      <p class="small muted" style="margin-top:14px">Lesson 0.6 opens up this memory: stack, heap and ARC.</p>
     </div>
     <div>
     <div class="diagram">
-      <svg class="art" viewBox="0 0 520 470" style="max-height:405px" role="img" aria-labelledby="s10t">
-        <title id="s10t">NPay process inside a sandbox: identity, a virtual address space with code, globals, heap and stacks, and two threads</title>
-        <g class="nd ghost" data-lit="4"><rect class="sh" x="6" y="30" width="508" height="436" rx="22"/><use href="#i-lock" x="14" y="2" width="20" height="20"/><text class="mono" x="40" y="17">SANDBOX &amp; CODE SIGNING</text></g>
+      <svg class="art" viewBox="0 0 520 372" style="max-height:405px" role="img" aria-labelledby="s10t">
+        <title id="s10t">NPay process inside a sandbox: its identity, its own virtual memory, and two threads</title>
+        <g class="nd ghost" data-lit="4"><rect class="sh" x="6" y="30" width="508" height="338" rx="22"/><use href="#i-lock" x="14" y="2" width="20" height="20"/><text class="mono" x="40" y="17">SANDBOX &amp; CODE SIGNING</text></g>
         <g class="nd" data-lit="1"><rect class="sh" x="30" y="50" width="460" height="64" rx="12"/><use href="#i-process" x="46" y="69" width="26" height="26"/><text x="86" y="78">NPay process</text><text class="sm" x="86" y="97">its own identity (pid) &amp; resources</text></g>
-        <text class="mono" x="30" y="142">VIRTUAL ADDRESS SPACE</text>
-        <g class="nd" data-lit="2"><rect class="sh" x="30" y="152" width="460" height="46" rx="8"/><text x="48" y="181">Code / text</text><text class="sm" x="472" y="181" text-anchor="end">machine instructions, mapped executable code</text><rect class="sh" x="30" y="202" width="460" height="46" rx="8"/><text x="48" y="231">Global and static data</text><text class="sm" x="472" y="231" text-anchor="end">global variables and static storage</text><rect class="sh" x="30" y="252" width="460" height="46" rx="8"/><text x="48" y="281">Heap</text><text class="sm" x="472" y="281" text-anchor="end">dynamically allocated objects and storage</text><rect class="sh" x="30" y="302" width="460" height="46" rx="8"/><text x="48" y="331">Thread stacks</text><text class="sm" x="472" y="331" text-anchor="end">call frames, local execution state</text></g>
-        <text class="mono" x="30" y="374">THREADS</text>
-        <g class="nd" data-lit="3"><use href="#i-thread" x="30" y="386" width="24" height="24"/><rect class="sh" x="64" y="384" width="300" height="28" rx="8"/><text class="sm" x="78" y="403">main thread</text><rect class="sh" x="64" y="420" width="190" height="28" rx="8"/><text class="sm" x="78" y="439">worker thread</text></g>
+        <text class="mono" x="30" y="142">VIRTUAL MEMORY</text>
+        <g class="nd" data-lit="2"><rect class="sh" x="30" y="152" width="460" height="72" rx="12"/><use href="#i-memory" x="46" y="175" width="26" height="26"/><text x="86" y="184">Its own address space</text><text class="sm" x="86" y="204">code, data and the objects the app creates</text></g>
+        <text class="mono" x="30" y="256">THREADS</text>
+        <g class="nd" data-lit="3"><use href="#i-thread" x="30" y="268" width="24" height="24"/><rect class="sh" x="64" y="266" width="300" height="28" rx="8"/><text class="sm" x="78" y="285">main thread</text><rect class="sh" x="64" y="302" width="190" height="28" rx="8"/><text class="sm" x="78" y="321">worker thread</text></g>
       </svg>
     </div>
     </div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>A new process is not just "calling a Swift function." The OS sets up an entire execution environment — identity, virtual memory, threads, and a security sandbox — all before your code runs.</p>
-    <span class="notes-label">SAY</span><p>These regions are conceptual, not a fixed physical layout. Virtual addresses are not physical RAM addresses, and mapping an executable does not mean it was all copied into RAM. Some code is shared from system caches.</p>
-    <span class="notes-label">ASK</span><p>Does every class live on the heap and every struct on the stack?</p>
-    <span class="notes-label">EXPECT</span><p>No. That is not a reliable Swift rule; the compiler decides storage. Likewise, a Swift Task is not the same thing as a thread.</p>
+    <span class="notes-label">SAY</span><p>Virtual memory means each process sees its own private address space. Virtual addresses are not physical RAM addresses. What lives inside that space (stack, heap, how ARC frees objects) is Lesson 0.6; today we only need to know the process has its own.</p>
     <span class="notes-label">ASK</span><p>Does code signing guarantee the app has no vulnerabilities? Can a sandboxed app share any data?</p>
     <span class="notes-label">EXPECT</span><p>No to the first: signing proves origin and integrity, not safety. Yes to the second, but only through authorized mechanisms such as app groups or the share sheet.</p>
-    <span class="notes-label">SAY</span><p>Each region in one line: code is the mapped machine instructions; global and static data holds globals; the heap holds dynamically allocated objects; each thread's stack holds its call frames and local state.</p>
-    <span class="notes-label">CONNECT</span><p>Before going on, let's pin down six words people mix up.</p>
+    <span class="notes-label">CONNECT</span><p>Before going on, let's pin down four words people mix up.</p>
   </aside>
 </section>
 
@@ -520,21 +559,19 @@
       <tr><td><b>Program</b></td><td>Code stored on disk</td></tr>
       <tr><td><b>Process</b></td><td>Running instance of a program</td></tr>
       <tr><td><b>Thread</b></td><td>Execution path inside a process</td></tr>
-      <tr><td><b>Main thread</b></td><td>Handles the app&rsquo;s primary UI events</td></tr>
-      <tr><td><b>Heap</b></td><td>Dynamic memory storage</td></tr>
-      <tr><td><b>Stack</b></td><td>Execution storage for one thread</td></tr>
+      <tr><td><b>Main thread</b></td><td>Handles the app&rsquo;s UI and user events</td></tr>
     </table>
     <div class="analogy step">
       <div class="icon"><svg viewBox="0 0 24 24"><use href="#i-book"/></svg></div>
-      <p>A restaurant&rsquo;s <b>recipe book</b> is the program on disk. <b>Opening the restaurant</b>, hiring staff and preparing the kitchen is starting a process. The <b>workers</b> are threads doing tasks inside it.</p>
+      <p>A kitchen&rsquo;s <b>recipe book</b> is the program on disk. <b>Opening the kitchen</b> is starting a process. The <b>cooks</b> are threads; the <b>head chef</b>, who plates every dish the guest sees, is the main thread.</p>
     </div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Six words people mix up. A program is code on disk; a process is a running instance; threads are execution paths inside it. The main thread handles the primary UI events. The heap is dynamic memory; each thread has its own stack.</p>
-    <span class="notes-label">SAY</span><p>The restaurant: the recipe book exists whether or not anyone cooks. Opening the restaurant creates the working environment. The workers do the actual tasks.</p>
-    <span class="notes-label">SAY</span><p>We will study memory management, ARC and Swift concurrency in later lessons.</p>
+    <span class="notes-label">SAY</span><p>Four words people mix up. A program is code on disk; a process is a running instance; threads are execution paths inside it. The main thread handles the UI and user events.</p>
+    <span class="notes-label">SAY</span><p>The kitchen: the recipe book exists whether or not anyone cooks. Opening the kitchen creates the working environment. The cooks do the work, and one of them, the head chef, plates every dish the guest sees: that is the main thread. We keep this kitchen for everything that happens inside the process (Lesson 0.5 adds the order rail, the RunLoop).</p>
+    <span class="notes-label">SAY</span><p>Memory (stack, heap, ARC) is Lesson 0.6; threads and the RunLoop are Lesson 0.5.</p>
     <span class="notes-label">ASK</span><p>Is a process the same as a thread?</p>
-    <span class="notes-label">EXPECT</span><p>No. The process is the restaurant; threads are the workers inside it.</p>
+    <span class="notes-label">EXPECT</span><p>No. The process is the kitchen; threads are the cooks inside it.</p>
     <span class="notes-label">CONNECT</span><p>Where did that program on disk come from? Build time.</p>
   </aside>
 </section>
@@ -622,17 +659,39 @@
     <div>
       <p><b>dyld</b> prepares executable images and their dependencies at runtime.</p>
       <div class="gap"></div>
-      <div class="analogy step">
-        <div class="icon"><svg viewBox="0 0 24 24"><use href="#i-stage"/></svg></div>
-        <p>Before a play begins, the <b>stage crew</b> (dyld) prepares props and sets. The crew is not the <b>playwright</b> (compiler).</p>
-      </div>
+      <div class="rule step">dyld <b>loads and links</b> code that was compiled earlier, on your Mac. It never compiles anything.</div>
       <i class="step cue"></i>
     </div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>dyld loads the Mach-O binary, resolves dependencies, binds symbols, and runs initializers. Only then does your Swift code start.</p>
     <span class="notes-label">SAY</span><p>System frameworks like SwiftUI and Foundation come from the dyld shared cache, prepared ahead of time by Apple. That is why they load quickly; your own embedded frameworks do not get that benefit.</p>
-    <span class="notes-label">CONNECT</span><p>Now we finally reach your Swift code. Let's see what @main does.</p>
+    <span class="notes-label">CONNECT</span><p>Now we finally reach your Swift code. First, a short kit for reading it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Swift reading kit</p>
+  <h2>Enough Swift to read this unit</h2>
+  <div class="body top">
+    <table class="tbl">
+      <tr><th style="width:44%">You see</th><th>Read it as</th></tr>
+      <tr><td><code>@main</code></td><td>&ldquo;The program&rsquo;s Swift code starts with this type.&rdquo;</td></tr>
+      <tr><td><code>struct NPayApp: App</code></td><td>A type <b>NPayApp</b> that <b>conforms to</b> <code>App</code>: it provides what <code>App</code> requires.</td></tr>
+      <tr><td><code>var body: some View</code></td><td>A computed property returning <b>one specific</b> view type, without spelling out its name.</td></tr>
+      <tr><td><code>WindowGroup { DashboardView() }</code></td><td>A <b>trailing closure</b>: the block in braces is passed in as the last argument.</td></tr>
+      <tr><td><code>@State private var balanceText</code></td><td>A <b>property wrapper</b>: SwiftUI stores the value; changing it updates the screen.</td></tr>
+      <tr><td><code>try await service.fetchBalance()</code></td><td><code>await</code>: may pause here <b>without blocking</b> the thread. <code>try</code>: may throw an error.</td></tr>
+    </table>
+    <div class="gap"></div>
+    <p class="small muted">Read, don&rsquo;t write: Unit 01 teaches each of these properly.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This unit shows short Swift snippets. You don't need to write Swift yet, but you need to read it. Six patterns cover almost everything you will see: the entry point, conformance to a protocol, some View, trailing closures, property wrappers such as @State, and try await.</p>
+    <span class="notes-label">SAY</span><p>Two to stress. "some View" means one concrete view type the compiler knows, without us naming it. And await marks a point where the function may pause; the thread is free to do other work meanwhile. Unit 01 covers protocols (1.6), closures (1.4) and concurrency (1.9) properly.</p>
+    <span class="notes-label">ASK</span><p>In <code>WindowGroup { DashboardView() }</code>, what is the code in braces?</p>
+    <span class="notes-label">EXPECT</span><p>A closure passed to WindowGroup: it supplies the root view.</p>
+    <span class="notes-label">CONNECT</span><p>Now read the real entry point with this kit.</p>
   </aside>
 </section>
 
@@ -771,12 +830,12 @@ struct NPayApp: App {
   <div class="body top">
     <div class="diagram">
       <svg class="art" viewBox="0 0 1136 236" role="img" aria-labelledby="s18t">
-        <title id="s18t">Six stages from scene active to first frame, then a main-thread timeline where the frame is visible but input waits behind blocking work</title>
+        <title id="s18t">Six stages from scene connected (still inactive) to first frame, after which the scene becomes active, then a main-thread timeline where the frame is visible but input waits behind blocking work</title>
         <g class="nd pass" data-lit="1" style="--d:0.00s">
           <rect class="sh" x="12" y="10" width="152" height="104" rx="14"/>
           <use href="#i-play" x="74" y="24" width="28" height="28"/>
-          <text x="88" y="78" text-anchor="middle">Scene active</text>
-          <text class="sm" x="88" y="98" text-anchor="middle">content set</text>
+          <text x="88" y="78" text-anchor="middle">Scene connects</text>
+          <text class="sm" x="88" y="98" text-anchor="middle">still inactive</text>
         </g>
         <path class="wire" d="M172 62H196M190 56l6 6-6 6"/>
         <g class="nd pass" data-lit="1" style="--d:0.22s">
@@ -811,7 +870,7 @@ struct NPayApp: App {
           <rect class="sh" x="972" y="10" width="152" height="104" rx="14"/>
           <use href="#i-frame" x="1034" y="24" width="28" height="28"/>
           <text x="1048" y="78" text-anchor="middle">First frame</text>
-          <text class="sm" x="1048" y="98" text-anchor="middle">on screen</text>
+          <text class="sm" x="1048" y="98" text-anchor="middle">then: active</text>
         </g>
         <g class="fade" data-lit="2+">
           <text class="mono" x="12" y="156">MAIN THREAD</text>
@@ -834,7 +893,7 @@ struct NPayApp: App {
     </div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>SwiftUI evaluates view descriptions, diffs changes, resolves layout, and composites graphics. The result is the first frame.</p>
+    <span class="notes-label">SAY</span><p>The scene connects first, still in the inactive state. SwiftUI evaluates view descriptions, diffs changes, resolves layout, and composites graphics. The result is the first frame. Only after that does the scene become active and start receiving touches.</p>
     <span class="notes-label">SAY</span><p>Now the main-thread lane. The first frame can be on screen while the main thread is still busy with heavy synchronous work. Until that work finishes, taps wait in line. Only then is the app fully interactive.</p>
     <span class="notes-label">CONNECT</span><p>A frame on screen doesn't mean the app runs forever. The system manages its life from here.</p>
   </aside>
@@ -848,48 +907,54 @@ struct NPayApp: App {
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>An iOS app doesn't simply start, run forever and exit. The system manages its execution based on user activity and available resources.</p>
-    <span class="notes-label">CONNECT</span><p>Here is the common path an app moves through.</p>
+    <span class="notes-label">SAY</span><p>This part is a preview. Lesson 0.3 goes deep on lifecycle states and Lesson 0.4 on observing them in SwiftUI.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the common path, starting with the launch we just followed.</p>
   </aside>
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 6 &middot; Lifecycle &middot; conceptual</p>
-  <h2>Common lifecycle transitions</h2>
-  <div class="body">
+  <p class="kicker">Part 6 &middot; Preview &middot; conceptual</p>
+  <h2>After the first frame, iOS decides</h2>
+  <div class="body cols middle" style="grid-template-columns:1.05fr 1fr">
+    <div>
     <div class="diagram">
-      <svg class="art" viewBox="0 0 1136 204" role="img" aria-labelledby="s9lt">
-        <title id="s9lt">Not running, active, inactive, background, suspended; iOS can terminate a suspended app, returning it to not running</title>
-        <g class="nd" data-lit="1"><rect class="sh" x="0" y="10" width="216" height="110" rx="14"/><use href="#i-cross" x="94" y="24" width="28" height="28"/><text x="108" y="98" text-anchor="middle">Not running</text></g>
-        <path class="wire" d="M219 65H227M220 58l7 7-7 7"/>
-        <g class="nd" data-lit="2"><rect class="sh" x="230" y="10" width="216" height="110" rx="14"/><use href="#i-play" x="324" y="24" width="28" height="28"/><text x="338" y="84" text-anchor="middle">Active</text><text class="sm" x="338" y="104" text-anchor="middle">receiving user interaction</text></g>
-        <path class="wire" d="M449 65H457M450 58l7 7-7 7"/>
-        <g class="nd" data-lit="3"><rect class="sh" x="460" y="10" width="216" height="110" rx="14"/><use href="#i-clock" x="554" y="24" width="28" height="28"/><text x="568" y="84" text-anchor="middle">Inactive</text><text class="sm" x="568" y="104" text-anchor="middle">foreground, not receiving events</text></g>
-        <path class="wire" d="M679 65H687M680 58l7 7-7 7"/>
-        <g class="nd" data-lit="4"><rect class="sh" x="690" y="10" width="216" height="110" rx="14"/><use href="#i-layers" x="784" y="24" width="28" height="28"/><text x="798" y="84" text-anchor="middle">Background</text><text class="sm" x="798" y="104" text-anchor="middle">limited permitted execution</text></g>
-        <path class="wire" d="M909 65H917M910 58l7 7-7 7"/>
-        <g class="nd" data-lit="5"><rect class="sh" x="920" y="10" width="216" height="110" rx="14"/><use href="#i-memory" x="1014" y="24" width="28" height="28"/><text x="1028" y="84" text-anchor="middle">Suspended</text><text class="sm" x="1028" y="104" text-anchor="middle">process kept, code not running</text></g>
-        <path class="wire dash" data-lit="6" d="M1028 120V170H108V128M101 135l7-7 7 7"/>
-        <text class="mono" x="568" y="196" text-anchor="middle">iOS CAN TERMINATE A SUSPENDED APP</text>
+      <svg class="art" viewBox="0 0 610 300" role="img" aria-labelledby="s6pv">
+        <title id="s6pv">Not running, launch to inactive, then active. Leaving: inactive, background, suspended. iOS may terminate a suspended app, back to not running.</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="20" width="170" height="66" rx="12"/><use href="#i-cross" x="12" y="40" width="24" height="24"/><text x="46" y="49">Not running</text><text class="sm" x="46" y="68">no process</text></g>
+        <path class="wire" data-lit="1" d="M172 53H212M205 46l7 7-7 7"/>
+        <text class="sm" x="192" y="40" text-anchor="middle">launch</text>
+        <g class="nd" data-lit="1 3"><rect class="sh" x="218" y="20" width="170" height="66" rx="12"/><use href="#i-clock" x="230" y="40" width="24" height="24"/><text x="264" y="49">Inactive</text><text class="sm" x="264" y="68">visible, no events</text></g>
+        <path class="wire" data-lit="2" d="M390 42H430M423 35l7 7-7 7"/>
+        <path class="wire" data-lit="3" d="M436 64H396M403 57l-7 7 7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="436" y="20" width="170" height="66" rx="12"/><use href="#i-play" x="448" y="40" width="24" height="24"/><text x="482" y="49">Active</text><text class="sm" x="482" y="68">receiving events</text></g>
+        <path class="wire" data-lit="3" d="M293 88V146M286 139l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="218" y="152" width="170" height="66" rx="12"/><use href="#i-layers" x="230" y="172" width="24" height="24"/><text x="264" y="181">Background</text><text class="sm" x="264" y="200">not visible</text></g>
+        <path class="wire" data-lit="4" d="M390 185H430M423 178l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="436" y="152" width="170" height="66" rx="12"/><use href="#i-memory" x="448" y="172" width="24" height="24"/><text x="482" y="181">Suspended</text><text class="sm" x="482" y="200">no code runs</text></g>
+        <path class="wire dash" data-lit="5" d="M521 220V258H85V92M78 99l7-7 7 7"/>
+        <text class="mono" x="303" y="282" text-anchor="middle">iOS MAY TERMINATE A SUSPENDED APP</text>
       </svg>
     </div>
-    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
-    <div class="gap-lg"></div>
-    <p class="small muted">A common path, not every possible transition. Scene lifecycle states differ from process execution states.</p>
+    <p class="small muted" style="margin:6px 0 0">Not running and suspended are process states; inactive, active and background are scene phases.</p>
+    </div>
+    <div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <table class="tbl" style="font-size:19px">
+        <tr><th>In the demo</th><th>Scene phase</th></tr>
+        <tr><td>Launch NPay</td><td>inactive, then active</td></tr>
+        <tr><td>Pull down Notification Center</td><td>inactive</td></tr>
+        <tr><td>Go to the Home Screen</td><td>inactive, then background</td></tr>
+        <tr><td>Return to NPay</td><td>inactive, then active</td></tr>
+      </table>
+      <div class="gap"></div>
+      <div class="tip" data-label="Coming up"><b>Lesson 0.3</b>: process vs scene, suspension, termination. <b>Lesson 0.4</b>: reading <code>scenePhase</code> in SwiftUI.</div>
+    </div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Click through: not running; active, receiving interaction; inactive, still in the foreground but temporarily not receiving events; background, no longer in front with only limited permitted execution; suspended, the process is kept in memory but its code is not executing.</p>
-    <span class="notes-label">SAY</span><p>Last click: iOS can terminate a suspended app at any time to reclaim resources. That is why the warm activation from Part 2 is never guaranteed.</p>
-    <span class="notes-label">ASK</span><p>Is a suspended app running code?</p>
-    <span class="notes-label">EXPECT</span><p>No. The process is retained, but its code is not executing, and the system may end it.</p>
-    <span class="notes-label">CONNECT</span><p>SwiftUI lets our code observe these changes through the scene phase.</p>
-  </aside>
-</section>
-
-<section class="slide">
-  <p class="kicker">Part 6 &middot; Scene phase</p>
-  <h2>Observing the scene phase</h2>
-  <div class="body cols middle" style="grid-template-columns:1.5fr 1fr">
-    <div class="cw"><div class="ch"><span>NPayApp.swift</span></div><pre class="cb" style="font-size:13px;line-height:1.36;padding:14px 20px">import SwiftUI
+    <span class="notes-label">SAY</span><p>Click through the common path. One: launch takes the app from not running to inactive; the scene is visible but not yet receiving events, which is when the first frame is drawn. Two: active, receiving touches. Three: leaving the app goes back through inactive to background. Four: suspended; the process is kept but none of its code runs. Five: iOS may end a suspended app at any time to reclaim memory, which is why a warm activation is never guaranteed.</p>
+    <span class="notes-label">SAY</span><p>The table is what you will see in the demo. Notice that every arrival and departure passes through inactive.</p>
+    <span class="notes-label">LIVE DEMO</span><p>New iOS App project in Xcode (SwiftUI). Replace the App type with the code below (keep your project's type name), run in the Simulator and watch the console. Before each action in the table, ask the room to predict the phase.</p>
+    <pre style="white-space:pre-wrap;font-size:13px;margin:4px 0 0">import SwiftUI
 
 @main
 struct NPayApp: App {
@@ -900,90 +965,13 @@ struct NPayApp: App {
             DashboardView()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
-            switch newPhase {
-            case .active:
-                print(&quot;Scene active&quot;)
-            case .inactive:
-                print(&quot;Scene inactive&quot;)
-            case .background:
-                print(&quot;Scene background&quot;)
-            @unknown default:
-                break
-            }
+            print(&quot;Scene phase: \(oldPhase) → \(newPhase)&quot;)
         }
     }
-}</pre></div>
-    <div class="points v">
-      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg><span><b><code>.active</code></b><small>In front and receiving interaction</small></span></div>
-      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg><span><b><code>.inactive</code></b><small>Visible, temporarily not receiving events</small></span></div>
-      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg><span><b><code>.background</code></b><small>Not visible: save data, pause work</small></span></div>
-    </div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>The App reads scenePhase from the environment and reacts when it changes. This is where you decide when to save data, pause work and respond to changes in visibility.</p>
-    <span class="notes-label">SAY</span><p>@unknown default keeps the switch future-proof if Apple adds a phase.</p>
-    <span class="notes-label">CONNECT</span><p>Let's watch these phases for real in Xcode.</p>
-  </aside>
-</section>
-
-<section class="slide chapter">
-  <div class="body">
-    <p class="kicker">Part 7</p>
-    <h2>Practice</h2>
-    <p class="lead">Observe it yourself in Xcode</p>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Time to see this for real, then go deeper with some exercises.</p>
-    <span class="notes-label">CONNECT</span><p>Start with the lifecycle lab.</p>
-  </aside>
-</section>
-
-<section class="slide">
-  <p class="kicker">Part 7 &middot; Lab</p>
-  <h2>Observe startup and lifecycle</h2>
-  <div class="body cols middle">
-    <div>
-      <p class="small"><b>On your Mac:</b></p>
-      <ol class="small">
-        <li>In Xcode, create an iOS App project named <b>LifecycleLab</b>.</li>
-        <li>Choose <b>SwiftUI</b> and <b>Swift</b>.</li>
-        <li>Replace the generated entry point with the scene-phase example, keeping your project&rsquo;s app type name.</li>
-        <li>Run it in the iPhone Simulator.</li>
-        <li>Watch the debug console while moving between the app and the Home Screen.</li>
-      </ol>
-    </div>
-    <table class="tbl" style="font-size:19px">
-      <tr><th>Action</th><th>What to observe</th></tr>
-      <tr><td>Launch the app</td><td>Initial UI appears; the scene typically becomes active</td></tr>
-      <tr><td>Open Notification Center</td><td>The scene may become inactive</td></tr>
-    </table>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Run the scene-phase code and watch the console. Each move between the app, Notification Center and the Home Screen prints a phase change.</p>
-    <span class="notes-label">ASK</span><p>What do you expect to see when you go to the Home Screen?</p>
-    <span class="notes-label">EXPECT</span><p>The scene moves to inactive and then background. Let the console confirm it.</p>
-    <span class="notes-label">CONNECT</span><p>Now some exercises that go deeper.</p>
-  </aside>
-</section>
-
-<section class="slide">
-  <p class="kicker">Part 7 &middot; Exercises</p>
-  <h2>Hands-on exercises</h2>
-  <div class="body top">
-    <div class="cols stretch" style="row-gap:20px">
-      <div class="card accent step"><span class="label">A: Responsibility map</span><p class="small">Draw Home Screen system UI, the NPay process, its scene, a SwiftUI view, the kernel and hardware. Explain every boundary.</p></div>
-      <div class="card accent step"><span class="label">B: Cold vs warm</span><p class="small">Draw both launch paths. Mark which stages a warm activation can reuse, and explain why survival is not guaranteed.</p></div>
-      <div class="card accent step"><span class="label">C: Source to binary</span><p class="small">On a Mac, find your built app in Xcode's build products and run <code>file</code> and <code>otool -l</code> on the executable.</p></div>
-      <div class="card accent step"><span class="label">D: Blank screen</span><p class="small">The app shows a blank screen at launch. Write three hypotheses and the measurement that would test each one.</p></div>
-    </div>
-    <div class="gap"></div>
-    <p class="small muted">Exercise C needs macOS with Xcode. Use the real path from Xcode's build products; don't guess bundle paths.</p>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Live demo before the exercises: create a new iOS SwiftUI App in Xcode, open the @main App and its WindowGroup, replace the root view with DashboardView, and run it in the Simulator. Point at each part and say whether it is Swift language, SwiftUI framework, OS-managed scene or process. If time allows, open Instruments for a first look at launch.</p>
-    <span class="notes-label">ASK</span><p>For exercise D: what is the first thing you would measure?</p>
-    <span class="notes-label">EXPECT</span><p>Time to first frame and what the main thread is doing during it. Never claim a cause before measuring.</p>
-    <span class="notes-label">CONNECT</span><p>Before the review: where can startup get slow?</p>
+}</pre>
+    <span class="notes-label">ASK</span><p>What will the console print when you go to the Home Screen?</p>
+    <span class="notes-label">EXPECT</span><p>active to inactive, then inactive to background.</p>
+    <span class="notes-label">CONNECT</span><p>We have every piece. Let's put it together.</p>
   </aside>
 </section>
 
@@ -1127,7 +1115,47 @@ struct NPayApp: App {
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>These are the five most common misconceptions. If you can explain why each is wrong, you've internalized the full journey.</p>
-    <span class="notes-label">CONNECT</span><p>Let's test that with eleven quick questions.</p>
+    <span class="notes-label">CONNECT</span><p>One slide to hold on to, then the questions.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.1 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 366" style="max-height:300px" role="img" aria-labelledby="rmap01">
+        <title id="rmap01">NPay architecture map</title>
+        <rect class="wire dash lit" x="16" y="20" width="828" height="182" rx="16"/>
+        <text class="mono fill-teal" x="32" y="42">NPAY PROCESS · SANDBOX</text>
+        <text class="mono" x="16" y="228">IOS</text>
+        <g class="nd lit"><rect class="sh" x="32" y="58" width="190" height="56" rx="12"/><use href="#i-phone" x="46" y="73" width="26" height="26"/><text x="84" y="83">View</text><text class="sm" x="84" y="101">SwiftUI screen</text></g>
+        <g class="nd"><rect class="sh" x="236" y="58" width="190" height="56" rx="12"/><use href="#i-layout" x="250" y="73" width="26" height="26"/><text x="288" y="83">ViewModel</text><text class="sm" x="288" y="101">screen state</text></g>
+        <g class="nd"><rect class="sh" x="440" y="58" width="190" height="56" rx="12"/><use href="#i-link" x="454" y="73" width="26" height="26"/><text x="492" y="83">Service</text><text class="sm" x="492" y="101">talks to the bank</text></g>
+        <g class="nd"><rect class="sh" x="644" y="58" width="190" height="56" rx="12"/><use href="#i-code" x="658" y="73" width="26" height="26"/><text x="696" y="83">Model</text><text class="sm" x="696" y="101">balance, transactions</text></g>
+        <g class="nd"><rect class="sh" x="32" y="132" width="260" height="56" rx="12"/><use href="#i-thread" x="46" y="147" width="26" height="26"/><text x="84" y="157">Main thread</text><text class="sm" x="84" y="175">RunLoop · events · frames</text></g>
+        <g class="nd"><rect class="sh" x="306" y="132" width="260" height="56" rx="12"/><use href="#i-memory" x="320" y="147" width="26" height="26"/><text x="358" y="157">Memory</text><text class="sm" x="358" y="175">stack · heap · ARC</text></g>
+        <g class="nd"><rect class="sh" x="580" y="132" width="254" height="56" rx="12"/><use href="#i-frame" x="594" y="147" width="26" height="26"/><text x="632" y="157">Scene</text><text class="sm" x="632" y="175">foreground · background</text></g>
+        <g class="nd lit"><rect class="sh" x="16" y="238" width="180" height="56" rx="12"/><use href="#i-grid" x="30" y="253" width="26" height="26"/><text x="68" y="263">SpringBoard</text><text class="sm" x="68" y="281">launches apps</text></g>
+        <g class="nd"><rect class="sh" x="210" y="238" width="170" height="56" rx="12"/><use href="#i-key" x="224" y="253" width="26" height="26"/><text x="262" y="263">Keychain</text><text class="sm" x="262" y="281">secrets</text></g>
+        <g class="nd"><rect class="sh" x="394" y="238" width="232" height="56" rx="12"/><use href="#i-db" x="408" y="253" width="26" height="26"/><text x="446" y="263">Storage</text><text class="sm" x="446" y="281">UserDefaults · SwiftData · files</text></g>
+        <g class="nd"><rect class="sh" x="640" y="238" width="204" height="56" rx="12"/><use href="#i-frameworks" x="654" y="253" width="26" height="26"/><text x="692" y="263">Frameworks</text><text class="sm" x="692" y="281">SwiftUI · URLSession</text></g>
+        <g class="nd lit"><rect class="sh" x="16" y="308" width="410" height="56" rx="12"/><use href="#i-kernel" x="30" y="323" width="26" height="26"/><text x="68" y="333">Kernel</text><text class="sm" x="68" y="351">processes · sandbox · code signing</text></g>
+        <g class="nd"><rect class="sh" x="440" y="308" width="404" height="56" rx="12"/><use href="#i-chip" x="454" y="323" width="26" height="26"/><text x="492" y="333">Hardware</text><text class="sm" x="492" y="351">CPU · memory · Secure Enclave</text></g>
+        <g class="nd"><rect class="sh" x="920" y="238" width="216" height="56" rx="12"/><use href="#i-bank" x="934" y="253" width="26" height="26"/><text x="972" y="263">Bank API server</text><text class="sm" x="972" y="281">authoritative balance</text></g>
+        <path class="wire" d="M224 86H234M229 81l5 5-5 5"/>
+        <path class="wire" d="M428 86H438M433 81l5 5-5 5"/>
+        <path class="wire" d="M632 86H642M637 81l5 5-5 5"/>
+        <path class="wire" d="M848 266H916M911 261l5 5-5 5M853 261l-5 5 5 5"/>
+        <text class="sm" x="882" y="256" text-anchor="middle">HTTPS</text>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="tip" data-label="Recap"><div class="points"><div><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg><span><b>System first</b><small>SpringBoard and the kernel act before any NPay code runs</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-process"/></svg><span><b>Bundle &ne; process &ne; scene</b><small>files on disk, a running instance, a UI instance</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg><span><b>Describe, then render</b><small>inactive &rarr; first frame &rarr; active</small></span></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to keep from today. The system acts first: SpringBoard and the kernel work before any of our code. The bundle, the process and the scene are three different things. And SwiftUI views are descriptions: the scene connects inactive, the frameworks render the first frame, then the scene becomes active.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
   </aside>
 </section>
 
@@ -1137,55 +1165,55 @@ struct NPayApp: App {
     <h2>Check your understanding</h2>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Now we test what stuck. For each question, everyone commits to an answer before we reveal it. A show of hands works well.</p>
+    <span class="notes-label">SAY</span><p>Now we test what stuck. Eight questions. For each one, everyone commits to an answer before we reveal it. Three are multiple choice: pick a letter. (First lesson, so there is no spaced review from an earlier lesson yet.)</p>
   </aside>
 </section>
 
-<section class="slide question" data-title="Which layer schedules threads?">
+<section class="slide question" data-title="Which layer schedules NPay&rsquo;s threads?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 1 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-kernel"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">Which layer schedules threads?</p>
+        <p class="q-text">Which layer schedules NPay&rsquo;s threads?</p><ol class="q-opts"><li>SwiftUI</li><li>NPay&rsquo;s <code>App</code> type</li><li>The kernel</li><li>SpringBoard</li></ol>
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
-          <span class="q-verdict">The kernel</span>
-          <p class="q-why">Darwin/XNU handles scheduling and memory.</p>
-          <p class="q-trap"><b>Common trap:</b> Thinking SwiftUI or your app code schedules threads.</p>
+          <span class="q-verdict">C</span>
+          <p class="q-why">The kernel (Darwin/XNU) schedules every thread and manages memory.</p>
+          <p class="q-trap"><b>Common trap:</b> Picking SwiftUI or the app: they <em>use</em> threads but never schedule them.</p>
         </div>
       </div>
     </div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Many say SwiftUI or "the app". Threads are scheduled by the OS kernel.</p>
-    <span class="notes-label">SAY</span><p>The kernel. Darwin/XNU handles scheduling and memory.</p>
+    <span class="notes-label">ASK</span><p>Read the four options. Everyone commits to a letter before the reveal.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A or B. SpringBoard is a plausible distractor because it starts the launch.</p>
+    <span class="notes-label">SAY</span><p>C. The kernel (Darwin/XNU) schedules every thread and manages memory.</p>
     <span class="notes-label">CONNECT</span><p>Next question.</p>
   </aside>
 </section>
 
-<section class="slide question" data-title="Can your Swift app directly read another app’s files, or freely access the camera hardware?">
+<section class="slide question" data-title="Can NPay read another app&rsquo;s files, or use the camera without asking?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 2 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">Can your Swift app directly read another app&rsquo;s files, or freely access the camera hardware?</p>
+        <p class="q-text">Can NPay read another app&rsquo;s files, or use the camera without asking?</p>
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
           <span class="q-verdict">No</span>
-          <p class="q-why">Apps run within security restrictions and must use approved APIs and permissions. The OS mediates access.</p>
+          <p class="q-why">The sandbox keeps each app in its own room. The camera needs an approved API and the user&rsquo;s permission.</p>
           <p class="q-trap"><b>Common trap:</b> Assuming your app owns the device.</p>
         </div>
       </div>
@@ -1193,115 +1221,86 @@ struct NPayApp: App {
   </div>
   <aside class="notes-src">
     <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Some say yes for the camera. Access always goes through approved APIs and user permission.</p>
-    <span class="notes-label">SAY</span><p>No. Apps run within security restrictions and must use approved APIs and permissions. The OS mediates access.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes for the camera. The OS mediates all access.</p>
+    <span class="notes-label">SAY</span><p>No. The sandbox keeps each app in its own room. The camera needs an approved API and the user&rsquo;s permission.</p>
     <span class="notes-label">CONNECT</span><p>Next question.</p>
   </aside>
 </section>
 
-<section class="slide question" data-title="Does the tap immediately call NPayApp.body?">
+<section class="slide question" data-title="You tap NPay on a cold launch. Which of these runs first?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 3 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-tap"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">Does the tap immediately call <code>NPayApp.body</code>?</p>
+        <p class="q-text">You tap NPay on a cold launch. Which of these runs <b>first</b>?</p><ol class="q-opts"><li><code>NPayApp.body</code></li><li><code>DashboardView.body</code></li><li>dyld loading the executable</li><li>the Refresh balance button</li></ol>
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">Your Swift code hasn't started yet.</p>
-          <p class="q-trap"><b>Common trap:</b> Assuming the Home Screen icon is part of your app.</p>
+          <span class="q-verdict">C</span>
+          <p class="q-why">The process must exist and dyld must load the executable before any Swift entry point runs. Then <code>@main</code>, then <code>body</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the tap calls your Swift code directly.</p>
         </div>
       </div>
     </div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Most say yes. The tap is handled by system UI; NPay's Swift code has not started.</p>
-    <span class="notes-label">SAY</span><p>No. Your Swift code hasn't started yet.</p>
+    <span class="notes-label">ASK</span><p>Read the four options. Everyone commits to a letter before the reveal.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A. Walk the seven steps back: tap, request, process, dyld, @main, scene, first frame.</p>
+    <span class="notes-label">SAY</span><p>C. The process must exist and dyld must load the executable before any Swift entry point runs. Then @main, then body.</p>
     <span class="notes-label">CONNECT</span><p>Next question.</p>
   </aside>
 </section>
 
-<section class="slide question" data-title="Will returning after 10 minutes always be a warm activation?">
+<section class="slide question" data-title="You come back to NPay after 10 minutes. Is it a warm activation?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 4 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">Will returning after 10 minutes always be a warm activation?</p>
+        <p class="q-text">You come back to NPay after 10 minutes. Is it a warm activation?</p>
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">The OS may have ended the process. Process survival is never guaranteed.</p>
-          <p class="q-trap"><b>Common trap:</b> Assuming an app you left a while ago is still in memory.</p>
+          <span class="q-verdict">Not always</span>
+          <p class="q-why">Only if the process survived. iOS may have ended it to reclaim memory; then it is a cold launch.</p>
+          <p class="q-trap"><b>Common trap:</b> Designing as if the app is still in memory.</p>
         </div>
       </div>
     </div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Many say yes. The OS may have ended the process to reclaim memory.</p>
-    <span class="notes-label">SAY</span><p>No. The OS may have ended the process. Process survival is never guaranteed.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes. Process survival is never guaranteed.</p>
+    <span class="notes-label">SAY</span><p>Not always. Only if the process survived. iOS may have ended it to reclaim memory; then it is a cold launch.</p>
     <span class="notes-label">CONNECT</span><p>Next question.</p>
   </aside>
 </section>
 
-<section class="slide question" data-title="Is a suspended app running code?">
+<section class="slide question" data-title="Can one NPay process run several threads at the same time?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 5 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-  </div>
-  <div class="body">
-    <div class="q-row">
-      <div class="q-card">
-        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></div>
-        <span class="label">Question</span>
-        <p class="q-text">Is a suspended app running code?</p>
-      </div>
-      <div class="q-panel">
-        <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">The process is kept in memory, but its code is not executing, and iOS may terminate it.</p>
-          <p class="q-trap"><b>Common trap:</b> Treating background or suspended as still running.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Some think suspended means paused but still working. Nothing executes.</p>
-    <span class="notes-label">SAY</span><p>No. The process is kept in memory, but its code is not executing, and iOS may terminate it.</p>
-    <span class="notes-label">CONNECT</span><p>Next question.</p>
-  </aside>
-</section>
-
-<section class="slide question" data-title="Is a process the same as a thread?">
-  <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 6 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">Is a process the same as a thread?</p>
+        <p class="q-text">Can one NPay process run several threads at the same time?</p>
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">A process is the container; threads are workers inside it.</p>
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">A process is the container; threads are the cooks inside it. The main thread is one of them.</p>
           <p class="q-trap"><b>Common trap:</b> Treating a process and a thread as the same thing.</p>
         </div>
       </div>
@@ -1309,132 +1308,74 @@ struct NPayApp: App {
   </div>
   <aside class="notes-src">
     <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Some treat them as the same. A process is the container; threads run inside it.</p>
-    <span class="notes-label">SAY</span><p>No. A process is the container; threads are workers inside it.</p>
+    <span class="notes-label">EXPECT</span><p>Some think one process means one thread.</p>
+    <span class="notes-label">SAY</span><p>Yes. A process is the container; threads are the cooks inside it. The main thread is one of them.</p>
     <span class="notes-label">CONNECT</span><p>Next question.</p>
   </aside>
 </section>
 
-<section class="slide question" data-title="Is Mach-O the Swift programming language?">
+<section class="slide question" data-title="Where is NPay&rsquo;s Swift code turned into machine code?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 7 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">Is Mach-O the Swift programming language?</p>
+        <p class="q-text">Where is NPay&rsquo;s Swift code turned into machine code?</p><ol class="q-opts"><li>On the iPhone at launch, by dyld</li><li>On your Mac, at build time</li><li>On the first tap, by SpringBoard</li><li>It is interpreted line by line</li></ol>
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">Mach-O is a binary format. Swift compiles <em>into</em> it.</p>
-          <p class="q-trap"><b>Common trap:</b> Confusing the language with the binary format it compiles into.</p>
+          <span class="q-verdict">B</span>
+          <p class="q-why">The compiler builds a Mach-O executable on your Mac. dyld only loads and links it at launch.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking dyld compiles, or that Swift is interpreted.</p>
         </div>
       </div>
     </div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Some confuse the language with the binary. Mach-O is the file format Swift compiles into.</p>
-    <span class="notes-label">SAY</span><p>No. Mach-O is a binary format. Swift compiles <em>into</em> it.</p>
+    <span class="notes-label">ASK</span><p>Read the four options. Everyone commits to a letter before the reveal.</p>
+    <span class="notes-label">EXPECT</span><p>A is the classic trap: dyld loads, it never compiles.</p>
+    <span class="notes-label">SAY</span><p>B. The compiler builds a Mach-O executable on your Mac. dyld only loads and links it at launch.</p>
     <span class="notes-label">CONNECT</span><p>Next question.</p>
   </aside>
 </section>
 
-<section class="slide question" data-title="Does dyld compile Swift source?">
+<section class="slide question" data-title="balanceText starts as &ldquo;₹25,000&rdquo;; the button sets it to &ldquo;₹25,480&rdquo;. After one tap, what does SwiftUI do?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 8 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
-  </div>
-  <div class="body">
-    <div class="q-row">
-      <div class="q-card">
-        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
-        <span class="label">Question</span>
-        <p class="q-text">Does dyld compile Swift source?</p>
-      </div>
-      <div class="q-panel">
-        <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">Compilation is build-time. dyld handles loading at runtime.</p>
-          <p class="q-trap"><b>Common trap:</b> Thinking source code is compiled when the app launches.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Some think code is compiled at launch. Compilation happened at build time; dyld only loads.</p>
-    <span class="notes-label">SAY</span><p>No. Compilation is build-time. dyld handles loading at runtime.</p>
-    <span class="notes-label">CONNECT</span><p>Next question.</p>
-  </aside>
-</section>
-
-<section class="slide question" data-title="Does DashboardView() draw pixels?">
-  <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 9 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
-  </div>
-  <div class="body">
-    <div class="q-row">
-      <div class="q-card">
-        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
-        <span class="label">Question</span>
-        <p class="q-text">Does <code>DashboardView()</code> draw pixels?</p>
-      </div>
-      <div class="q-panel">
-        <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">It creates a view <em>value</em>. The framework renders it.</p>
-          <p class="q-trap"><b>Common trap:</b> Thinking that creating a view draws it.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Most say yes. It only creates a view value.</p>
-    <span class="notes-label">SAY</span><p>No. It creates a view <em>value</em>. The framework renders it.</p>
-    <span class="notes-label">CONNECT</span><p>Next question.</p>
-  </aside>
-</section>
-
-<section class="slide question" data-title="Is body an imperative paint method?">
-  <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 10 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">Is <code>body</code> an imperative paint method?</p>
+        <p class="q-text"><code>balanceText</code> starts as &ldquo;₹25,000&rdquo;; the button sets it to &ldquo;₹25,480&rdquo;. After one tap, what does SwiftUI do?</p><ol class="q-opts"><li>Repaints the whole screen</li><li>Re-evaluates <code>body</code>, updates the changed text</li><li>Nothing until the next launch</li><li>Creates a new <code>DashboardView</code> process</li></ol>
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
-          <span class="q-verdict">No</span>
-          <p class="q-why">It returns a tree of view values. SwiftUI decides what to show and update.</p>
-          <p class="q-trap"><b>Common trap:</b> Reading body like an imperative draw method.</p>
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>@State</code> changed, so SwiftUI re-evaluates <code>body</code> and updates only what differs: the balance text.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading <code>body</code> as a paint method that redraws everything.</p>
         </div>
       </div>
     </div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Developers from imperative UI often say yes. body describes UI; it does not paint.</p>
-    <span class="notes-label">SAY</span><p>No. It returns a tree of view values. SwiftUI decides what to show and update.</p>
+    <span class="notes-label">ASK</span><p>Read the four options. Everyone commits to a letter before the reveal.</p>
+    <span class="notes-label">EXPECT</span><p>Predict-the-output on the Part 5 code. Developers from imperative UI often pick A.</p>
+    <span class="notes-label">SAY</span><p>B. @State changed, so SwiftUI re-evaluates body and updates only what differs: the balance text.</p>
     <span class="notes-label">CONNECT</span><p>Next question.</p>
   </aside>
 </section>
 
 <section class="slide question" data-title="Can the first screen be visible but unresponsive?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 11 of 11</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
   </div>
   <div class="body">
     <div class="q-row">
@@ -1446,7 +1387,7 @@ struct NPayApp: App {
       <div class="q-panel">
         <div class="q-ans step anim-up">
           <span class="q-verdict">Yes</span>
-          <p class="q-why">If the main thread is blocked, taps wait in line.</p>
+          <p class="q-why">If the main thread is still busy, taps wait in line. Visible and fully interactive are different milestones.</p>
           <p class="q-trap"><b>Common trap:</b> Assuming a visible screen is a ready screen.</p>
         </div>
       </div>
@@ -1454,14 +1395,81 @@ struct NPayApp: App {
   </div>
   <aside class="notes-src">
     <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
-    <span class="notes-label">EXPECT</span><p>Many assume visible means ready. A blocked main thread makes taps wait.</p>
-    <span class="notes-label">SAY</span><p>Yes. If the main thread is blocked, taps wait in line.</p>
-    <span class="notes-label">CONNECT</span><p>Now narrate the whole journey yourself.</p>
+    <span class="notes-label">EXPECT</span><p>Many assume visible means ready.</p>
+    <span class="notes-label">SAY</span><p>Yes. If the main thread is still busy, taps wait in line. Visible and fully interactive are different milestones.</p>
+    <span class="notes-label">CONNECT</span><p>Where these ideas go next in the course.</p>
   </aside>
 </section>
 
 <section class="slide">
-  <p class="kicker">Your challenge</p>
+  <p class="kicker">Lesson 0.1 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">0.3</td><td><b>App lifecycle: process, scenes &amp; suspension</b></td><td>what happens after the first frame</td></tr><tr><td class="mono">0.6</td><td><b>Memory architecture &amp; ARC</b></td><td>what lives inside the process&rsquo;s memory</td></tr><tr><td class="mono">1.1</td><td><b>Swift design, compiler, SIL &amp; LLVM</b></td><td>the build pipeline from source to Mach-O</td></tr><tr><td class="mono">2.1</td><td><b>Declarative UI, View &amp; body</b></td><td>views as descriptions</td></tr><tr><td class="mono">2.2</td><td><b>Xcode projects, simulator &amp; previews</b></td><td>the project that builds and runs NPay</td></tr><tr><td class="mono">8.9</td><td><b>Instruments &amp; measurement</b></td><td>measuring launch instead of guessing</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Everything today is a foundation that later lessons build on. Lifecycle continues in 0.3, memory in 0.6. In Unit 01, 1.1 opens up the compiler pipeline. Unit 02 starts with views as descriptions, and 2.2 sets up the Xcode project that builds and runs NPay. And Unit 08 is where we measure launch with Instruments.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Practice</p>
+    <h2>Your turn</h2>
+    <p class="lead">Order the launch, read the bundle</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Now you do it: a lab you can do with paper and a file listing, then four exercises that go further.</p>
+    <span class="notes-label">CONNECT</span><p>Start with the lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.1 &middot; Lab</p>
+  <h2>Order the launch, read the bundle</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">No Xcode needed: work from cards and a file listing.</p><ol class="lab"><li>Put the cards in order: <b>tap</b>, <b>SpringBoard</b>, <b>launch request</b>, <b>process + sandbox</b>, <b>dyld</b>, <b>@main</b>, <b>scene (inactive)</b>, <b>first frame</b>, <b>active</b>.</li><li>Mark each card&rsquo;s owner: <b>system</b>, <b>loader</b>, <b>your code</b> or <b>frameworks</b>.</li><li>Cross out the cards a <b>warm activation</b> can skip.</li><li>Label every item in the bundle: executable, metadata, resources or signature.</li></ol></div>
+    <div><div class="cw"><div class="ch"><span>NPay.app (simplified)</span></div><pre class="cb">NPay.app/
+├── NPay
+├── Info.plist
+├── Assets.car
+├── PrivacyInfo.xcprivacy
+├── embedded.mobileprovision
+├── _CodeSignature/
+│   └── CodeResources
+└── Frameworks/</pre></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The lab needs no Mac. Hand out nine cards in random order. Pairs order them, mark the owner of each, then cross out what a warm activation skips. Then label the NPay bundle listing on the right.</p>
+    <span class="notes-label">EXPECT</span><p>Order: tap, SpringBoard, launch request, process + sandbox, dyld, @main, scene (inactive), first frame, active. Owners: tap and SpringBoard, launch request, process creation = system; dyld = loader; @main = your code; scene, first frame, active = frameworks and system together. A warm activation skips launch request to @main: the process already exists. Bundle: NPay = Mach-O executable; Info.plist = metadata; Assets.car = compiled resources (images, colours); PrivacyInfo.xcprivacy = metadata (privacy manifest); embedded.mobileprovision = signing (provisioning profile, device builds only); _CodeSignature/CodeResources = signature; Frameworks/ = embedded libraries dyld loads.</p>
+    <span class="notes-label">CONNECT</span><p>Then go further with four exercises.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Practice &middot; Exercises</p>
+  <h2>Hands-on exercises</h2>
+  <div class="body top">
+    <div class="cols stretch" style="row-gap:20px">
+      <div class="card accent step"><span class="label">A: Responsibility map</span><p class="small">Draw Home Screen system UI, the NPay process, its scene, a SwiftUI view, the kernel and hardware. Explain every boundary.</p></div>
+      <div class="card accent step"><span class="label">B: Cold vs warm</span><p class="small">Draw both launch paths. Mark which stages a warm activation can reuse, and explain why survival is not guaranteed.</p></div>
+      <div class="card accent step"><span class="label">C: Source to binary (optional, Mac)</span><p class="small">On a Mac, find your built app in Xcode's build products and run <code>file</code> and <code>otool -l</code> on the executable.</p></div>
+      <div class="card accent step"><span class="label">D: Blank screen</span><p class="small">The app shows a blank screen at launch. Write three hypotheses and the measurement that would test each one.</p></div>
+    </div>
+    <div class="gap"></div>
+    <p class="small muted">Exercise C needs macOS with Xcode; the others need only paper. Use the real path from Xcode&rsquo;s build products; don&rsquo;t guess bundle paths.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">LIVE DEMO</span><p>Before the exercises: create a new iOS SwiftUI App in Xcode, open the @main App and its WindowGroup, replace the root view with DashboardView, and run it in the Simulator. Point at each part and say whether it is Swift language, SwiftUI framework, OS-managed scene or process. If time allows, open Instruments for a first look at launch.</p>
+    <span class="notes-label">ASK</span><p>For exercise D: what is the first thing you would measure?</p>
+    <span class="notes-label">EXPECT</span><p>Time to first frame and what the main thread is doing during it. Never claim a cause before measuring.</p>
+    <span class="notes-label">CONNECT</span><p>Finally, narrate the whole journey yourself.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Practice &middot; Your challenge</p>
   <h2>Explain the full journey</h2>
   <div class="body center">
     <div style="max-width:820px;margin:0 auto">
@@ -1477,7 +1485,7 @@ struct NPayApp: App {
     </div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>This is the final challenge. Narrate the full journey yourself.</p>
+    <span class="notes-label">SAY</span><p>This is the final challenge and a rehearsal for the Unit 00 checkpoint in Lesson 0.10. Narrate the full journey yourself, in pairs: one narrates, the other checks it against the map.</p>
     <span class="notes-label">CONNECT</span><p>We now know how NPay comes alive. Next: how should we organize the code inside that running app?</p>
   </aside>
 </section>
@@ -1486,10 +1494,10 @@ struct NPayApp: App {
   <div class="body">
     <p class="kicker">Lesson 0.1 complete</p>
     <h2>iOS Architecture &amp;<br>App Startup</h2>
-    <p class="lead" style="max-width:820px;margin:0 auto">Next: how should we organize the code inside the running app &mdash; views, state, services and data?</p>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 0.2 &mdash; iOS App Architecture: Who Does What?</p>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Recap: system UI receives the tap, the OS builds a process, dyld loads the compiled binary, @main hands over to SwiftUI, and the frameworks render the first frame.</p>
+    <span class="notes-label">SAY</span><p>Recap: system UI receives the tap, the OS builds a process, dyld loads the compiled binary, @main hands over to SwiftUI, the scene connects inactive, the frameworks render the first frame, and the scene becomes active.</p>
     <span class="notes-label">CONNECT</span><p>Next lesson: now that NPay is running, how should its code be organized?</p>
   </aside>
 </section>

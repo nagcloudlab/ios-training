@@ -92,6 +92,114 @@ def points(items, cls='', label=None, box='tip', step=True):
     return f'<div class="{box}{st}"{lab}><div class="points{(" " + cls) if cls else ""}">{inner}</div></div>'
 
 
+def qhtml(q):
+    """Review question text in the shared style: stem, then code lines (.q-code), lettered options (.q-opts), a tail line.
+    Input: 'stem<br>A. ...<br>B. ...' (also 'A) ', 'A&nbsp; ', or options wrapped in one trailing <span>)."""
+    import re
+    q = re.sub(r'<span style="[^"]*">(.*)</span>\s*$', r'<br>\1', q.strip(), flags=re.S)
+    parts = [x.strip() for x in q.split('<br>') if x.strip()]
+    opt = re.compile(r'^([A-D])(?:\.|\)|&nbsp;)\s*')
+    code = re.compile(r'^<code[^>]*>(.*)</code>$', re.S)
+    stem, opts, lines, tail = parts[0], [], [], []
+    for x in parts[1:]:
+        if opt.match(x):
+            opts.append(opt.sub('', x))
+        elif code.match(x) and not opts:
+            lines.append(code.match(x).group(1))
+        else:
+            tail.append(x)
+    o = f'<p class="q-text">{stem}</p>'
+    if lines:
+        o += '<pre class="q-code">' + '\n'.join(lines) + '</pre>'
+    if opts:
+        o += '<ol class="q-opts">' + ''.join(f'<li>{x}</li>' for x in opts) + '</ol>'
+    if tail:
+        o += f'<p class="q-text q-tail">{" ".join(tail)}</p>'
+    return o
+
+
+# ------------------------------------------------------------------ Unit 00: shared NPay map + bridge/recap/next/lab slides
+# One architecture map for the whole unit. Each lesson lights its own region (`focus` keys),
+# so students see the same picture grow. Keys: view vm service model thread memory scene
+# springboard keychain storage frameworks kernel hardware server sandbox https
+_NPAY_MAP = [
+    ('view', 32, 58, 190, 56, 'phone', 'View', 'SwiftUI screen'),
+    ('vm', 236, 58, 190, 56, 'layout', 'ViewModel', 'screen state'),
+    ('service', 440, 58, 190, 56, 'link', 'Service', 'talks to the bank'),
+    ('model', 644, 58, 190, 56, 'code', 'Model', 'balance, transactions'),
+    ('thread', 32, 132, 260, 56, 'thread', 'Main thread', 'RunLoop · events · frames'),
+    ('memory', 306, 132, 260, 56, 'memory', 'Memory', 'stack · heap · ARC'),
+    ('scene', 580, 132, 254, 56, 'frame', 'Scene', 'foreground · background'),
+    ('springboard', 16, 238, 180, 56, 'grid', 'SpringBoard', 'launches apps'),
+    ('keychain', 210, 238, 170, 56, 'key', 'Keychain', 'secrets'),
+    ('storage', 394, 238, 232, 56, 'db', 'Storage', 'UserDefaults · SwiftData'),
+    ('frameworks', 640, 238, 204, 56, 'frameworks', 'Frameworks', 'SwiftUI · URLSession'),
+    ('kernel', 16, 308, 410, 56, 'kernel', 'Kernel', 'processes · sandbox · code signing'),
+    ('hardware', 440, 308, 404, 56, 'chip', 'Hardware', 'CPU · memory · Secure Enclave'),
+    ('server', 920, 238, 216, 56, 'bank', 'Bank API server', 'authoritative balance'),
+]
+
+
+def archmap(focus=(), lits=None, title='NPay architecture map', tid='npaymap', style='max-height:400px'):
+    """focus: keys drawn teal. lits: {key: data-lit spec} to move the teal on clicks instead."""
+    lits = lits or {}
+    on = lambda k: k in focus
+    cls = lambda k: ' lit' if on(k) else ''
+    o = []
+    sb = ' lit' if on('sandbox') else ''
+    o.append(f'<rect class="wire dash{sb}"{lit(lits.get("sandbox"))} x="16" y="20" width="828" height="182" rx="16"/>')
+    o.append(f'<text class="mono{" fill-teal" if sb else ""}" x="32" y="42">NPAY PROCESS · SANDBOX</text>')
+    o.append('<text class="mono" x="16" y="228">IOS</text>')
+    for k, x, y, w, h, icon, t, sub in _NPAY_MAP:
+        o.append(row(x, y, w, h, icon, t, sub, lits.get(k), cls(k).strip()))
+    for x in (222, 426, 630):   # View -> ViewModel -> Service -> Model
+        o.append(f'<path class="wire" d="M{x + 2} 86H{x + 12}M{x + 7} 81l5 5-5 5"/>')
+    hs = ' lit' if on('https') else ''
+    o.append(f'<path class="wire{hs}"{lit(lits.get("https"))} d="M848 266H916M911 261l5 5-5 5M853 261l-5 5 5 5"/>')
+    o.append(f'<text class="sm" x="882" y="256" text-anchor="middle">HTTPS</text>')
+    return svg('0 0 1136 366', title, tid, o, style)
+
+
+def map_slide(lesson, h2, focus, last, today, say, connect, lits=None, cues=0):
+    """Opening bridge: where today's lesson sits on the NPay map, and what came last time."""
+    body = f"""  <div class="body">
+    {archmap(focus, lits, tid=f"map{lesson.replace('.', '')}", style='max-height:360px')}{'<i class="step cue"></i>' * cues}
+    <div class="bridge"><span><b>Last time</b>{last}</span><span><b>Today</b>{today}</span></div>
+  </div>"""
+    return slide(f'Lesson {lesson} &middot; Where we are', h2, body, notes(('SAY', say), ('CONNECT', connect)))
+
+
+def recap_slide(lesson, focus, items, say, connect='Now check your understanding.'):
+    """End-of-lesson recap: the same map, today's region lit, plus three points."""
+    body = f"""  <div class="body">
+    {archmap(focus, tid=f"rmap{lesson.replace('.', '')}", style='max-height:300px')}
+    <div class="gap"></div>
+    {points(items, label='Recap', box='tip', step=False)}
+  </div>"""
+    return slide(f'Lesson {lesson} &middot; Recap', 'What to remember', body, notes(('SAY', say), ('CONNECT', connect)))
+
+
+def next_slide(lesson, rows, say):
+    """Where this lesson's ideas are built on later in the course (plan: concepts first, implementation later)."""
+    trs = ''.join(f'<tr><td class="mono">{n}</td><td><b>{t}</b></td><td>{d}</td></tr>' for n, t, d in rows)
+    body = f"""  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody>{trs}</tbody></table>
+  </div>"""
+    return slide(f'Lesson {lesson} &middot; Where this goes next', 'Where this goes next', body,
+                 notes(('SAY', say), ('CONNECT', 'One last thing before we finish: your lab.')))
+
+
+def lab_slide(lesson, h2, goal, steps_, deliver, say, side=''):
+    """Practice: a concept lab or a Swift command-line lab (Units 0-1 need Swift only, no Xcode project)."""
+    lis = ''.join(f'<li>{x}</li>' for x in steps_)
+    right = side or f'<div class="card accent"><span class="label">You hand in</span><p>{deliver}</p></div>'
+    body = f"""  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">{goal}</p><ol class="lab">{lis}</ol></div>
+    <div>{right}</div>
+  </div>"""
+    return slide(f'Lesson {lesson} &middot; Lab', h2, body, notes(('SAY', say), ('CONNECT', 'That completes the lesson.')))
+
+
 S = []
 
 # ================================================================== 1 · title
@@ -99,10 +207,10 @@ S.append("""<section class="slide title" style="background:linear-gradient(135de
   <div class="body" style="z-index:1;position:relative">
     <p class="kicker" style="letter-spacing:.2em">Unit 00 &middot; Lesson 0.2</p>
     <h1 style="font-size:54px;line-height:1.05">iOS App Architecture:<br>Who Does What?</h1>
-    <p class="lead" style="max-width:660px">In Lesson 0.1, iOS started NPay. Now: <b>who manages the app after it starts?</b></p>
+    <p class="lead" style="max-width:660px">In Lesson 0.1, iOS started NPay. Now: <b>how do NPay&rsquo;s components communicate?</b></p>
   </div>
   <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
-""" + notes(('SAY', 'In Lesson 0.1 we learned how iOS starts an application. Now we look at who manages the application after it starts: who displays the screen, handles a tap, talks to the bank and stores information. No coding is required for this lesson; the code we show is there to read, not to write.'),
+""" + notes(('SAY', 'In Lesson 0.1 we learned how iOS starts an application. Now we look at how NPay&rsquo;s components communicate once it starts: who displays the screen, handles a tap, talks to the bank and stores information. No coding is required for this lesson; the code we show is there to read, not to write.'),
             ('CONNECT', "Here's what you'll be able to do by the end.")) + "</section>\n\n")
 
 # ================================================================== 2 · outcomes
@@ -127,7 +235,7 @@ P.append('<text x="568" y="78" text-anchor="middle" style="font-size:22px;font-w
 P.append('<g class="nd"><rect class="sh" x="478" y="98" width="180" height="78" rx="12"/><text class="sm" x="568" y="126" text-anchor="middle">Available balance</text><text x="568" y="158" text-anchor="middle" style="font-size:24px;font-weight:700">&#8377;25,000</text></g>')
 P.append('<text class="mono" x="478" y="206">RECENT ACTIVITY</text>')
 P.append('<rect class="mute" x="478" y="216" width="180" height="34" rx="8"/><rect class="mute" x="478" y="258" width="180" height="34" rx="8"/><rect class="mute" x="478" y="300" width="180" height="34" rx="8"/>')
-P.append('<g class="nd lit"><rect class="sh" x="478" y="380" width="180" height="48" rx="14"/><use href="#i-eye" x="496" y="393" width="22" height="22"/><text x="582" y="410" text-anchor="middle">Check Balance</text></g>')
+P.append('<g class="nd lit"><rect class="sh" x="478" y="380" width="180" height="48" rx="14"/><use href="#i-eye" x="496" y="393" width="22" height="22"/><text x="582" y="410" text-anchor="middle">Refresh balance</text></g>')
 P.append('<g class="fade" data-lit="0"><circle class="ring anim-ping" cx="568" cy="404" r="30"/></g>')
 labels = [(1, 'DISPLAY THE SCREEN', 'l', 120), (2, 'HANDLE THE TAP', 'l', 404), (3, 'TALK TO THE BANK', 'r', 140),
           (4, 'STORE INFORMATION', 'r', 300)]
@@ -143,7 +251,7 @@ S.append(slide("", "", f"""  <div class="body center">
   </div>""", notes(('SAY', 'Imagine our banking app. The user opens NPay, checks the balance and transfers money. Click by click: something must display the screen, handle the button tap, communicate with the bank and store information.'),
                  ('ASK', 'Who should be responsible for each of these jobs?'),
                  ('EXPECT', "Collect answers without correcting them. Many will say \"the view does it all\". The next slides split the work into five responsibilities."),
-                 ('CONNECT', "Let's name the five responsibilities.")), title_attr="Check Balance"))
+                 ('CONNECT', "Let's name the five responsibilities.")), title_attr="Refresh balance"))
 
 # ================================================================== chapter 1
 S.append(chapter(1, "Why architecture matters", "Boundaries for change, testing and ownership",
@@ -779,12 +887,18 @@ QA = [("kernel", "Who creates and manages an iOS app&rsquo;s process?", "The ope
       ("bank", "Is the backend inside the iOS process?", "No", "It is a separate system across a trust boundary, reached over HTTPS.", "Thinking of the backend as part of the app.", "Most get this; confirm the words \"trust boundary\"."),
       ("cross", "The request times out. Can the UI show \"Payment failed\"?", "No", "The result may be unknown. Show pending, then reconcile using the reference and idempotency key.", "Equating a timeout with a failed payment.", "Many say yes. The backend may already have completed it."),
       ("check", "How do you test transfer validation without launching a view?", "Move it out of the view", "Put it in the ViewModel, inject a mock service, and test it with Swift Testing.", "Leaving logic inside body, where only UI tests can reach it.", "Some suggest UI tests. They work but are slow; separation makes unit tests possible.")]
-QA = QA[:3]   # lesson text's knowledge check only
+OPT = lambda *o: '<span style="display:block;font-size:22px;line-height:1.5;margin-top:14px">' + '<br>'.join(f'{chr(65 + k)}. {x}' for k, x in enumerate(o)) + '</span>'
+QA = QA[:3] + [   # the lesson text's knowledge check, plus two authored items (audit: distractors + spaced review)
+    ("code", "NPay&rsquo;s model holds <code>balanceMinor = 2500000</code> (paise). Where should it become &ldquo;&#8377;25,000&rdquo;?" + OPT("On the bank server", "In the Service, before returning", "In the ViewModel", "In the View&rsquo;s <code>body</code>, by string concatenation"),
+     "C", "The ViewModel turns the model into what the screen needs, including currency formatting. The view just shows the text.", "Building display strings in the view or the service.", "Some pick B or D. Formatting is presentation state, which the ViewModel owns."),
+    ("play", "When NPay launches, which of these runs first?" + OPT("<code>DashboardView</code>&rsquo;s <code>body</code>", "The <code>@main</code> entry point, <code>NPayApp</code>", "The ViewModel loading the balance", "The first frame on screen"),
+     "B", "iOS creates the process and runs the <code>@main</code> entry point; the App then provides the scene and its first view, and only then is a frame drawn.", "Thinking the first screen or the network call starts the app.", "Spaced review from 0.1. Some pick A or D; the App comes first."),
+]
 N = len(QA)
 for i, (ic, q, v, why, trap, exp) in enumerate(QA):
     dots = ''.join('<i class="done"></i>' if k < i else '<i class="now"></i>' if k == i else '<i></i>' for k in range(N))
     import re
-    title = html.unescape(re.sub('<[^>]+>', '', q))
+    title = html.unescape(re.sub('<[^>]+>', '', q.split('<span')[0]))
     S.append(f"""<section class="slide question" data-title="{E(title, quote=True)}">
   <div class="q-top">
     <p class="kicker">Check your understanding &middot; {i + 1} of {N}</p>
@@ -795,7 +909,7 @@ for i, (ic, q, v, why, trap, exp) in enumerate(QA):
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-{ic}"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">{q}</p>
+        {qhtml(q)}
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
@@ -835,11 +949,10 @@ S.append("""<section class="slide end">
   <div class="body">
     <p class="kicker">Lesson 0.2 complete</p>
     <h2>iOS App Architecture:<br>Who Does What?</h2>
-    <p class="lead" style="max-width:820px;margin:0 auto">Next: the iOS application lifecycle</p>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 0.3 &mdash; iOS Application Lifecycle Deep Dive</p>
   </div>
 """ + notes(('SAY', 'Recap: iOS manages the process; our app architecture organizes the code inside it. The view displays and receives interaction, the ViewModel owns screen state, the service hides where data comes from, and the network and storage sit behind it. A request goes down the layers and the result comes back up. And SwiftUI is declarative: change the state, and the interface follows.'),
-            ('SAY', 'Next lesson goes one layer deeper into the application lifecycle: app process versus scene; foreground, background and suspension; what happens when the user presses Home; why iOS may terminate apps under memory pressure; cold launch versus warm activation; and the SwiftUI lifecycle versus UIKit AppDelegate and SceneDelegate.'),
-            ('CONNECT', 'This matters for real-world app behavior and debugging.')) + "</section>\n\n")
+            ('SAY', 'Next, Lesson 0.3 goes one layer deeper: app process versus scene; foreground, background and suspension; what happens when the user leaves; why iOS may terminate apps under memory pressure; and cold launch versus warm activation. Lesson 0.4 then shows how SwiftUI and UIKit code observe those events.')) + "</section>\n\n")
 
 doc = f"""<!doctype html>
 <html lang="en">

@@ -115,3 +115,23 @@ The next lesson goes one layer deeper into the iOS application lifecycle:
 - Why iOS may terminate apps under memory pressure
 - Cold launch versus warm activation
 - SwiftUI lifecycle versus UIKit AppDelegate and SceneDelegate
+
+## Deck changes after the Unit 00 audit
+
+The text above is unchanged. The deck now differs from it as follows.
+
+**Corrections and consistency (NPay canon)**
+- "Check Balance" is now **"Refresh balance"** everywhere (hero, outcomes, Part 3 walkthrough; the view calls `refresh()`).
+- Part 5 code uses the unit's canonical types: `Balance` with `balanceMinor: Int64` (whole paise), `@MainActor @Observable final class DashboardViewModel` that formats the amount with `.formatted(.currency(code: "INR"))`, and `DashboardView` owning it with `@State`. The state demo starts at ₹25,000.
+- "No coding" is kept: the Part 5 live demo uses a prepared project that students watch; the slide says the code is "to read rather than write".
+- Part 4 adds the idea this lesson owns: a view's `body` is a *description* of the screen that SwiftUI reads again when its state changes.
+
+**Authored additions (flagged)**
+- "Where we are" slide after the outcomes: the shared NPay architecture map (View, ViewModel, Service, Model lit), with Last time (0.1) / Today.
+- One-line pointer on the MVVM slide: Unit 04 covers MVVM in depth (4.2) and dependency injection (4.5).
+- Recap slide (map + three points) before the review.
+- Review grows from 3 to 5 questions: two multiple-choice items (where ₹ formatting belongs; spaced review from 0.1: what runs first at launch).
+- "Where this goes next" slide: 2.1, 2.5, 3.2, 4.2, 4.5.
+- Title slide question reworded to "How do NPay's components communicate?" (the course plan's central question for 0.2).
+- Lab: sort ten NPay job cards into View / ViewModel / Service / Model (answers in the speaker notes).
+- End slide: "Next: Lesson 0.3 — iOS Application Lifecycle Deep Dive".

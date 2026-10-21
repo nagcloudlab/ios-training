@@ -71,6 +71,24 @@
     overview.append(b);
   });
 
+  // lesson map on every divider: all parts, the current one teal, earlier ones done
+  var chapters = slides.filter(function (s) { return s.classList.contains('chapter'); });
+  if (chapters.length > 2) {
+    var parts = chapters.map(function (c) {
+      var k = c.querySelector('.kicker'), h = c.querySelector('h2');
+      return { k: k ? k.textContent.trim() : '', t: h ? h.textContent.replace(/\s+/g, ' ').trim() : '' };
+    });
+    chapters.forEach(function (c, ci) {
+      var ol = mk('ol', 'partmap' + (parts.length > 9 ? ' dense' : ''));
+      ol.setAttribute('aria-label', 'Lesson map');
+      ol.innerHTML = parts.map(function (p, pi) {
+        return '<li class="' + (pi < ci ? 'done' : pi === ci ? 'now' : '') + '"><small>' + esc(p.k) + '</small>' + esc(p.t) + '</li>';
+      }).join('');
+      c.classList.add('has-map');
+      c.append(ol);
+    });
+  }
+
   // syntax-colour Swift code blocks
   document.querySelectorAll('.cb').forEach(function (pre) { colourSwift(pre); });
 

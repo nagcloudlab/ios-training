@@ -115,3 +115,27 @@ A normal foreground request is not guaranteed to continue after suspension. Back
 
 ## Final understanding
 SwiftUI → ViewModel → Networking Service → URLSession → HTTPS → Server → JSON → Model → ViewModel → SwiftUI. Networking is asynchronous, security is layered, and error handling is part of the architecture.
+
+## Deck changes after the Unit 00 audit
+
+The deck (`index.html`, built by `tools/gen08.py`) now differs from the text above as follows. Items marked *authored* are not in the text.
+
+**Corrections**
+- Status check accepts any success code: `(200..<300).contains(http.statusCode)`, not `== 200`.
+- The ViewModel's `do`/`catch` now wraps a real throwing call (`try await service.fetchBalance()`).
+- Background URLSession: upload and download tasks only; it is not a way to keep the app's code running; a user force-quit cancels its transfers.
+- "Idempotent" is defined (sending twice has the same effect as once): GET, PUT, DELETE yes; POST no; PATCH not guaranteed. Added as a column in the methods table.
+
+**Cuts and moves**
+- Part 2 "The big picture" (the five-layer walkthrough) is cut: the opening map slide and the 9-step journey cover it. Its point (SwiftUI does not implement HTTP; MVVM is a pattern, not an OS requirement) moved onto the journey slide. Later parts renumber 2–9.
+- The secure-login flow from Lesson 0.7 now sits in Part 4 (HTTPS) as "Where the token comes from".
+
+**Consistency (NPay canon)**
+- `BalanceService.fetchBalance()` returns a `Balance` (`accountId`, `currency`, `balanceMinor: Int64`); the old `BalanceResponse` is renamed.
+- `@MainActor @Observable final class DashboardViewModel` (was `BalanceViewModel`) awaits the service and formats `balanceMinor` as rupees; the view owns it with `@State`. The 24-line skeleton became a 13-line slide; the loading flag, `defer` and injection moved to LIVE DEMO notes.
+- Button text "Refresh balance".
+
+**Authored additions**
+- "Where we are" slide on the NPay architecture map (bridge from Lesson 0.7).
+- One-line pointers: ATS (7.6), 5.1, 5.2, 5.5, 5.6, 5.8, 10.7, 4.5.
+- Recap slide; review is 5 questions (multiple choice on who owns the balance, predict-the-outcome on HTTP 401, HTTPS, a spaced item from 0.5, multiple choice on retrying a timed-out POST); "Where this goes next" (5.1, 5.2, 5.3, 5.5, 5.8, 7.6); Swift command-line lab (decode a balance JSON, break a key, classify status codes); end slide names Lesson 0.9.

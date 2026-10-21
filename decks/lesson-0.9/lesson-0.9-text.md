@@ -88,3 +88,25 @@ SwiftData and Core Data can use SQLite-backed stores. New SwiftUI apps: SwiftDat
 4. Should a banking app present stale cached balances as verified live balances? **No.**
 
 **Next — Lesson 0.10: Complete iOS Architecture, End to End.** Tap app → process launch → SwiftUI screen → button event → API request → secure authentication → data storage → backgrounding → suspension → relaunch.
+
+## Deck changes after the Unit 00 audit
+
+The deck now differs from the text above as follows (authored items are marked *authored*).
+
+- **Corrections**
+  - Sample JSON uses `"balanceMinor": 2500000` (paise, `Int64`), the course-wide money convention. The ViewModel formats ₹25,000.
+  - The SwiftData note stores `amountMinor: Int64` instead of `Decimal`. One line notes that `@Model` objects are not Sendable.
+  - The file snippet uses `URL.cachesDirectory.appending(path:)` and `URL.applicationSupportDirectory`, and writes with `.completeFileProtection`. It no longer uses `urls(for:).first!` or `appendingPathComponent`.
+  - The directory table adds "Backed up". Documents is for user-created documents (backed up, can be shown in Files); app data goes in Application Support; the statement PDF goes in **Caches** because it can be downloaded again.
+  - The `@State` answer says it lives with the view's identity in the running process, not "with the app".
+- **Consistency:** the whiteboard/notebook analogy is replaced by the course's restaurant-kitchen analogy (counter = RAM, pantry = storage).
+- **Token:** "token in UserDefaults?" is no longer a review question (Lesson 0.7 owns it); it is recalled in one line in Part 3.
+- **Part 9:** the comparison table became an abstraction-level diagram (SwiftData / Core Data → SQLite store → files; FileManager → files).
+- **Forward pointers** (one line each): Unit 06 lessons 6.1, 6.2, 6.5, 6.6 and 6.9 (drafts, state restoration, `@SceneStorage`).
+- *Authored:*
+  - a "Where we are" map slide with Last time / Today
+  - a recap slide
+  - a review of 5 questions: multiple choice; predict-the-output; `@State`; offline cached balance (answer Yes); and a spaced item from 0.3
+  - a "Where this goes next" slide
+  - the storage-chooser lab (10 NPay items)
+  - the end line "Next: Lesson 0.10"

@@ -52,3 +52,26 @@ Open NPay (signed, sandboxed) → authenticate over authenticated HTTPS → back
 2. Does code signing mean an app is free of vulnerabilities? **No.**
 3. Where should an authentication token generally be stored? **Keychain.**
 4. Is every Keychain item stored in the Secure Enclave? **No.**
+
+## Deck changes after the Unit 00 audit
+
+The deck (`index.html`, built by `tools/gen07.py`) now differs from the text above as follows. Items marked *authored* are not in the text.
+
+**Corrections**
+- Secure Enclave: Keychain items are **not** stored in the Secure Enclave. The Keychain is an encrypted database; the Secure Enclave protects the keys that encrypt it and can create P-256 private keys that never leave it (Part 8 diagram and rule rewritten; review question 4 answer reworded).
+- Camera: a missing `NSCameraUsageDescription` makes iOS terminate the app when it asks for the camera; after Don't Allow the app cannot ask again and can only offer another way and send the user to Settings.
+
+**Cuts and moves**
+- Part 9 (secure login, end to end) moved to Lesson 0.8 Part 4 ("Where the token comes from"), where the bearer token is used.
+
+**Consistency**
+- The airport analogy is replaced by the course's hotel analogy from Lesson 0.1 (room = sandbox, key = signing/entitlements, in-room safe = Keychain).
+- Lesson 0.7 is the one place that teaches "token in UserDefaults?"; Part 7 is now a diagram (UserDefaults as a preferences file inside NPay's container vs the Keychain managed by iOS).
+
+**Visuals**
+- Part 4's comparison table became a two-lane diagram (entitlement at build/signing time vs permission at run time).
+
+**Authored additions**
+- "Where we are" slide on the NPay architecture map (bridge from Lesson 0.6).
+- One-line pointers: widgets/extensions are separate sandboxed processes sharing via App Groups (10.9); privacy manifest (11.8); Keychain accessibility (7.3); Secure Enclave from CryptoKit (7.5); ATS (7.6).
+- Recap slide; review expanded to 5 questions (two multiple choice, one spaced item from 0.6); "Where this goes next" (7.1, 7.2, 7.3, 7.5, 7.6, 7.8); lab "Map NPay's threats" (six items: where each lives, what protects it); end slide names Lesson 0.8.

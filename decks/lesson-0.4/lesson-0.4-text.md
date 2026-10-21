@@ -193,3 +193,26 @@ struct NPayApp: App {
 You can now explain why modern iOS apps use SwiftUI's declarative lifecycle, why UIKit delegate APIs still matter, and how scene-level events differ from application-process events.
 
 **Next: Lesson 0.5 — iOS Threads, Main Thread, RunLoop and Event Handling.** We trace one button tap from the touchscreen through iOS event delivery, the main thread, SwiftUI state changes and screen rendering.
+
+## Deck changes after the Unit 00 audit
+
+The deck (`index.html`, built by `tools/gen04.py`) now differs from the text above as follows. Items marked *authored* are not in the original text.
+
+**Corrections**
+- UIKit's scene life cycle is no longer presented as optional: Apple's TN3187 makes it mandatory for UIKit apps built with the SDK after iOS 26. An AppDelegate-only app is legacy code to migrate (Part 3, Part 8). *Authored.*
+- Launch order: the scene connects as **inactive**, shows its first frame, then becomes **active** (Part 6, event 2).
+- The AppDelegate is no longer compared to a hotel manager. The course keeps two analogies only (hotel for the platform, restaurant kitchen for inside the process), so the slide now says plainly that the AppDelegate hears app-level events.
+
+**Consistency (NPay canon)**
+- `ContentView` → `DashboardView` in every snippet.
+- Snippets shortened to slide size: the AppDelegate (13 lines), SceneDelegate (8 lines, one line per callback), `scenePhase` view (14 lines) and delegate adaptor (13 lines). The full adaptor file is in the LIVE DEMO notes. All snippets typecheck (Swift 6, iOS 17 SDK).
+
+**Added** (*authored*)
+- "Where we are" slide: the shared NPay architecture map (Scene and View lit), with a Last time (0.3) / Today bridge.
+- Part 4, "scenePhase in a View vs in the App": a View reads its own scene's phase; the App reads all scenes combined (active if any scene is active, background only when every scene is). Per-screen work goes in the View, app-wide work in the App. The App-level observer code is in the LIVE DEMO notes.
+- Part 8 is now a decision diagram (new / existing UIKit / hybrid) instead of three text cards.
+- Recap slide (map + three points).
+- Review: five questions instead of four, with mixed verdicts — Yes (an AppDelegate through the adaptor), multiple choice (App-level `scenePhase` with two windows: C, `.active`), predict-the-output (swipe to Home prints "Inactive" then "Background"), spaced review from 0.3 (`.background` ≠ suspended), and the termination callback question. "Does every SwiftUI View have its own process?" was dropped (0.3 covers processes).
+- "Where this goes next": 3.1, 6.9, 10.1, 10.3, 10.7.
+- Lab, "Map the lifecycle events": five NPay moments × AppDelegate / SceneDelegate / SwiftUI, with the answer key in the notes.
+- The end slide names the next lesson: Lesson 0.5 — Main Thread, RunLoop & Event Handling.

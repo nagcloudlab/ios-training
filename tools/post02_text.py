@@ -10,10 +10,10 @@ s = open(P_).read()
 first = s.index('<section'); last = s.rindex('</section>') + len('</section>')
 head_, tail_ = s[:first], s[last:]
 secs = re.findall(r'<section\b.*?</section>', s[first:last], re.S)
-assert len(secs) == 40, len(secs)
+assert len(secs) == 42, len(secs)
 S = {i + 1: x for i, x in enumerate(secs)}
 Q = [n for n in S if 'class="slide question"' in S[n][:40]]
-assert len(Q) == 3
+assert len(Q) == 5
 
 
 def kick(n, k):
@@ -38,7 +38,7 @@ def divider(n, title, lead, say, con):
 
 # ---------------------------------------------------------------- NEW · five responsibilities
 P = []
-P.append(row(368, 0, 400, 62, "user", "User", "taps “Check Balance”", "1"))
+P.append(row(368, 0, 400, 62, "user", "User", "taps “Refresh balance”", "1"))
 P.append(wire(f'M568 62V90{head(568, 90, "d")}'))
 for i, (ic, t, sub) in enumerate([("phone", "1. View (SwiftUI)", "displays the balance and receives interaction"),
                                   ("layout", "2. ViewModel", "manages screen state and coordinates actions"),
@@ -54,11 +54,11 @@ FIVE = f"""<section class="slide">
   <p class="kicker">Part 1 &middot; Responsibilities &middot; conceptual</p>
   <h2>Five important responsibilities</h2>
   <div class="body">
-    {svg("0 0 1136 442", "The user taps Check Balance; 1 the SwiftUI view, 2 the ViewModel, 3 the service or repository, which uses 4 the network (bank server) and 5 storage (local database).", "s2five", P, "max-height:450px")}
+    {svg("0 0 1136 442", "The user taps Refresh balance; 1 the SwiftUI view, 2 the ViewModel, 3 the service or repository, which uses 4 the network (bank server) and 5 storage (local database).", "s2five", P, "max-height:450px")}
     <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
     <p class="small muted" style="margin:10px 0 0">An example of a layered MVVM-style architecture, not a structure iOS forces every app to use.</p>
   </div>
-{notes(('SAY', 'Click by click, top to bottom. The user taps Check Balance. The SwiftUI view displays the balance and receives the tap. The ViewModel manages the screen state and coordinates the action. The service or repository loads the data and hides how. Below it, the network reaches the bank server and storage keeps a local copy.'),
+{notes(('SAY', 'Click by click, top to bottom. The user taps Refresh balance. The SwiftUI view displays the balance and receives the tap. The ViewModel manages the screen state and coordinates the action. The service or repository loads the data and hides how. Below it, the network reaches the bank server and storage keeps a local copy.'),
        ('SAY', 'This is one common, layered MVVM-style design. iOS does not force it on every app.'),
        ('CONNECT', 'How is this different from the architecture of iOS itself?'))}</section>"""
 
@@ -83,10 +83,10 @@ TABLE = f"""<section class="slide">
        ('EXPECT', 'No. MVVM is an application design choice; iOS does not know about it.'),
        ('CONNECT', 'Now follow one tap through these layers.'))}</section>"""
 
-# ---------------------------------------------------------------- NEW · Check Balance walkthrough (8 steps, down then up)
+# ---------------------------------------------------------------- NEW · Refresh balance walkthrough (8 steps, down then up)
 lanes = ["USER", "VIEW", "VIEWMODEL", "SERVICE", "NETWORK"]
 steps8 = [(0, "user", "User", "User taps button", "The user initiates an action on the balance screen."),
-          (1, "phone", "View", "View forwards the action", "The SwiftUI view calls the ViewModel, for example loadBalance()."),
+          (1, "phone", "View", "View forwards the action", "The SwiftUI view calls the ViewModel, for example refresh()."),
           (2, "layout", "ViewModel", "Loading state", "The ViewModel marks the screen as loading and asks the service for the balance."),
           (3, "link", "Service", "Service hides the details", "The service or repository decides where the data comes from and calls the network."),
           (4, "bank", "Bank server", "Bank server responds", "The bank server checks the request and returns the balance."),
@@ -114,7 +114,7 @@ for i, (_, _, _, title, desc) in enumerate(steps8):
              f'<text x="0" y="426" style="font-size:19px;font-weight:400">{desc}</text></g>')
 WALK = f"""<section class="slide">
   <p class="kicker">Part 3 &middot; Request walkthrough &middot; conceptual</p>
-  <h2>Tapping &ldquo;Check Balance&rdquo;, step by step</h2>
+  <h2>Tapping &ldquo;Refresh balance&rdquo;, step by step</h2>
   <div class="body">
     {svg("0 0 1136 432", "Eight steps: user, view, ViewModel, service, bank server going down; then service (saving to storage), ViewModel and view coming back up.", "s3walk", P, "max-height:470px")}
     <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
@@ -151,7 +151,7 @@ DEMO = f"""<section class="slide">
   <div class="body cols middle" style="grid-template-columns:1fr 1fr">
     <div class="demo-phone">
       <p class="small muted" style="margin:0">Available balance</p>
-      <p class="demo-balance" id="npayDemoBalance">&#8377;12,500</p>
+      <p class="demo-balance" id="npayDemoBalance">&#8377;25,000</p>
       <div class="demo-actions">
         <button type="button" class="demo-btn" onclick="npayDemo(1000);this.blur()">Simulate &#8377;1,000 deposit</button>
         <button type="button" class="demo-btn ghost" onclick="npayDemo(0);this.blur()">Reset balance</button>
@@ -159,34 +159,43 @@ DEMO = f"""<section class="slide">
     </div>
     <div>
       <p class="small muted" style="margin:0 0 6px">Current state</p>
-      <pre class="tree" style="font-size:22px">balance = <span class="dir" id="npayDemoState">12500</span></pre>
+      <pre class="tree" style="font-size:22px">balance = <span class="dir" id="npayDemoState">25000</span></pre>
       <div class="gap"></div>
-      <div class="rule">When the <b>balance state</b> changes, the displayed amount changes. That is the central mental model behind SwiftUI.</div>
+      <div class="rule">When the <b>balance state</b> changes, the displayed amount changes. A view&rsquo;s <code>body</code> is a <b>description</b> of the screen: SwiftUI reads it again whenever the state it uses changes.</div>
       <p class="small muted" style="margin:12px 0 0">Local interactive simulation only; no real banking request or Swift runtime.</p>
     </div>
   </div>
   <script>
     function npayDemo(add) {{
-      var el = document.getElementById('npayDemoState'), v = add ? (+el.textContent + add) : 12500;
+      var el = document.getElementById('npayDemoState'), v = add ? (+el.textContent + add) : 25000;
       el.textContent = v;
       document.getElementById('npayDemoBalance').textContent = '\\u20B9' + v.toLocaleString('en-IN');
     }}
   </script>
 {notes(('SAY', 'Click the deposit button a few times. We never touch the label; we only change the state, and the displayed amount follows. Reset puts the state back and the screen follows again.'),
+       ('SAY', 'This is what "body is a description" means: body does not draw anything. It describes what the screen should look like for the current state, and SwiftUI calls it again when that state changes. Later lessons build on this word, description.'),
        ('SAY', 'This is a browser simulation for teaching, not Swift. In SwiftUI, the same idea is a @State or observable property feeding a Text view.'),
        ('CONNECT', 'Where do the model and the ViewModel fit? That is MVVM.'))}</section>"""
 
 # ---------------------------------------------------------------- NEW · where MVVM fits
-ACC = '''struct Account {
-    let id: String
-    let balance: Decimal
+ACC = '''struct Balance {
+    let accountID: String
+    // paise: exact money
+    let balanceMinor: Int64
 }'''
-AVM = '''@Observable
-class AccountViewModel {
-    var balanceText = "₹12,500"
+AVM = '''@MainActor @Observable
+final class DashboardViewModel {
+    var balanceText = "—"
+
+    func show(_ b: Balance) {
+        let rupees = Decimal(b.balanceMinor) / 100
+        balanceText = rupees.formatted(
+            .currency(code: "INR"))
+    }
 }'''
-BV = '''struct BalanceView: View {
-    var model: AccountViewModel
+BV = '''struct DashboardView: View {
+    @State private var model =
+        DashboardViewModel()
 
     var body: some View {
         Text(model.balanceText)
@@ -206,24 +215,24 @@ MVVM = f"""<section class="slide">
     <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
     <div class="gap"></div>
     <p class="small muted" style="margin:0 0 12px">For a bank balance screen:</p>
-    <div class="cols c3" style="gap:18px;align-items:start">
-      {code("Account.swift", ACC, "font-size:15px")}
-      {code("AccountViewModel.swift", AVM, "font-size:15px")}
-      {code("BalanceView.swift", BV, "font-size:15px")}
+    <div class="cols c3" style="gap:18px;align-items:start;grid-template-columns:.8fr 1.3fr 1fr">
+      {code("Balance.swift", ACC, "font-size:14px")}
+      {code("DashboardViewModel.swift", AVM, "font-size:14px")}
+      {code("DashboardView.swift", BV, "font-size:14px")}
     </div>
-    <p class="small muted" style="margin:14px 0 0">Simplified teaching examples. A production app also needs dependency injection, currency formatting, error handling and secure data access.</p>
+    <p class="small muted" style="margin:14px 0 0">Simplified teaching examples, to read rather than write. Coming in Unit 04: MVVM responsibilities in depth (4.2) and dependency injection (4.5).</p>
   </div>
-{notes(('LIVE DEMO', 'Type these three pieces in Xcode, then change balanceText and show the preview updating.'),
-       ('SAY', 'MVVM stands for Model, View, ViewModel. Click through: the model is what the data means, an account with an ID and a balance. The ViewModel is what the screen needs, here ready-to-show balance text. The view is what the user sees, a Text bound to the ViewModel.'),
-       ('SAY', 'Account uses Decimal, a base-10 type, so amounts are exact; never binary floating point for money. These are simplified teaching examples: a production app would also address dependency injection, currency formatting, error handling and secure data access.'),
-       ('CONNECT', "Let's check your understanding."))}</section>"""
+{notes(('LIVE DEMO', 'Open a prepared Xcode project with these three files already in place; students watch, they do not code in this lesson. Call show(_:) with a different balanceMinor in the preview and show the text updating.'),
+       ('SAY', 'MVVM stands for Model, View, ViewModel. Click through: the model is what the data means, a balance for an account. The ViewModel is what the screen needs, here ready-to-show balance text; it is marked @MainActor because it feeds the UI, and final because nothing subclasses it. The view is what the user sees: it owns its ViewModel with @State and shows a Text.'),
+       ('SAY', 'The balance is stored as whole paise in an Int64, so amounts are exact; never binary floating point for money. Turning paise into rupees with a currency symbol is presentation, so the ViewModel does it, not the server and not the view. These are simplified teaching examples; Unit 04 adds dependency injection, loading and error states.'),
+       ('CONNECT', "Before the review, a recap."))}</section>"""
 
 # ---------------------------------------------------------------- keep only the lesson text's slides
 D1 = divider(1, "Five important responsibilities", "Who does what inside a banking app",
              "In Lesson 0.1 iOS started the app. Now: who manages it after it starts? We split the work into five responsibilities.", "Start with the question on one screen.")
 D2 = divider(2, "iOS vs your app&rsquo;s architecture", "Related, but not the same thing",
              "One of the most important distinctions: Apple's platform architecture versus how we organize our own code.", "Put the two side by side.")
-D3 = divider(3, "What happens when the user taps &ldquo;Check Balance&rdquo;?", "The request goes down; the result comes back up",
+D3 = divider(3, "What happens when the user taps &ldquo;Refresh balance&rdquo;?", "The request goes down; the result comes back up",
              "Follow one tap through every layer and back.", "Eight steps, one per click.")
 D4 = divider(4, "How SwiftUI differs from traditional UI", "The UI is a function of its state",
              "Traditional UIKit code changes interface properties explicitly. SwiftUI describes the result and lets the framework update it.", "Compare the two styles.")
@@ -234,20 +243,40 @@ OUTCOMES = f"""<section class="slide">
   <h2>By the end, you will be able to</h2>
   <div class="body">
     <div class="cols c3 stagger step">
-      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Name the <b>five responsibilities</b> inside an app</p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></span><p>Tell <b>iOS architecture</b> from <b>app architecture</b></p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Follow a <b>Check Balance</b> tap down the layers and back up</p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frameworks"/></svg></span><p>Explain how <b>declarative</b> SwiftUI differs from UIKit</p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></span><p>Place <b>Model</b>, <b>View</b> and <b>ViewModel</b> in a balance screen</p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Say who manages the <b>process</b>, the <b>UI updates</b> and the <b>loading state</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Name the <b>five responsibilities</b> inside an app</p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></span><p>Tell <b>iOS architecture</b> from <b>app architecture</b></p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Follow a <b>Refresh balance</b> tap down the layers and back up</p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frameworks"/></svg></span><p>Explain how <b>declarative</b> SwiftUI differs from UIKit</p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></span><p>Place <b>Model</b>, <b>View</b> and <b>ViewModel</b> in a balance screen</p></div>\n      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Say who manages the <b>process</b>, the <b>UI updates</b> and the <b>loading state</b></p></div>
     </div>
   </div>
-{notes(('SAY', 'Six outcomes, one question: who does what after the app starts? Every slide answers part of it.'), ('CONNECT', 'Start with five responsibilities.'))}</section>"""
-order = [1, OUTCOMES,
+{notes(('SAY', 'Six outcomes, one question: who does what after the app starts? Every slide answers part of it.'), ('CONNECT', 'First, where today sits on the NPay map.'))}</section>"""
+MAPS = map_slide('0.2', 'Today: inside the NPay process', ('view', 'vm', 'service', 'model'),
+                'Lesson 0.1: SpringBoard asked iOS to launch NPay; a new process ran <code>@main</code> and drew the first frame.',
+                'Who does what inside that process: the View, the ViewModel, the Service and the Model.',
+                'Here is the NPay map we will use for the whole unit. Last time we followed the launch: SpringBoard, a new process, the @main entry point and the first frame. Today we zoom into the process itself and ask who does what: the four teal boxes.',
+                'Start with five responsibilities.')
+RECAP = recap_slide('0.2', ('view', 'vm', 'service', 'model'),
+                    [("layers", "Two architectures", "iOS manages the process; you organize the code"),
+                     ("layout", "The ViewModel owns screen state", "the view displays it; the service fetches it"),
+                     ("frameworks", "Declarative UI", "change the state; SwiftUI reads body again")],
+                    'Three things to keep. iOS architecture and app architecture are different things. Inside the app, the ViewModel owns screen state, the view displays it and the service fetches the data. And SwiftUI is declarative: change the state, and SwiftUI reads the body description again.')
+NEXT = next_slide('0.2', [("2.1", "Declarative UI, View &amp; body", "body as a description of the screen"),
+                          ("2.5", "@State, @Binding &amp; source of truth", "who owns each piece of state"),
+                          ("3.2", "Observation: @Observable &amp; @Bindable", "how the ViewModel notifies the view"),
+                          ("4.2", "MVVM responsibilities", "View, ViewModel and Model in depth"),
+                          ("4.5", "Dependency injection &amp; composition root", "giving the ViewModel its Service")],
+                  'Everything today was a first look. Unit 02 builds views and state for real, Unit 03 covers observation, and Unit 04 is the full MVVM unit, including dependency injection.')
+LAB = lab_slide('0.2', 'Who does what in NPay?', 'Sort ten NPay jobs into <b>View</b>, <b>ViewModel</b>, <b>Service</b> or <b>Model</b>.',
+                ['Draw four columns: View, ViewModel, Service, Model.', 'Place each job card in one column.', 'For two cards you hesitated over, write one sentence on why.', 'Compare with a partner and settle any disagreements.'],
+                '', 'Hand out the ten cards. Answers: View shows the balance text and handles the tap; ViewModel decides the spinner, formats paise as rupees and chooses the error message; Service calls the API, decodes the JSON and saves a cached copy; Model holds balanceMinor. Accept reasoned alternatives for the cached copy (Service or a separate repository).',
+                side='<div class="card accent"><span class="label">Job cards</span><ul style="margin:6px 0 0;padding-left:20px;columns:2;column-gap:28px;font-size:18px;line-height:1.35">' + ''.join(f'<li style="font-size:18px;margin-bottom:6px">{j}</li>' for j in ['Show &#8377;25,000 on screen', 'Handle the Refresh balance tap', 'Decide the spinner is visible', 'Format paise as rupees', 'Choose which error message to show', 'Show an error banner', 'Call the balance API', 'Decode the JSON response', 'Save a cached copy', 'Hold <code>balanceMinor</code>']) + '</ul></div>')
+order = [1, OUTCOMES, MAPS,
          D1, 3, FIVE,
          D2, TABLE,
          D3, WALK,
          D4, UIKIT, DEMO,
-         D5, MVVM,
-         35, *Q, 40]
+         D5, MVVM, RECAP,
+         35, *Q, NEXT, LAB, 42]
 body = '\n\n'.join(S[x] if isinstance(x, int) else x for x in order)
 out = head_ + body + '\n\n' + tail_.lstrip('\n')
 out = out.replace('NPay dashboard with a balance, recent activity and a Send 500 rupees button. Labels appear: validation, loading indicator, network call, error message, confirmation.',
-                  'NPay dashboard with a balance, recent activity and a Check Balance button. Labels appear: display the screen, handle the tap, talk to the bank, store information.')
+                  'NPay dashboard with a balance, recent activity and a Refresh balance button. Labels appear: display the screen, handle the tap, talk to the bank, store information.')
 open(P_, 'w').write(out)
 print('slides', body.count('<section '))

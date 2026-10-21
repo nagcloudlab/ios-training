@@ -13,11 +13,11 @@
   <div class="body" style="z-index:1;position:relative">
     <p class="kicker" style="letter-spacing:.2em">Unit 00 &middot; Lesson 0.2</p>
     <h1 style="font-size:54px;line-height:1.05">iOS App Architecture:<br>Who Does What?</h1>
-    <p class="lead" style="max-width:660px">In Lesson 0.1, iOS started NPay. Now: <b>who manages the app after it starts?</b></p>
+    <p class="lead" style="max-width:660px">In Lesson 0.1, iOS started NPay. Now: <b>how do NPay&rsquo;s components communicate?</b></p>
   </div>
   <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>In Lesson 0.1 we learned how iOS starts an application. Now we look at who manages the application after it starts: who displays the screen, handles a tap, talks to the bank and stores information. No coding is required for this lesson; the code we show is there to read, not to write.</p>
+    <span class="notes-label">SAY</span><p>In Lesson 0.1 we learned how iOS starts an application. Now we look at how NPay&rsquo;s components communicate once it starts: who displays the screen, handles a tap, talks to the bank and stores information. No coding is required for this lesson; the code we show is there to read, not to write.</p>
     <span class="notes-label">CONNECT</span><p>Here's what you'll be able to do by the end.</p>
   </aside>
 </section>
@@ -29,7 +29,7 @@
     <div class="cols c3 stagger step">
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Name the <b>five responsibilities</b> inside an app</p></div>
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></span><p>Tell <b>iOS architecture</b> from <b>app architecture</b></p></div>
-      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Follow a <b>Check Balance</b> tap down the layers and back up</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Follow a <b>Refresh balance</b> tap down the layers and back up</p></div>
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frameworks"/></svg></span><p>Explain how <b>declarative</b> SwiftUI differs from UIKit</p></div>
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></span><p>Place <b>Model</b>, <b>View</b> and <b>ViewModel</b> in a balance screen</p></div>
       <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Say who manages the <b>process</b>, the <b>UI updates</b> and the <b>loading state</b></p></div>
@@ -37,9 +37,50 @@
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Six outcomes, one question: who does what after the app starts? Every slide answers part of it.</p>
+    <span class="notes-label">CONNECT</span><p>First, where today sits on the NPay map.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.2 &middot; Where we are</p>
+  <h2>Today: inside the NPay process</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 366" style="max-height:360px" role="img" aria-labelledby="map02">
+        <title id="map02">NPay architecture map</title>
+        <rect class="wire dash" x="16" y="20" width="828" height="182" rx="16"/>
+        <text class="mono" x="32" y="42">NPAY PROCESS · SANDBOX</text>
+        <text class="mono" x="16" y="228">IOS</text>
+        <g class="nd lit"><rect class="sh" x="32" y="58" width="190" height="56" rx="12"/><use href="#i-phone" x="46" y="73" width="26" height="26"/><text x="84" y="83">View</text><text class="sm" x="84" y="101">SwiftUI screen</text></g>
+        <g class="nd lit"><rect class="sh" x="236" y="58" width="190" height="56" rx="12"/><use href="#i-layout" x="250" y="73" width="26" height="26"/><text x="288" y="83">ViewModel</text><text class="sm" x="288" y="101">screen state</text></g>
+        <g class="nd lit"><rect class="sh" x="440" y="58" width="190" height="56" rx="12"/><use href="#i-link" x="454" y="73" width="26" height="26"/><text x="492" y="83">Service</text><text class="sm" x="492" y="101">talks to the bank</text></g>
+        <g class="nd lit"><rect class="sh" x="644" y="58" width="190" height="56" rx="12"/><use href="#i-code" x="658" y="73" width="26" height="26"/><text x="696" y="83">Model</text><text class="sm" x="696" y="101">balance, transactions</text></g>
+        <g class="nd"><rect class="sh" x="32" y="132" width="260" height="56" rx="12"/><use href="#i-thread" x="46" y="147" width="26" height="26"/><text x="84" y="157">Main thread</text><text class="sm" x="84" y="175">RunLoop · events · frames</text></g>
+        <g class="nd"><rect class="sh" x="306" y="132" width="260" height="56" rx="12"/><use href="#i-memory" x="320" y="147" width="26" height="26"/><text x="358" y="157">Memory</text><text class="sm" x="358" y="175">stack · heap · ARC</text></g>
+        <g class="nd"><rect class="sh" x="580" y="132" width="254" height="56" rx="12"/><use href="#i-frame" x="594" y="147" width="26" height="26"/><text x="632" y="157">Scene</text><text class="sm" x="632" y="175">foreground · background</text></g>
+        <g class="nd"><rect class="sh" x="16" y="238" width="180" height="56" rx="12"/><use href="#i-grid" x="30" y="253" width="26" height="26"/><text x="68" y="263">SpringBoard</text><text class="sm" x="68" y="281">launches apps</text></g>
+        <g class="nd"><rect class="sh" x="210" y="238" width="170" height="56" rx="12"/><use href="#i-key" x="224" y="253" width="26" height="26"/><text x="262" y="263">Keychain</text><text class="sm" x="262" y="281">secrets</text></g>
+        <g class="nd"><rect class="sh" x="394" y="238" width="232" height="56" rx="12"/><use href="#i-db" x="408" y="253" width="26" height="26"/><text x="446" y="263">Storage</text><text class="sm" x="446" y="281">UserDefaults · SwiftData</text></g>
+        <g class="nd"><rect class="sh" x="640" y="238" width="204" height="56" rx="12"/><use href="#i-frameworks" x="654" y="253" width="26" height="26"/><text x="692" y="263">Frameworks</text><text class="sm" x="692" y="281">SwiftUI · URLSession</text></g>
+        <g class="nd"><rect class="sh" x="16" y="308" width="410" height="56" rx="12"/><use href="#i-kernel" x="30" y="323" width="26" height="26"/><text x="68" y="333">Kernel</text><text class="sm" x="68" y="351">processes · sandbox · code signing</text></g>
+        <g class="nd"><rect class="sh" x="440" y="308" width="404" height="56" rx="12"/><use href="#i-chip" x="454" y="323" width="26" height="26"/><text x="492" y="333">Hardware</text><text class="sm" x="492" y="351">CPU · memory · Secure Enclave</text></g>
+        <g class="nd"><rect class="sh" x="920" y="238" width="216" height="56" rx="12"/><use href="#i-bank" x="934" y="253" width="26" height="26"/><text x="972" y="263">Bank API server</text><text class="sm" x="972" y="281">authoritative balance</text></g>
+        <path class="wire" d="M224 86H234M229 81l5 5-5 5"/>
+        <path class="wire" d="M428 86H438M433 81l5 5-5 5"/>
+        <path class="wire" d="M632 86H642M637 81l5 5-5 5"/>
+        <path class="wire" d="M848 266H916M911 261l5 5-5 5M853 261l-5 5 5 5"/>
+        <text class="sm" x="882" y="256" text-anchor="middle">HTTPS</text>
+      </svg>
+    </div>
+    <div class="bridge"><span><b>Last time</b>Lesson 0.1: SpringBoard asked iOS to launch NPay; a new process ran <code>@main</code> and drew the first frame.</span><span><b>Today</b>Who does what inside that process: the View, the ViewModel, the Service and the Model.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Here is the NPay map we will use for the whole unit. Last time we followed the launch: SpringBoard, a new process, the @main entry point and the first frame. Today we zoom into the process itself and ask who does what: the four teal boxes.</p>
     <span class="notes-label">CONNECT</span><p>Start with five responsibilities.</p>
   </aside>
 </section>
+
+
 
 <section class="slide chapter">
   <div class="body">
@@ -53,17 +94,17 @@
   </aside>
 </section>
 
-<section class="slide" data-title="Check Balance">
+<section class="slide" data-title="Refresh balance">
   <div class="body center">
     <div class="diagram">
       <svg class="art" viewBox="0 0 1136 472" style="max-height:500px" role="img" aria-labelledby="h3t">
-        <title id="h3t">NPay dashboard with a balance, recent activity and a Check Balance button. Labels appear: display the screen, handle the tap, talk to the bank, store information.</title>
+        <title id="h3t">NPay dashboard with a balance, recent activity and a Refresh balance button. Labels appear: display the screen, handle the tap, talk to the bank, store information.</title>
         <use href="#d-iphone" x="450" y="0" width="236" height="472"/>
         <text x="568" y="78" text-anchor="middle" style="font-size:22px;font-weight:800">NPay</text>
         <g class="nd"><rect class="sh" x="478" y="98" width="180" height="78" rx="12"/><text class="sm" x="568" y="126" text-anchor="middle">Available balance</text><text x="568" y="158" text-anchor="middle" style="font-size:24px;font-weight:700">&#8377;25,000</text></g>
         <text class="mono" x="478" y="206">RECENT ACTIVITY</text>
         <rect class="mute" x="478" y="216" width="180" height="34" rx="8"/><rect class="mute" x="478" y="258" width="180" height="34" rx="8"/><rect class="mute" x="478" y="300" width="180" height="34" rx="8"/>
-        <g class="nd lit"><rect class="sh" x="478" y="380" width="180" height="48" rx="14"/><use href="#i-eye" x="496" y="393" width="22" height="22"/><text x="582" y="410" text-anchor="middle">Check Balance</text></g>
+        <g class="nd lit"><rect class="sh" x="478" y="380" width="180" height="48" rx="14"/><use href="#i-eye" x="496" y="393" width="22" height="22"/><text x="582" y="410" text-anchor="middle">Refresh balance</text></g>
         <g class="fade" data-lit="0"><circle class="ring anim-ping" cx="568" cy="404" r="30"/></g>
         <g class="fade" data-lit="1+"><text class="mono" x="400" y="124" text-anchor="end">DISPLAY THE SCREEN</text><path class="wire" data-lit="1" d="M410 120H440"/></g>
         <g class="fade" data-lit="2+"><text class="mono" x="400" y="408" text-anchor="end">HANDLE THE TAP</text><path class="wire" data-lit="2" d="M410 404H440"/></g>
@@ -88,8 +129,8 @@
   <div class="body">
     <div class="diagram">
       <svg class="art" viewBox="0 0 1136 442" style="max-height:450px" role="img" aria-labelledby="s2five">
-        <title id="s2five">The user taps Check Balance; 1 the SwiftUI view, 2 the ViewModel, 3 the service or repository, which uses 4 the network (bank server) and 5 storage (local database).</title>
-        <g class="nd" data-lit="1"><rect class="sh" x="368" y="0" width="400" height="62" rx="12"/><use href="#i-user" x="382" y="18" width="26" height="26"/><text x="420" y="28">User</text><text class="sm" x="420" y="46">taps “Check Balance”</text></g>
+        <title id="s2five">The user taps Refresh balance; 1 the SwiftUI view, 2 the ViewModel, 3 the service or repository, which uses 4 the network (bank server) and 5 storage (local database).</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="368" y="0" width="400" height="62" rx="12"/><use href="#i-user" x="382" y="18" width="26" height="26"/><text x="420" y="28">User</text><text class="sm" x="420" y="46">taps “Refresh balance”</text></g>
         <path class="wire" d="M568 62V90M561 83l7 7 7-7"/>
         <g class="nd" data-lit="2"><rect class="sh" x="0" y="96" width="1136" height="62" rx="12"/><use href="#i-phone" x="14" y="114" width="26" height="26"/><text x="52" y="124">1. View (SwiftUI)</text><text class="sm" x="52" y="142">displays the balance and receives interaction</text></g>
         <path class="wire" d="M568 158V178M561 171l7 7 7-7"/>
@@ -105,7 +146,7 @@
     <p class="small muted" style="margin:10px 0 0">An example of a layered MVVM-style architecture, not a structure iOS forces every app to use.</p>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Click by click, top to bottom. The user taps Check Balance. The SwiftUI view displays the balance and receives the tap. The ViewModel manages the screen state and coordinates the action. The service or repository loads the data and hides how. Below it, the network reaches the bank server and storage keeps a local copy.</p>
+    <span class="notes-label">SAY</span><p>Click by click, top to bottom. The user taps Refresh balance. The SwiftUI view displays the balance and receives the tap. The ViewModel manages the screen state and coordinates the action. The service or repository loads the data and hides how. Below it, the network reaches the bank server and storage keeps a local copy.</p>
     <span class="notes-label">SAY</span><p>This is one common, layered MVVM-style design. iOS does not force it on every app.</p>
     <span class="notes-label">CONNECT</span><p>How is this different from the architecture of iOS itself?</p>
   </aside>
@@ -149,7 +190,7 @@
 <section class="slide chapter">
   <div class="body">
     <p class="kicker">Part 3</p>
-    <h2>What happens when the user taps &ldquo;Check Balance&rdquo;?</h2>
+    <h2>What happens when the user taps &ldquo;Refresh balance&rdquo;?</h2>
     <p class="lead">The request goes down; the result comes back up</p>
   </div>
   <aside class="notes-src">
@@ -160,7 +201,7 @@
 
 <section class="slide">
   <p class="kicker">Part 3 &middot; Request walkthrough &middot; conceptual</p>
-  <h2>Tapping &ldquo;Check Balance&rdquo;, step by step</h2>
+  <h2>Tapping &ldquo;Refresh balance&rdquo;, step by step</h2>
   <div class="body">
     <div class="diagram">
       <svg class="art" viewBox="0 0 1136 432" style="max-height:470px" role="img" aria-labelledby="s3walk">
@@ -193,7 +234,7 @@
         <g class="fade" data-lit="6"><g class="nd lit"><rect class="sh" x="752" y="256" width="108" height="40" rx="10"/><use href="#i-db" x="762" y="265" width="22" height="22"/><text class="sm" x="790" y="281">Storage</text></g><path class="wire" d="M806 236V250M799 243l7 7 7-7"/></g>
         <text class="sm" x="430" y="320" text-anchor="middle">request goes down</text><text class="sm" x="940" y="320" text-anchor="middle">result comes back up</text>
         <g class="fade" data-lit="1"><text class="mono" x="0" y="364">STEP 1 OF 8</text><text x="0" y="396" style="font-size:24px;font-weight:700">User taps button</text><text x="0" y="426" style="font-size:19px;font-weight:400">The user initiates an action on the balance screen.</text></g>
-        <g class="fade" data-lit="2"><text class="mono" x="0" y="364">STEP 2 OF 8</text><text x="0" y="396" style="font-size:24px;font-weight:700">View forwards the action</text><text x="0" y="426" style="font-size:19px;font-weight:400">The SwiftUI view calls the ViewModel, for example loadBalance().</text></g>
+        <g class="fade" data-lit="2"><text class="mono" x="0" y="364">STEP 2 OF 8</text><text x="0" y="396" style="font-size:24px;font-weight:700">View forwards the action</text><text x="0" y="426" style="font-size:19px;font-weight:400">The SwiftUI view calls the ViewModel, for example refresh().</text></g>
         <g class="fade" data-lit="3"><text class="mono" x="0" y="364">STEP 3 OF 8</text><text x="0" y="396" style="font-size:24px;font-weight:700">Loading state</text><text x="0" y="426" style="font-size:19px;font-weight:400">The ViewModel marks the screen as loading and asks the service for the balance.</text></g>
         <g class="fade" data-lit="4"><text class="mono" x="0" y="364">STEP 4 OF 8</text><text x="0" y="396" style="font-size:24px;font-weight:700">Service hides the details</text><text x="0" y="426" style="font-size:19px;font-weight:400">The service or repository decides where the data comes from and calls the network.</text></g>
         <g class="fade" data-lit="5"><text class="mono" x="0" y="364">STEP 5 OF 8</text><text x="0" y="396" style="font-size:24px;font-weight:700">Bank server responds</text><text x="0" y="426" style="font-size:19px;font-weight:400">The bank server checks the request and returns the balance.</text></g>
@@ -252,7 +293,7 @@
   <div class="body cols middle" style="grid-template-columns:1fr 1fr">
     <div class="demo-phone">
       <p class="small muted" style="margin:0">Available balance</p>
-      <p class="demo-balance" id="npayDemoBalance">&#8377;12,500</p>
+      <p class="demo-balance" id="npayDemoBalance">&#8377;25,000</p>
       <div class="demo-actions">
         <button type="button" class="demo-btn" onclick="npayDemo(1000);this.blur()">Simulate &#8377;1,000 deposit</button>
         <button type="button" class="demo-btn ghost" onclick="npayDemo(0);this.blur()">Reset balance</button>
@@ -260,21 +301,22 @@
     </div>
     <div>
       <p class="small muted" style="margin:0 0 6px">Current state</p>
-      <pre class="tree" style="font-size:22px">balance = <span class="dir" id="npayDemoState">12500</span></pre>
+      <pre class="tree" style="font-size:22px">balance = <span class="dir" id="npayDemoState">25000</span></pre>
       <div class="gap"></div>
-      <div class="rule">When the <b>balance state</b> changes, the displayed amount changes. That is the central mental model behind SwiftUI.</div>
+      <div class="rule">When the <b>balance state</b> changes, the displayed amount changes. A view&rsquo;s <code>body</code> is a <b>description</b> of the screen: SwiftUI reads it again whenever the state it uses changes.</div>
       <p class="small muted" style="margin:12px 0 0">Local interactive simulation only; no real banking request or Swift runtime.</p>
     </div>
   </div>
   <script>
     function npayDemo(add) {
-      var el = document.getElementById('npayDemoState'), v = add ? (+el.textContent + add) : 12500;
+      var el = document.getElementById('npayDemoState'), v = add ? (+el.textContent + add) : 25000;
       el.textContent = v;
       document.getElementById('npayDemoBalance').textContent = '\u20B9' + v.toLocaleString('en-IN');
     }
   </script>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Click the deposit button a few times. We never touch the label; we only change the state, and the displayed amount follows. Reset puts the state back and the screen follows again.</p>
+    <span class="notes-label">SAY</span><p>This is what "body is a description" means: body does not draw anything. It describes what the screen should look like for the current state, and SwiftUI calls it again when that state changes. Later lessons build on this word, description.</p>
     <span class="notes-label">SAY</span><p>This is a browser simulation for teaching, not Swift. In SwiftUI, the same idea is a @State or observable property feeding a Text view.</p>
     <span class="notes-label">CONNECT</span><p>Where do the model and the ViewModel fit? That is MVVM.</p>
   </aside>
@@ -309,32 +351,82 @@
     <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
     <div class="gap"></div>
     <p class="small muted" style="margin:0 0 12px">For a bank balance screen:</p>
-    <div class="cols c3" style="gap:18px;align-items:start">
-      <div class="cw"><div class="ch"><span>Account.swift</span></div><pre class="cb" style="font-size:15px">struct Account {
-    let id: String
-    let balance: Decimal
+    <div class="cols c3" style="gap:18px;align-items:start;grid-template-columns:.8fr 1.3fr 1fr">
+      <div class="cw"><div class="ch"><span>Balance.swift</span></div><pre class="cb" style="font-size:14px">struct Balance {
+    let accountID: String
+    // paise: exact money
+    let balanceMinor: Int64
 }</pre></div>
-      <div class="cw"><div class="ch"><span>AccountViewModel.swift</span></div><pre class="cb" style="font-size:15px">@Observable
-class AccountViewModel {
-    var balanceText = &quot;₹12,500&quot;
+      <div class="cw"><div class="ch"><span>DashboardViewModel.swift</span></div><pre class="cb" style="font-size:14px">@MainActor @Observable
+final class DashboardViewModel {
+    var balanceText = &quot;—&quot;
+
+    func show(_ b: Balance) {
+        let rupees = Decimal(b.balanceMinor) / 100
+        balanceText = rupees.formatted(
+            .currency(code: &quot;INR&quot;))
+    }
 }</pre></div>
-      <div class="cw"><div class="ch"><span>BalanceView.swift</span></div><pre class="cb" style="font-size:15px">struct BalanceView: View {
-    var model: AccountViewModel
+      <div class="cw"><div class="ch"><span>DashboardView.swift</span></div><pre class="cb" style="font-size:14px">struct DashboardView: View {
+    @State private var model =
+        DashboardViewModel()
 
     var body: some View {
         Text(model.balanceText)
     }
 }</pre></div>
     </div>
-    <p class="small muted" style="margin:14px 0 0">Simplified teaching examples. A production app also needs dependency injection, currency formatting, error handling and secure data access.</p>
+    <p class="small muted" style="margin:14px 0 0">Simplified teaching examples, to read rather than write. Coming in Unit 04: MVVM responsibilities in depth (4.2) and dependency injection (4.5).</p>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">LIVE DEMO</span><p>Type these three pieces in Xcode, then change balanceText and show the preview updating.</p>
-    <span class="notes-label">SAY</span><p>MVVM stands for Model, View, ViewModel. Click through: the model is what the data means, an account with an ID and a balance. The ViewModel is what the screen needs, here ready-to-show balance text. The view is what the user sees, a Text bound to the ViewModel.</p>
-    <span class="notes-label">SAY</span><p>Account uses Decimal, a base-10 type, so amounts are exact; never binary floating point for money. These are simplified teaching examples: a production app would also address dependency injection, currency formatting, error handling and secure data access.</p>
-    <span class="notes-label">CONNECT</span><p>Let's check your understanding.</p>
+    <span class="notes-label">LIVE DEMO</span><p>Open a prepared Xcode project with these three files already in place; students watch, they do not code in this lesson. Call show(_:) with a different balanceMinor in the preview and show the text updating.</p>
+    <span class="notes-label">SAY</span><p>MVVM stands for Model, View, ViewModel. Click through: the model is what the data means, a balance for an account. The ViewModel is what the screen needs, here ready-to-show balance text; it is marked @MainActor because it feeds the UI, and final because nothing subclasses it. The view is what the user sees: it owns its ViewModel with @State and shows a Text.</p>
+    <span class="notes-label">SAY</span><p>The balance is stored as whole paise in an Int64, so amounts are exact; never binary floating point for money. Turning paise into rupees with a currency symbol is presentation, so the ViewModel does it, not the server and not the view. These are simplified teaching examples; Unit 04 adds dependency injection, loading and error states.</p>
+    <span class="notes-label">CONNECT</span><p>Before the review, a recap.</p>
   </aside>
 </section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.2 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 366" style="max-height:300px" role="img" aria-labelledby="rmap02">
+        <title id="rmap02">NPay architecture map</title>
+        <rect class="wire dash" x="16" y="20" width="828" height="182" rx="16"/>
+        <text class="mono" x="32" y="42">NPAY PROCESS · SANDBOX</text>
+        <text class="mono" x="16" y="228">IOS</text>
+        <g class="nd lit"><rect class="sh" x="32" y="58" width="190" height="56" rx="12"/><use href="#i-phone" x="46" y="73" width="26" height="26"/><text x="84" y="83">View</text><text class="sm" x="84" y="101">SwiftUI screen</text></g>
+        <g class="nd lit"><rect class="sh" x="236" y="58" width="190" height="56" rx="12"/><use href="#i-layout" x="250" y="73" width="26" height="26"/><text x="288" y="83">ViewModel</text><text class="sm" x="288" y="101">screen state</text></g>
+        <g class="nd lit"><rect class="sh" x="440" y="58" width="190" height="56" rx="12"/><use href="#i-link" x="454" y="73" width="26" height="26"/><text x="492" y="83">Service</text><text class="sm" x="492" y="101">talks to the bank</text></g>
+        <g class="nd lit"><rect class="sh" x="644" y="58" width="190" height="56" rx="12"/><use href="#i-code" x="658" y="73" width="26" height="26"/><text x="696" y="83">Model</text><text class="sm" x="696" y="101">balance, transactions</text></g>
+        <g class="nd"><rect class="sh" x="32" y="132" width="260" height="56" rx="12"/><use href="#i-thread" x="46" y="147" width="26" height="26"/><text x="84" y="157">Main thread</text><text class="sm" x="84" y="175">RunLoop · events · frames</text></g>
+        <g class="nd"><rect class="sh" x="306" y="132" width="260" height="56" rx="12"/><use href="#i-memory" x="320" y="147" width="26" height="26"/><text x="358" y="157">Memory</text><text class="sm" x="358" y="175">stack · heap · ARC</text></g>
+        <g class="nd"><rect class="sh" x="580" y="132" width="254" height="56" rx="12"/><use href="#i-frame" x="594" y="147" width="26" height="26"/><text x="632" y="157">Scene</text><text class="sm" x="632" y="175">foreground · background</text></g>
+        <g class="nd"><rect class="sh" x="16" y="238" width="180" height="56" rx="12"/><use href="#i-grid" x="30" y="253" width="26" height="26"/><text x="68" y="263">SpringBoard</text><text class="sm" x="68" y="281">launches apps</text></g>
+        <g class="nd"><rect class="sh" x="210" y="238" width="170" height="56" rx="12"/><use href="#i-key" x="224" y="253" width="26" height="26"/><text x="262" y="263">Keychain</text><text class="sm" x="262" y="281">secrets</text></g>
+        <g class="nd"><rect class="sh" x="394" y="238" width="232" height="56" rx="12"/><use href="#i-db" x="408" y="253" width="26" height="26"/><text x="446" y="263">Storage</text><text class="sm" x="446" y="281">UserDefaults · SwiftData</text></g>
+        <g class="nd"><rect class="sh" x="640" y="238" width="204" height="56" rx="12"/><use href="#i-frameworks" x="654" y="253" width="26" height="26"/><text x="692" y="263">Frameworks</text><text class="sm" x="692" y="281">SwiftUI · URLSession</text></g>
+        <g class="nd"><rect class="sh" x="16" y="308" width="410" height="56" rx="12"/><use href="#i-kernel" x="30" y="323" width="26" height="26"/><text x="68" y="333">Kernel</text><text class="sm" x="68" y="351">processes · sandbox · code signing</text></g>
+        <g class="nd"><rect class="sh" x="440" y="308" width="404" height="56" rx="12"/><use href="#i-chip" x="454" y="323" width="26" height="26"/><text x="492" y="333">Hardware</text><text class="sm" x="492" y="351">CPU · memory · Secure Enclave</text></g>
+        <g class="nd"><rect class="sh" x="920" y="238" width="216" height="56" rx="12"/><use href="#i-bank" x="934" y="253" width="26" height="26"/><text x="972" y="263">Bank API server</text><text class="sm" x="972" y="281">authoritative balance</text></g>
+        <path class="wire" d="M224 86H234M229 81l5 5-5 5"/>
+        <path class="wire" d="M428 86H438M433 81l5 5-5 5"/>
+        <path class="wire" d="M632 86H642M637 81l5 5-5 5"/>
+        <path class="wire" d="M848 266H916M911 261l5 5-5 5M853 261l-5 5 5 5"/>
+        <text class="sm" x="882" y="256" text-anchor="middle">HTTPS</text>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="tip" data-label="Recap"><div class="points"><div><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg><span><b>Two architectures</b><small>iOS manages the process; you organize the code</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg><span><b>The ViewModel owns screen state</b><small>the view displays it; the service fetches it</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-frameworks"/></svg><span><b>Declarative UI</b><small>change the state; SwiftUI reads body again</small></span></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to keep. iOS architecture and app architecture are different things. Inside the app, the ViewModel owns screen state, the view displays it and the service fetches the data. And SwiftUI is declarative: change the state, and SwiftUI reads the body description again.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+
 
 <section class="slide chapter">
   <div class="body">
@@ -348,8 +440,8 @@ class AccountViewModel {
 
 <section class="slide question" data-title="Who creates and manages an iOS app’s process?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 1 of 3</p>
-    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i></div>
+    <p class="kicker">Check your understanding &middot; 1 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
@@ -377,8 +469,8 @@ class AccountViewModel {
 
 <section class="slide question" data-title="What should happen when observable SwiftUI state changes?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 2 of 3</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i></div>
+    <p class="kicker">Check your understanding &middot; 2 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
@@ -406,8 +498,8 @@ class AccountViewModel {
 
 <section class="slide question" data-title="Which component normally coordinates a balance-screen loading state in MVVM?">
   <div class="q-top">
-    <p class="kicker">Check your understanding &middot; 3 of 3</p>
-    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i></div>
+    <p class="kicker">Check your understanding &middot; 3 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
   </div>
   <div class="body">
     <div class="q-row">
@@ -429,20 +521,106 @@ class AccountViewModel {
     <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
     <span class="notes-label">EXPECT</span><p>Many say the view. State decides; SwiftUI renders.</p>
     <span class="notes-label">SAY</span><p>The ViewModel. It commonly owns presentation state and coordinates loading through a service. SwiftUI only renders that state.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="NPay’s model holds balanceMinor = 2500000 (paise). Where should it become “₹25,000”?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">NPay&rsquo;s model holds <code>balanceMinor = 2500000</code> (paise). Where should it become &ldquo;&#8377;25,000&rdquo;?</p><ol class="q-opts"><li>On the bank server</li><li>In the Service, before returning</li><li>In the ViewModel</li><li>In the View&rsquo;s <code>body</code>, by string concatenation</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">The ViewModel turns the model into what the screen needs, including currency formatting. The view just shows the text.</p>
+          <p class="q-trap"><b>Common trap:</b> Building display strings in the view or the service.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B or D. Formatting is presentation state, which the ViewModel owns.</p>
+    <span class="notes-label">SAY</span><p>C. The ViewModel turns the model into what the screen needs, including currency formatting. The view just shows the text.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="When NPay launches, which of these runs first?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">When NPay launches, which of these runs first?</p><ol class="q-opts"><li><code>DashboardView</code>&rsquo;s <code>body</code></li><li>The <code>@main</code> entry point, <code>NPayApp</code></li><li>The ViewModel loading the balance</li><li>The first frame on screen</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">iOS creates the process and runs the <code>@main</code> entry point; the App then provides the scene and its first view, and only then is a frame drawn.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the first screen or the network call starts the app.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds to decide, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Spaced review from 0.1. Some pick A or D; the App comes first.</p>
+    <span class="notes-label">SAY</span><p>B. iOS creates the process and runs the <code>@main</code> entry point; the App then provides the scene and its first view, and only then is a frame drawn.</p>
     <span class="notes-label">CONNECT</span><p>One last look: what comes next.</p>
   </aside>
 </section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.2 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.1</td><td><b>Declarative UI, View &amp; body</b></td><td>body as a description of the screen</td></tr><tr><td class="mono">2.5</td><td><b>@State, @Binding &amp; source of truth</b></td><td>who owns each piece of state</td></tr><tr><td class="mono">3.2</td><td><b>Observation: @Observable &amp; @Bindable</b></td><td>how the ViewModel notifies the view</td></tr><tr><td class="mono">4.2</td><td><b>MVVM responsibilities</b></td><td>View, ViewModel and Model in depth</td></tr><tr><td class="mono">4.5</td><td><b>Dependency injection &amp; composition root</b></td><td>giving the ViewModel its Service</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Everything today was a first look. Unit 02 builds views and state for real, Unit 03 covers observation, and Unit 04 is the full MVVM unit, including dependency injection.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+
+
+<section class="slide">
+  <p class="kicker">Lesson 0.2 &middot; Lab</p>
+  <h2>Who does what in NPay?</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Sort ten NPay jobs into <b>View</b>, <b>ViewModel</b>, <b>Service</b> or <b>Model</b>.</p><ol class="lab"><li>Draw four columns: View, ViewModel, Service, Model.</li><li>Place each job card in one column.</li><li>For two cards you hesitated over, write one sentence on why.</li><li>Compare with a partner and settle any disagreements.</li></ol></div>
+    <div><div class="card accent"><span class="label">Job cards</span><ul style="margin:6px 0 0;padding-left:20px;columns:2;column-gap:28px;font-size:18px;line-height:1.35"><li style="font-size:18px;margin-bottom:6px">Show &#8377;25,000 on screen</li><li style="font-size:18px;margin-bottom:6px">Handle the Refresh balance tap</li><li style="font-size:18px;margin-bottom:6px">Decide the spinner is visible</li><li style="font-size:18px;margin-bottom:6px">Format paise as rupees</li><li style="font-size:18px;margin-bottom:6px">Choose which error message to show</li><li style="font-size:18px;margin-bottom:6px">Show an error banner</li><li style="font-size:18px;margin-bottom:6px">Call the balance API</li><li style="font-size:18px;margin-bottom:6px">Decode the JSON response</li><li style="font-size:18px;margin-bottom:6px">Save a cached copy</li><li style="font-size:18px;margin-bottom:6px">Hold <code>balanceMinor</code></li></ul></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Hand out the ten cards. Answers: View shows the balance text and handles the tap; ViewModel decides the spinner, formats paise as rupees and chooses the error message; Service calls the API, decodes the JSON and saves a cached copy; Model holds balanceMinor. Accept reasoned alternatives for the cached copy (Service or a separate repository).</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+
 
 <section class="slide end">
   <div class="body">
     <p class="kicker">Lesson 0.2 complete</p>
     <h2>iOS App Architecture:<br>Who Does What?</h2>
-    <p class="lead" style="max-width:820px;margin:0 auto">Next: the iOS application lifecycle</p>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 0.3 &mdash; iOS Application Lifecycle Deep Dive</p>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Recap: iOS manages the process; our app architecture organizes the code inside it. The view displays and receives interaction, the ViewModel owns screen state, the service hides where data comes from, and the network and storage sit behind it. A request goes down the layers and the result comes back up. And SwiftUI is declarative: change the state, and the interface follows.</p>
-    <span class="notes-label">SAY</span><p>Next lesson goes one layer deeper into the application lifecycle: app process versus scene; foreground, background and suspension; what happens when the user presses Home; why iOS may terminate apps under memory pressure; cold launch versus warm activation; and the SwiftUI lifecycle versus UIKit AppDelegate and SceneDelegate.</p>
-    <span class="notes-label">CONNECT</span><p>This matters for real-world app behavior and debugging.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 0.3 goes one layer deeper: app process versus scene; foreground, background and suspension; what happens when the user leaves; why iOS may terminate apps under memory pressure; and cold launch versus warm activation. Lesson 0.4 then shows how SwiftUI and UIKit code observe those events.</p>
   </aside>
 </section>
 
