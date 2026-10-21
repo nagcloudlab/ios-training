@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deck Engine Demo</title>
+<link rel="stylesheet" href="../../shared/deck.css">
+</head>
+<body data-deck="Deck Engine Demo">
+<div class="deck">
+
+<!-- 1 · Title -->
+<section class="slide title">
+  <div class="body">
+    <p class="kicker">iOS Development Mastery</p>
+    <h1>Deck Engine<br>Demo</h1>
+    <p class="lead">Testing every component in the shared design system.</p>
+  </div>
+</section>
+
+<!-- 2 · Chapter divider -->
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Typography &amp; Layout</h2>
+    <p class="lead">The building blocks of every slide</p>
+  </div>
+</section>
+
+<!-- 3 · Bullets + step reveal -->
+<section class="slide">
+  <p class="kicker">Typography</p>
+  <h2>Step-by-step reveal</h2>
+  <div class="body top">
+    <ul>
+      <li class="step">First point appears on click</li>
+      <li class="step">Second point follows</li>
+      <li class="step">Third point completes the set</li>
+    </ul>
+    <div class="rule step">This rule box appears last as a key takeaway.</div>
+  </div>
+  <aside class="notes-src">
+    <p><b>SAY:</b> Each click reveals the next bullet. Great for pacing your delivery.</p>
+    <p><b>ASK:</b> How does incremental reveal help learning?</p>
+  </aside>
+</section>
+
+<!-- 4 · Cards -->
+<section class="slide">
+  <p class="kicker">Components</p>
+  <h2>Card variants</h2>
+  <div class="body top">
+    <div class="cols c3">
+      <div class="card teal">
+        <span class="label">Teal</span>
+        <h3>Primary card</h3>
+        <p>Used for key concepts</p>
+      </div>
+      <div class="card blue">
+        <span class="label">Blue</span>
+        <h3>Info card</h3>
+        <p>Supplementary details</p>
+      </div>
+      <div class="card amber">
+        <span class="label">Amber</span>
+        <h3>Warning card</h3>
+        <p>Things to watch out for</p>
+      </div>
+    </div>
+    <div class="gap"></div>
+    <div class="cols">
+      <div class="card accent step">
+        <h3>Accent border card</h3>
+        <p>Teal left border for emphasis</p>
+      </div>
+      <div class="card red step">
+        <span class="label">Red</span>
+        <h3>Danger card</h3>
+        <p>Critical mistakes or anti-patterns</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · Callouts -->
+<section class="slide">
+  <p class="kicker">Components</p>
+  <h2>Callout boxes</h2>
+  <div class="body top">
+    <div class="rule step">An important concept to remember across lessons.</div>
+    <div class="gap"></div>
+    <div class="tip step">A helpful tip that saves time or avoids confusion.</div>
+    <div class="gap"></div>
+    <div class="warn step">A common mistake that beginners make.</div>
+    <div class="gap"></div>
+    <div class="misconception step"><b>"The icon directly calls Swift."</b> No: system UI coordinates the action.</div>
+  </div>
+</section>
+
+<!-- 6 · Teaching patterns -->
+<section class="slide">
+  <p class="kicker">Teaching</p>
+  <h2>Predict &rarr; Answer</h2>
+  <div class="body">
+    <div class="predict">Does every icon tap create a new OS process?</div>
+    <div class="gap"></div>
+    <div class="answer step"><b>No.</b> If a process for the app already exists, the system foregrounds it instead of creating a new one.</div>
+    <div class="gap"></div>
+    <div class="analogy step">
+      <div class="icon">&#x1F4DA;</div>
+      <p>A <b>recipe book</b> (installed program) is not the same as a <b>working kitchen</b> (running process).</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 · Stats -->
+<section class="slide">
+  <p class="kicker">Data</p>
+  <h2>Big number stats</h2>
+  <div class="body">
+    <div class="cols c3">
+      <div class="stat step"><div class="num teal">5</div><div class="cap">Platform layers</div></div>
+      <div class="stat step"><div class="num red">0.3s</div><div class="cap">Target cold launch</div></div>
+      <div class="stat step"><div class="num green">130</div><div class="cap">Lessons in curriculum</div></div>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="takeaway step">The shared engine powers <b>every deck</b> — edit once, improve everywhere.</div>
+  </div>
+</section>
+
+<!-- 8 · Flow diagram -->
+<section class="slide">
+  <p class="kicker">Diagrams</p>
+  <h2>Horizontal flow</h2>
+  <div class="body">
+    <div class="flow">
+      <div class="box"><b>Your Swift</b>source code</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box blue"><b>Compiler</b>SIL + LLVM</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box amber"><b>Mach-O</b>binary</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box green"><b>App Bundle</b>signed &amp; sealed</div>
+    </div>
+    <div class="gap-lg"></div>
+    <h3>Vertical flow</h3>
+    <div class="cols wide-left">
+      <div class="vflow">
+        <div class="box teal"><b>App code</b></div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box blue"><b>Frameworks</b> SwiftUI, Foundation</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>iOS Services</b></div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box navy"><b>Kernel</b> XNU / Darwin</div>
+      </div>
+      <div>
+        <p>Each layer has clear responsibilities.</p>
+        <p class="small muted">Arrows show dependency, not a strict one-way call chain.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 · Layer stack -->
+<section class="slide">
+  <p class="kicker">Diagrams</p>
+  <h2>Layer stack</h2>
+  <div class="body cols wide-right">
+    <div>
+      <p>The iOS platform is a <b>responsibility map</b>, not a rigid hierarchy.</p>
+      <div class="gap"></div>
+      <div class="pill">Swift</div>
+      <div class="pill blue">SwiftUI</div>
+      <div class="pill amber">Kernel</div>
+    </div>
+    <div class="layers">
+      <div class="layer teal">PocketBank app code (Swift)</div>
+      <div class="layer">SwiftUI / UIKit / Foundation</div>
+      <div class="layer">iOS services &amp; platform facilities</div>
+      <div class="layer">Darwin / XNU kernel</div>
+      <div class="layer navy">Apple hardware (CPU, GPU, RAM, storage)</div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · Code window -->
+<section class="slide">
+  <p class="kicker">Code</p>
+  <h2>Swift syntax highlighting</h2>
+  <div class="body top">
+    <div class="cw">
+      <div class="ch"><span>PocketBankApp.swift</span></div>
+      <pre class="cb">import SwiftUI
+
+@main
+struct PocketBankApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}</pre>
+    </div>
+    <div class="gap"></div>
+    <ul class="small">
+      <li class="step"><code>@main</code> &mdash; identifies the application entry point</li>
+      <li class="step"><code>App</code> protocol &mdash; defines the SwiftUI application</li>
+      <li class="step"><code>WindowGroup</code> &mdash; system-managed window container</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 11 · Table -->
+<section class="slide">
+  <p class="kicker">Data</p>
+  <h2>Comparison table</h2>
+  <div class="body">
+    <table class="tbl">
+      <tr><th>Concern</th><th>Cold launch</th><th>Warm resume</th></tr>
+      <tr class="step"><td>New process</td><td>Yes</td><td>No</td></tr>
+      <tr class="step"><td>Loading &amp; init</td><td>Full</td><td>Reused</td></tr>
+      <tr class="step hl"><td>In-memory state</td><td class="red">Must rebuild</td><td class="green">May survive</td></tr>
+      <tr class="step"><td>Scene activation</td><td>Yes</td><td>Yes</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- 12 · SVG diagram demo -->
+<section class="slide">
+  <p class="kicker">Visuals</p>
+  <h2>Inline SVG diagrams</h2>
+  <div class="body cols wide-right">
+    <div>
+      <p>All diagrams are <b>inline SVG</b> &mdash; scalable, animatable, zero external files.</p>
+      <ul class="small">
+        <li class="step">Architecture layers</li>
+        <li class="step">Process &amp; memory maps</li>
+        <li class="step">Launch flow diagrams</li>
+        <li class="step">Phone mockups with app UI</li>
+      </ul>
+    </div>
+    <div class="diagram">
+      <svg viewBox="0 0 340 360" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:320px">
+        <!-- Phone outline -->
+        <rect x="70" y="10" width="200" height="340" rx="28" fill="#fff" stroke="#0f172a" stroke-width="3"/>
+        <!-- Notch -->
+        <rect x="120" y="10" width="100" height="24" rx="12" fill="#0f172a"/>
+        <!-- Home bar -->
+        <rect x="135" y="332" width="70" height="4" rx="2" fill="#0f172a" opacity=".25"/>
+        <!-- Screen content -->
+        <rect x="86" y="48" width="168" height="36" rx="8" fill="#f0fdfa" stroke="#0d9488" stroke-width="1.5"/>
+        <text x="170" y="72" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#0d9488">PocketBank</text>
+        <!-- Balance card -->
+        <rect x="86" y="96" width="168" height="56" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <text x="98" y="114" font-family="IBM Plex Mono,monospace" font-size="9" fill="#64748b" letter-spacing=".08em">BALANCE</text>
+        <text x="98" y="138" font-family="DM Sans,sans-serif" font-size="22" font-weight="800" fill="#0f172a">$12,450</text>
+        <!-- Action buttons -->
+        <rect x="86" y="164" width="78" height="32" rx="8" fill="#0d9488"/>
+        <text x="125" y="184" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" font-weight="600" fill="#fff">Send</text>
+        <rect x="176" y="164" width="78" height="32" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+        <text x="215" y="184" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" font-weight="600" fill="#2563eb">History</text>
+        <!-- Transaction list -->
+        <line x1="86" y1="212" x2="254" y2="212" stroke="#e2e8f0" stroke-width="1"/>
+        <text x="98" y="230" font-family="DM Sans,sans-serif" font-size="10" fill="#64748b">Today</text>
+        <rect x="86" y="238" width="168" height="28" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width=".5"/>
+        <text x="98" y="256" font-family="DM Sans,sans-serif" font-size="10" fill="#0f172a">Coffee Shop</text>
+        <text x="242" y="256" text-anchor="end" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="#dc2626">-$4.50</text>
+        <rect x="86" y="272" width="168" height="28" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width=".5"/>
+        <text x="98" y="290" font-family="DM Sans,sans-serif" font-size="10" fill="#0f172a">Salary Deposit</text>
+        <text x="242" y="290" text-anchor="end" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="#16a34a">+$3,200</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 13 · Icon badges + figure -->
+<section class="slide">
+  <p class="kicker">Visuals</p>
+  <h2>Icon badges &amp; figures</h2>
+  <div class="body top">
+    <div class="cols c4">
+      <div class="card" style="text-align:center">
+        <div class="icon-badge" style="margin:0 auto 8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+        </div>
+        <h3>Device</h3>
+        <p class="small muted">Hardware layer</p>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="icon-badge blue" style="margin:0 auto 8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3>Frameworks</h3>
+        <p class="small muted">SwiftUI, UIKit</p>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="icon-badge amber" style="margin:0 auto 8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <h3>Runtime</h3>
+        <p class="small muted">dyld, ARC</p>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="icon-badge green" style="margin:0 auto 8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Security</h3>
+        <p class="small muted">Sandbox, signing</p>
+      </div>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="cols">
+      <div class="fig bordered">
+        <svg viewBox="0 0 400 180" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%">
+          <rect width="400" height="180" rx="12" fill="#f8fafc"/>
+          <!-- Process box -->
+          <rect x="20" y="20" width="360" height="140" rx="10" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 3"/>
+          <text x="36" y="42" font-family="IBM Plex Mono,monospace" font-size="11" fill="#0d9488" font-weight="600">PocketBank Process</text>
+          <!-- Memory regions -->
+          <rect x="36" y="56" width="100" height="40" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+          <text x="86" y="80" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="#2563eb">Code</text>
+          <rect x="150" y="56" width="100" height="40" rx="6" fill="#f0fdfa" stroke="#0d9488" stroke-width="1"/>
+          <text x="200" y="80" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="#0d9488">Heap</text>
+          <rect x="264" y="56" width="100" height="40" rx="6" fill="#fffbeb" stroke="#d97706" stroke-width="1"/>
+          <text x="314" y="80" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="#d97706">Stack</text>
+          <!-- Thread bars -->
+          <rect x="36" y="110" width="150" height="12" rx="4" fill="#0d9488" opacity=".7"/>
+          <text x="42" y="119" font-family="IBM Plex Mono,monospace" font-size="8" fill="#fff" font-weight="600">Main Thread</text>
+          <rect x="36" y="130" width="90" height="12" rx="4" fill="#64748b" opacity=".5"/>
+          <text x="42" y="139" font-family="IBM Plex Mono,monospace" font-size="8" fill="#fff" font-weight="600">Worker</text>
+          <!-- Sandbox label -->
+          <text x="364" y="150" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="9" fill="#64748b">sandbox</text>
+        </svg>
+        <span class="caption">Virtual memory layout of a running iOS app</span>
+      </div>
+      <div>
+        <p>Every diagram is <b>inline SVG</b>:</p>
+        <ul class="small">
+          <li>Scales to any resolution</li>
+          <li>Parts can be <code>.step</code> revealed</li>
+          <li>Uses design system colors</li>
+          <li>Zero external image files</li>
+          <li>Works fully offline</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 14 · Animated flow diagram -->
+<section class="slide">
+  <p class="kicker">Animations</p>
+  <h2>Animated horizontal flow</h2>
+  <div class="body">
+    <p class="muted small">Click to see boxes and arrows appear sequentially:</p>
+    <div class="gap"></div>
+    <div class="step flow-anim">
+      <div class="flow">
+        <div class="box teal"><b>Tap icon</b>User action</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box blue"><b>SpringBoard</b>System UI</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box amber"><b>Launch</b>Process creation</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box green"><b>First frame</b>App visible</div>
+      </div>
+    </div>
+    <div class="gap-lg"></div>
+    <p class="muted small">Click again for the vertical version:</p>
+    <div class="gap"></div>
+    <div class="cols wide-left">
+      <div class="step vflow-anim">
+        <div class="vflow">
+          <div class="box teal"><b>.swift source</b></div>
+          <div class="arrow">&#x25BC;</div>
+          <div class="box blue"><b>Compiler</b> parse + type-check + SIL</div>
+          <div class="arrow">&#x25BC;</div>
+          <div class="box amber"><b>LLVM</b> machine code generation</div>
+          <div class="arrow">&#x25BC;</div>
+          <div class="box navy"><b>Mach-O</b> signed binary</div>
+        </div>
+      </div>
+      <div>
+        <p class="step anim-left">Each box drops in <b>sequentially</b> with staggered delays.</p>
+        <p class="step anim-left">No JavaScript needed &mdash; pure CSS transitions triggered by the reveal system.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 · Animated layer stack -->
+<section class="slide">
+  <p class="kicker">Animations</p>
+  <h2>Layer stack reveal</h2>
+  <div class="body cols">
+    <div>
+      <p>Click to see layers drop in from top:</p>
+      <div class="gap"></div>
+      <div class="step layers-anim">
+        <div class="layers">
+          <div class="layer teal">PocketBank app code</div>
+          <div class="layer">SwiftUI / UIKit / Foundation</div>
+          <div class="layer">iOS services &amp; facilities</div>
+          <div class="layer">Darwin / XNU kernel</div>
+          <div class="layer navy">Apple silicon hardware</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p>Entrance animation variants:</p>
+      <div class="gap"></div>
+      <div class="card step anim-scale" style="margin-bottom:12px">
+        <h3><code>.anim-scale</code></h3>
+        <p class="small">Zooms in from small</p>
+      </div>
+      <div class="card step anim-bounce" style="margin-bottom:12px">
+        <h3><code>.anim-bounce</code></h3>
+        <p class="small">Bounces up into place</p>
+      </div>
+      <div class="card step anim-flip">
+        <h3><code>.anim-flip</code></h3>
+        <p class="small">Flips in from the side</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 16 · SVG path drawing -->
+<section class="slide">
+  <p class="kicker">Animations</p>
+  <h2>SVG path drawing</h2>
+  <div class="body cols">
+    <div>
+      <p>Lines <b>draw themselves</b> when revealed. Great for architecture connections.</p>
+      <div class="gap"></div>
+      <ul class="small">
+        <li><code>.draw-path</code> on SVG paths</li>
+        <li><code>--path-len</code> CSS variable for length</li>
+        <li><code>.draw-slow</code> / <code>.draw-fast</code></li>
+      </ul>
+    </div>
+    <div class="step diagram">
+      <svg viewBox="0 0 360 280" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:340px">
+        <!-- Nodes -->
+        <rect x="120" y="10" width="120" height="44" rx="10" fill="#f0fdfa" stroke="#0d9488" stroke-width="2"/>
+        <text x="180" y="38" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#0d9488">App Code</text>
+
+        <rect x="10" y="120" width="120" height="44" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+        <text x="70" y="148" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#2563eb">SwiftUI</text>
+
+        <rect x="230" y="120" width="120" height="44" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+        <text x="290" y="148" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#2563eb">Foundation</text>
+
+        <rect x="120" y="220" width="120" height="44" rx="10" fill="#1e293b" stroke="#0f172a" stroke-width="2"/>
+        <text x="180" y="248" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#e2e8f0">Kernel</text>
+
+        <!-- Animated connecting lines -->
+        <path d="M180 54 L70 120"  stroke="#0d9488" stroke-width="2" class="draw-path" style="--path-len:140"/>
+        <path d="M180 54 L290 120" stroke="#0d9488" stroke-width="2" class="draw-path draw-slow" style="--path-len:140"/>
+        <path d="M70 164 L180 220"  stroke="#2563eb" stroke-width="2" class="draw-path" style="--path-len:140"/>
+        <path d="M290 164 L180 220" stroke="#2563eb" stroke-width="2" class="draw-path draw-slow" style="--path-len:140"/>
+
+        <!-- Animated data particles -->
+        <circle r="5" fill="#0d9488" opacity=".8">
+          <animateMotion dur="2s" repeatCount="indefinite" path="M180,54 L70,120"/>
+        </circle>
+        <circle r="5" fill="#2563eb" opacity=".8">
+          <animateMotion dur="2.5s" repeatCount="indefinite" path="M70,164 L180,220"/>
+        </circle>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 17 · Hero image slide + image reveal -->
+<section class="slide">
+  <p class="kicker">Images</p>
+  <h2>AI image integration</h2>
+  <div class="body cols">
+    <div>
+      <p>For each lesson, we generate <b>AI images</b> with consistent style:</p>
+      <ul class="small">
+        <li class="step anim-left">Isometric 3D illustrations</li>
+        <li class="step anim-left">Clean white backgrounds</li>
+        <li class="step anim-left">Teal &amp; navy color palette</li>
+        <li class="step anim-left">Technical but approachable</li>
+      </ul>
+      <div class="gap"></div>
+      <p class="small muted step anim-up">Images stored in <code>decks/lesson/img/</code> and referenced with <code>.img-reveal</code> or <code>.img-wipe</code> classes for animated entry.</p>
+    </div>
+    <div>
+      <!-- Placeholder: in real decks, this would be an AI-generated image -->
+      <div class="step anim-scale img-reveal">
+        <svg viewBox="0 0 380 300" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:12px;border:1.5px solid #e2e8f0">
+          <rect width="380" height="300" rx="12" fill="#f8fafc"/>
+          <!-- Isometric iPhone placeholder -->
+          <g transform="translate(140,30) skewY(-5) rotate(-5)">
+            <rect width="120" height="220" rx="18" fill="#fff" stroke="#0f172a" stroke-width="2.5"/>
+            <rect x="35" y="0" width="50" height="16" rx="8" fill="#0f172a"/>
+            <rect x="40" y="204" width="40" height="3" rx="1.5" fill="#0f172a" opacity=".3"/>
+            <!-- Screen glow -->
+            <rect x="8" y="26" width="104" height="170" rx="4" fill="#f0fdfa"/>
+            <rect x="14" y="36" width="92" height="24" rx="6" fill="#0d9488" opacity=".15"/>
+            <text x="60" y="52" text-anchor="middle" font-family="DM Sans" font-size="10" font-weight="700" fill="#0d9488">PocketBank</text>
+            <rect x="14" y="68" width="92" height="40" rx="6" fill="#fff" stroke="#e2e8f0"/>
+            <text x="22" y="82" font-family="monospace" font-size="7" fill="#64748b">BALANCE</text>
+            <text x="22" y="98" font-family="DM Sans" font-size="14" font-weight="800" fill="#0f172a">$12,450</text>
+          </g>
+          <!-- Floating labels -->
+          <text x="40" y="140" font-family="DM Sans" font-size="11" fill="#0d9488" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:0s">SwiftUI</text>
+          <text x="290" y="80" font-family="DM Sans" font-size="11" fill="#2563eb" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:.5s">MVVM</text>
+          <text x="300" y="220" font-family="DM Sans" font-size="11" fill="#d97706" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:1s">Async</text>
+          <text x="30" y="260" font-family="DM Sans" font-size="11" fill="#7c3aed" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:1.5s">Security</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 18 · Continuous animations showcase -->
+<section class="slide">
+  <p class="kicker">Animations</p>
+  <h2>Continuous effects</h2>
+  <div class="body top">
+    <p class="muted small">These loop forever once the slide is active &mdash; great for emphasis:</p>
+    <div class="gap"></div>
+    <div class="cols c4">
+      <div class="card center">
+        <div class="icon-badge anim-pulse" style="margin:0 auto 8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+        </div>
+        <p class="small"><code>.anim-pulse</code></p>
+      </div>
+      <div class="card center">
+        <div class="icon-badge blue anim-float" style="margin:0 auto 8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3"/></svg>
+        </div>
+        <p class="small"><code>.anim-float</code></p>
+      </div>
+      <div class="card center">
+        <div class="icon-badge amber anim-spin" style="margin:0 auto 8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-7.07l-2.83 2.83M9.76 14.24l-2.83 2.83m12.14 0l-2.83-2.83M9.76 9.76L6.93 6.93"/></svg>
+        </div>
+        <p class="small"><code>.anim-spin</code></p>
+      </div>
+      <div class="card center anim-glow" style="border-color:var(--teal)">
+        <div class="icon-badge green" style="margin:0 auto 8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <p class="small"><code>.anim-glow</code></p>
+      </div>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="cols">
+      <div class="card">
+        <h3>Usage pattern</h3>
+        <p class="small">Add animation class to any element. Entrance animations pair with <code>.step</code>; continuous animations run independently.</p>
+      </div>
+      <div class="card accent">
+        <h3>Composable</h3>
+        <p class="small">Combine: <code>.step .anim-scale .stagger</code> gives you a zoom-in with staggered children. Mix and match freely.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 19 · End slide -->
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Up next</p>
+    <h2>Share your lesson doc<br>and I'll build the deck</h2>
+    <p class="lead">Press <kbd style="background:#1e293b;border:1px solid #475569;border-radius:4px;padding:2px 8px;font-family:var(--mono)">O</kbd> for overview &middot; <kbd style="background:#1e293b;border:1px solid #475569;border-radius:4px;padding:2px 8px;font-family:var(--mono)">S</kbd> for speaker notes</p>
+  </div>
+</section>
+
+</div>
+<script src="../../shared/deck.js"></script>
+</body>
+</html>

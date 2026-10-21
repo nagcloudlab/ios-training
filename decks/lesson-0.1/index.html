@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0.1 — iOS Architecture & App Startup</title>
+<link rel="stylesheet" href="../../shared/deck.css">
+</head>
+<body data-deck="Unit 00 · Lesson 0.1 — iOS Architecture & App Startup">
+<div class="deck">
+
+<!-- ============================================================
+     S1 · TITLE
+     ============================================================ -->
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 00 &middot; Lesson 0.1</p>
+    <h1 style="font-size:54px;line-height:1.05">iOS Architecture<br>&amp; App Startup</h1>
+    <p class="lead" style="max-width:620px">What happens inside an iPhone from the moment you tap an app icon to the first frame on screen?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Welcome. Today we answer one question: what really happens when you tap an app icon? We'll trace the full journey — from your finger to the first frame on screen.</p>
+    <span class="notes-label">CONNECT</span><p>Let's start with just an iPhone and one icon.</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 1 — THE MYSTERY: ONE TAP
+     ============================================================ -->
+
+<!-- S2 · Cinematic iPhone -->
+<section class="slide">
+  <div class="body center">
+    <div class="step anim-scale">
+      <svg viewBox="0 0 300 540" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:200px;filter:drop-shadow(0 12px 32px rgba(15,23,42,.16))" role="img" aria-labelledby="s2t">
+        <title id="s2t">iPhone showing PocketBank icon on home screen</title>
+        <defs>
+          <linearGradient id="pb" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+        </defs>
+        <rect x="10" y="10" width="280" height="520" rx="44" fill="url(#pb)"/>
+        <rect x="14" y="14" width="272" height="512" rx="42" fill="#1e293b" stroke="#334155" stroke-width=".5"/>
+        <rect x="105" y="22" width="90" height="28" rx="14" fill="#000"/>
+        <rect x="22" y="58" width="256" height="424" rx="6" fill="#f8fafc"/>
+        <rect x="110" y="498" width="80" height="4" rx="2" fill="#475569" opacity=".4"/>
+        <g opacity=".25">
+          <rect x="42" y="80" width="52" height="52" rx="12" fill="#cbd5e1"/><rect x="124" y="80" width="52" height="52" rx="12" fill="#cbd5e1"/><rect x="206" y="80" width="52" height="52" rx="12" fill="#cbd5e1"/>
+          <rect x="42" y="152" width="52" height="52" rx="12" fill="#cbd5e1"/><rect x="206" y="152" width="52" height="52" rx="12" fill="#cbd5e1"/>
+        </g>
+        <rect x="124" y="152" width="52" height="52" rx="12" fill="#0d9488"/>
+        <text x="150" y="175" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" font-weight="800" fill="#fff">POCKET</text>
+        <text x="150" y="186" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" font-weight="800" fill="#ccfbf1">BANK</text>
+        <text x="150" y="218" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="#64748b">PocketBank</text>
+        <circle cx="150" cy="178" r="36" fill="#0d9488" opacity=".12" class="anim-ping"/>
+      </svg>
+    </div>
+    <p class="step anim-up lead" style="margin:16px 0 0">One tap. What happens next?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Here's an iPhone with PocketBank installed. The user taps the icon. Does Swift start executing the moment their finger touches glass?</p>
+    <span class="notes-label">ASK</span><p>Does Swift begin executing the moment your finger touches the icon?</p>
+    <span class="notes-label">EXPECT</span><p>Most will say yes. The answer is no — the icon is system UI, not your app code.</p>
+  </aside>
+</section>
+
+<!-- S3 · Bundle vs Process vs Scene -->
+<section class="slide">
+  <p class="kicker">Act 1 &middot; Three entities</p>
+  <h2>Installed app &ne; running process &ne; scene</h2>
+  <div class="body top">
+    <div class="cols c3 stretch">
+      <div class="card accent step anim-up">
+        <span class="label">App Bundle</span>
+        <h3>On disk</h3>
+        <ul>
+          <li>Signed executable</li>
+          <li>Resources &amp; metadata</li>
+          <li>Exists even when nothing runs</li>
+        </ul>
+      </div>
+      <div class="card accent step anim-up">
+        <span class="label">Process</span>
+        <h3>In memory</h3>
+        <ul>
+          <li>OS-managed execution</li>
+          <li>Virtual address space + threads</li>
+          <li>Created only when needed</li>
+        </ul>
+      </div>
+      <div class="card accent step anim-up">
+        <span class="label">Scene</span>
+        <h3>On screen</h3>
+        <ul>
+          <li>System-managed UI instance</li>
+          <li>Lives inside a process</li>
+          <li>One process can host multiple</li>
+        </ul>
+      </div>
+    </div>
+    <div class="gap"></div>
+    <div class="analogy step">
+      <div class="icon">&#x1F4DA;</div>
+      <p>A <b>recipe book</b> (bundle) is not a <b>working kitchen</b> (process). The <b>dining room</b> (scene) is where the user interacts.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>These three concepts are often confused. The bundle is files on disk. The process is an execution environment created by the OS. The scene is a UI instance — not the same as the process.</p>
+    <span class="notes-label">ASK</span><p>Can an installed app have zero running processes?</p>
+    <span class="notes-label">EXPECT</span><p>Yes. Installation does not create a process.</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 2 — THE PLATFORM BENEATH THE APP
+     ============================================================ -->
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Act 2</p>
+    <h2>The platform beneath your app</h2>
+    <p class="lead">Five layers of responsibility</p>
+  </div>
+</section>
+
+<!-- S5 · Platform layers -->
+<section class="slide">
+  <p class="kicker">Act 2 &middot; Architecture</p>
+  <h2>iOS platform layers</h2>
+  <div class="body cols wide-right middle">
+    <div>
+      <p>Your app sits on <b>four platform layers</b>. This is a <b>responsibility map</b>, not a rigid call chain.</p>
+      <div class="gap"></div>
+      <div class="predict step">Which layer schedules threads?</div>
+      <div class="gap"></div>
+      <div class="answer step"><b>The kernel.</b> Darwin/XNU handles scheduling and memory.</div>
+    </div>
+    <div class="step layers-anim">
+      <div class="layers">
+        <div class="layer teal">PocketBank (Swift)</div>
+        <div class="layer">SwiftUI / UIKit / Foundation</div>
+        <div class="layer">iOS Services &amp; SpringBoard</div>
+        <div class="layer">Darwin / XNU Kernel</div>
+        <div class="layer navy">Apple Hardware</div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Your app doesn't directly create its own process or control the display. It expresses intentions using APIs; the platform mediates everything.</p>
+    <span class="notes-label">CONNECT</span><p>Now let's see what happens when the user actually taps that icon.</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 3 — THE ICON TAP AND SYSTEM COORDINATION
+     ============================================================ -->
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Act 3</p>
+    <h2>The icon tap &amp; system coordination</h2>
+    <p class="lead">SpringBoard receives the tap, not your app</p>
+  </div>
+</section>
+
+<!-- S7 · SpringBoard flow -->
+<section class="slide">
+  <p class="kicker">Act 3 &middot; System UI</p>
+  <h2>SpringBoard handles the tap</h2>
+  <div class="body">
+    <div class="step flow-anim">
+      <div class="flow">
+        <div class="box"><b>User taps icon</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box teal"><b>SpringBoard</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box"><b>Launch coordinator</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box"><b>Existing process?</b></div>
+      </div>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="cols">
+      <div class="tip step">SpringBoard is a <b>system process</b>. It manages the Home Screen, app switching, and launch coordination. It is not part of your app.</div>
+      <div>
+        <div class="predict step">Does the tap immediately call <code>PocketBankApp.body</code>?</div>
+        <div class="gap"></div>
+        <div class="answer step"><b>No.</b> Your Swift code hasn't started yet.</div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>When you tap the icon, you're interacting with SpringBoard — a system process. Your PocketBank code is not involved yet.</p>
+    <span class="notes-label">CONNECT</span><p>This leads to a critical fork: cold launch vs warm activation.</p>
+  </aside>
+</section>
+
+<!-- S8 · Cold vs Warm -->
+<section class="slide">
+  <p class="kicker">Act 3 &middot; Launch paths</p>
+  <h2>Cold launch vs warm activation</h2>
+  <div class="body cols middle">
+    <div>
+      <div class="card accent" style="margin-bottom:14px">
+        <span class="label">Existing process?</span>
+        <p><b class="green">YES</b> &rarr; Foreground / activate scene</p>
+        <p><b class="red">NO</b> &rarr; Create new process + load executable</p>
+        <p class="muted small">Both paths end at the same place: UI becomes available.</p>
+      </div>
+      <div class="predict step">Will returning after 10 minutes always be a warm activation?</div>
+      <div class="gap"></div>
+      <div class="answer step"><b>No.</b> The OS may have terminated the process. Process survival is never guaranteed.</div>
+    </div>
+    <div class="step vflow-anim">
+      <div class="vflow">
+        <div class="box teal"><b>User taps PocketBank</b></div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>System coordinates</b></div>
+        <div class="arrow">&#x25BC; existing process?</div>
+        <div class="box green"><b>YES</b> &mdash; foreground / activate</div>
+        <div class="box red"><b>NO</b> &mdash; create process + load</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box teal"><b>UI available</b></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>If PocketBank's process is still alive, the system just foregrounds it. If not, it builds everything from scratch. The user experience looks the same.</p>
+    <span class="notes-label">CONNECT</span><p>Let's follow the cold path — what does "create a new process" actually mean?</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 4 — PROCESS CREATION
+     ============================================================ -->
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Act 4</p>
+    <h2>Process creation</h2>
+    <p class="lead">What the OS builds before your code runs</p>
+  </div>
+</section>
+
+<!-- S10 · Virtual memory -->
+<section class="slide">
+  <p class="kicker">Act 4 &middot; Execution context</p>
+  <h2>A process is more than "calling a function"</h2>
+  <div class="body cols middle">
+    <div>
+      <p>The OS establishes:</p>
+      <ul>
+        <li class="step">Process identity &amp; resources</li>
+        <li class="step"><b>Virtual address space</b> with mapped regions</li>
+        <li class="step">At least one execution <b>thread</b></li>
+        <li class="step"><b>Sandbox</b> &amp; signing enforcement</li>
+      </ul>
+      <div class="gap"></div>
+      <div class="analogy step">
+        <div class="icon">&#x1F3E2;</div>
+        <p>An <b>office building</b> (process) with a <b>floor plan</b> (virtual memory) and <b>workers</b> (threads).</p>
+      </div>
+      <div class="gap"></div>
+      <div class="predict step">Is a process the same as a thread?</div>
+      <div class="answer step"><b>No.</b> A process is the container; threads are workers inside it.</div>
+    </div>
+    <div class="step anim-scale">
+      <div class="card" style="padding:20px 22px">
+        <p class="label" style="color:var(--teal)">PocketBank Process</p>
+        <div class="layers" style="margin-bottom:14px">
+          <div class="layer" style="background:var(--blue-soft);border-color:var(--blue);font-size:17px">Executable code &amp; shared libs</div>
+          <div class="layer" style="font-size:17px">Globals &amp; static storage</div>
+          <div class="layer" style="background:var(--amber-soft);border-color:var(--amber);font-size:17px">Heap (dynamic allocations)</div>
+          <div class="layer" style="font-size:17px">Thread stacks</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <div style="flex:3;background:var(--teal);height:18px;border-radius:6px;display:flex;align-items:center;padding-left:8px"><span style="color:#fff;font-family:var(--mono);font-size:10px;font-weight:600">Main Thread</span></div>
+          <div style="flex:2;background:var(--muted);height:18px;border-radius:6px;opacity:.5;display:flex;align-items:center;padding-left:8px"><span style="color:#fff;font-family:var(--mono);font-size:10px;font-weight:600">Worker</span></div>
+        </div>
+        <div style="border:1.5px dashed var(--red);border-radius:8px;padding:6px 12px;text-align:center;font-size:14px;color:var(--red);font-weight:600">Sandbox + Code Signing</div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A new process is not just "calling a Swift function." The OS sets up an entire execution environment — identity, virtual memory, threads, and a security sandbox — all before your code runs.</p>
+    <span class="notes-label">CONNECT</span><p>Now let's see how Swift source becomes the executable that gets loaded into this process.</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 5 — FROM SWIFT SOURCE TO EXECUTABLE
+     ============================================================ -->
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Act 5</p>
+    <h2>From Swift source to executable</h2>
+    <p class="lead">What happens at build time</p>
+  </div>
+</section>
+
+<!-- S12 · Build pipeline -->
+<section class="slide">
+  <p class="kicker">Act 5 &middot; Build time</p>
+  <h2>The compilation pipeline</h2>
+  <div class="body cols wide-left middle">
+    <div class="step vflow-anim">
+      <div class="vflow">
+        <div class="box teal"><b>.swift source</b></div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>Swift frontend</b> &mdash; parse + type check</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>SIL</b> &mdash; Swift Intermediate Language</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>LLVM</b> &mdash; machine code generation</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>Link &amp; sign</b></div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box navy"><b>Mach-O</b> executable in app bundle</div>
+      </div>
+    </div>
+    <div>
+      <p><b>Mach-O</b> is the executable format for Apple platforms.</p>
+      <ul class="small">
+        <li class="step">Headers + load commands</li>
+        <li class="step">Segments and sections</li>
+        <li class="step">Metadata for loading</li>
+      </ul>
+      <div class="gap"></div>
+      <div class="predict step">Is Mach-O the Swift programming language?</div>
+      <div class="answer step"><b>No.</b> Mach-O is a binary format. Swift compiles <em>into</em> it.</div>
+      <div class="gap"></div>
+      <div class="rule step"><code>.swift</code> source is <b>not</b> interpreted on launch. It was compiled ahead of time.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift source goes through parsing, type checking, intermediate representation, LLVM code generation, linking, and signing. The result is a Mach-O binary in the app bundle.</p>
+    <span class="notes-label">CONNECT</span><p>When the user taps, the system loads this binary. That's dyld's job.</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 6 — DYLD AND RUNTIME PREPARATION
+     ============================================================ -->
+<section class="slide">
+  <p class="kicker">Act 6 &middot; Runtime loading</p>
+  <h2>dyld: the dynamic loader</h2>
+  <div class="body cols middle">
+    <div class="step vflow-anim">
+      <div class="vflow">
+        <div class="box navy"><b>PocketBank Mach-O</b></div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box teal"><b>dyld</b> &mdash; dynamic loader</div>
+        <div class="arrow">&#x25BC; load dependencies</div>
+        <div class="box"><b>Map &amp; bind</b> &mdash; symbols resolved</div>
+        <div class="arrow">&#x25BC; initializers run</div>
+        <div class="box"><b>App entry</b> &mdash; runtime ready</div>
+      </div>
+    </div>
+    <div>
+      <p><b>dyld</b> prepares executable images and their dependencies at runtime.</p>
+      <div class="gap"></div>
+      <div class="analogy step">
+        <div class="icon">&#x1F3AD;</div>
+        <p>Before a play begins, the <b>stage crew</b> (dyld) prepares props and sets. The crew is not the <b>playwright</b> (compiler).</p>
+      </div>
+      <div class="gap"></div>
+      <div class="predict step">Does dyld compile Swift source?</div>
+      <div class="answer step"><b>No.</b> Compilation is build-time. dyld handles loading at runtime.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>dyld loads the Mach-O binary, resolves dependencies, binds symbols, and runs initializers. Only then does your Swift code start.</p>
+    <span class="notes-label">CONNECT</span><p>Now we finally reach your Swift code. Let's see what @main does.</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 7 — ENTERING SWIFTUI
+     ============================================================ -->
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Act 7</p>
+    <h2>Entering SwiftUI</h2>
+    <p class="lead">@main, App, WindowGroup, and your first View</p>
+  </div>
+</section>
+
+<!-- S15 · PocketBankApp code -->
+<section class="slide">
+  <p class="kicker">Act 7 &middot; App entry point</p>
+  <h2>The <code>@main</code> declaration</h2>
+  <div class="body cols wide-left">
+    <div>
+      <div class="cw">
+        <div class="ch"><span>PocketBankApp.swift</span></div>
+        <pre class="cb">import SwiftUI
+
+@main
+struct PocketBankApp: App {
+    var body: some Scene {
+        WindowGroup {
+            DashboardView()
+        }
+    }
+}</pre>
+      </div>
+    </div>
+    <div>
+      <ul>
+        <li class="step"><code>import SwiftUI</code> &mdash; framework available</li>
+        <li class="step"><code>@main</code> &mdash; app <b>entry-point type</b></li>
+        <li class="step"><code>App</code> protocol &mdash; SwiftUI application</li>
+        <li class="step"><code>WindowGroup</code> &mdash; system-managed windows</li>
+        <li class="step"><code>DashboardView()</code> &mdash; <b>view description</b>, not a drawing</li>
+      </ul>
+      <div class="gap"></div>
+      <div class="warn step"><code>App</code> is not the OS process. <code>WindowGroup</code> is not a thread. <code>DashboardView</code> is not the window server.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This is the entire app entry point. @main tells the system which type starts the app. WindowGroup wraps your root view in a system-managed window.</p>
+    <span class="notes-label">ASK</span><p>Does @main create the OS process?</p>
+    <span class="notes-label">EXPECT</span><p>No. The process already exists. @main is a Swift abstraction within it.</p>
+  </aside>
+</section>
+
+<!-- S16 · DashboardView code -->
+<section class="slide">
+  <p class="kicker">Act 7 &middot; Root view</p>
+  <h2>The view is a description, not a drawing</h2>
+  <div class="body cols middle">
+    <div>
+      <div class="cw">
+        <div class="ch"><span>DashboardView.swift</span></div>
+        <pre class="cb">struct DashboardView: View {
+    @State private var balanceText = "&#x20B9;25,000"
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("PocketBank")
+                .font(.largeTitle.bold())
+            Text("Available balance")
+            Text(balanceText).font(.title)
+            Button("Refresh balance") {
+                balanceText = "&#x20B9;25,000"
+            }
+        }
+        .padding()
+    }
+}</pre>
+      </div>
+    </div>
+    <div>
+      <div class="predict step">Does <code>DashboardView()</code> draw pixels?</div>
+      <div class="gap"></div>
+      <div class="answer step"><b>No.</b> It creates a view <em>value</em>. The framework renders it.</div>
+      <div class="gap"></div>
+      <div class="tip step"><code>@State</code> creates a source of truth. When <code>balanceText</code> changes, SwiftUI re-evaluates <code>body</code> &mdash; but only the parts that changed.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This is the root view. @State creates mutable state that SwiftUI manages. Body is a description, not a paint method.</p>
+    <span class="notes-label">CONNECT</span><p>How does this description become pixels on screen?</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 8 — FIRST FRAME
+     ============================================================ -->
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Act 8</p>
+    <h2>From description to first frame</h2>
+    <p class="lead">How SwiftUI turns view values into pixels</p>
+  </div>
+</section>
+
+<!-- S18 · First-frame pipeline -->
+<section class="slide">
+  <p class="kicker">Act 8 &middot; Rendering</p>
+  <h2>The first-frame journey</h2>
+  <div class="body cols wide-left middle">
+    <div class="step vflow-anim">
+      <div class="vflow">
+        <div class="box teal"><b>Scene active</b> &mdash; content established</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>Evaluate</b> &mdash; view descriptions</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>Reconcile</b> &mdash; diff changes</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>Layout</b> &mdash; size &amp; placement</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box"><b>Graphics</b> &mdash; compositing</div>
+        <div class="arrow">&#x25BC;</div>
+        <div class="box teal"><b>First frame</b> &mdash; displayed</div>
+      </div>
+    </div>
+    <div>
+      <p><code>body</code> may be re-evaluated <b>without</b> redrawing the entire screen.</p>
+      <div class="gap"></div>
+      <div class="predict step">Can the first screen be visible but unresponsive?</div>
+      <div class="gap"></div>
+      <div class="answer step"><b>Yes.</b> If the main thread is blocked, interactions stall.</div>
+      <div class="gap"></div>
+      <div class="takeaway step">First visible frame and <b>fully interactive</b> are not the same milestone.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI evaluates view descriptions, diffs changes, resolves layout, and composites graphics. The result is the first frame.</p>
+    <span class="notes-label">CONNECT</span><p>This journey has performance implications. Let's look at what can go wrong.</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 9 — LAUNCH PERFORMANCE
+     ============================================================ -->
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Act 9</p>
+    <h2>Launch performance</h2>
+    <p class="lead">What makes startup slow, and how to investigate</p>
+  </div>
+</section>
+
+<!-- S20 · Cold vs Warm table -->
+<section class="slide">
+  <p class="kicker">Act 9 &middot; Comparison</p>
+  <h2>Cold launch vs warm activation</h2>
+  <div class="body top">
+    <table class="tbl">
+      <tr><th>Concern</th><th>Cold launch</th><th>Warm activation</th></tr>
+      <tr class="step"><td>New OS process</td><td>Yes</td><td>No (if surviving)</td></tr>
+      <tr class="step"><td>Loading &amp; init</td><td>Full setup</td><td>May reuse state</td></tr>
+      <tr class="step hl"><td>In-memory state</td><td class="red"><b>Must rebuild</b></td><td class="green"><b>May survive</b></td></tr>
+      <tr class="step"><td>Scene activation</td><td>Yes</td><td>Yes</td></tr>
+    </table>
+    <div class="gap"></div>
+    <div class="cols">
+      <div class="warn step">Process survival is <b>never guaranteed</b>. The OS can terminate any background app.</div>
+      <div class="card accent step">
+        <span class="label">Startup cost sources</span>
+        <ul class="small">
+          <li>Excessive synchronous init</li>
+          <li>Blocking the main thread</li>
+          <li>Heavy work before first frame</li>
+          <li>Dependency loading overhead</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Should we optimize dyld first when startup is slow?</p>
+    <span class="notes-label">EXPECT</span><p>Not without measuring. Use Instruments to find the actual bottleneck.</p>
+  </aside>
+</section>
+
+<!-- S21 · Investigation method -->
+<section class="slide">
+  <p class="kicker">Act 9 &middot; Engineering method</p>
+  <h2>Measure, don't guess</h2>
+  <div class="body">
+    <div class="step flow-anim">
+      <div class="flow">
+        <div class="box teal"><b>Measure</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box"><b>Profile</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box"><b>Identify</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box"><b>Optimize</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box teal"><b>Re-measure</b></div>
+      </div>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="misconception step"><b>"dyld is always the bottleneck."</b> Not necessarily. Every app is different. Measure first.</div>
+    <div class="gap"></div>
+    <div class="takeaway step"><b>Hypothesis &rarr; measurement &rarr; change &rarr; remeasurement.</b> Never optimize without data.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Performance investigation follows a strict loop. Avoid generic claims. Use Instruments, find the real bottleneck, fix it, verify.</p>
+    <span class="notes-label">CONNECT</span><p>Now let's reconstruct the entire journey.</p>
+  </aside>
+</section>
+
+<!-- ============================================================
+     ACT 10 — END-TO-END RECONSTRUCTION
+     ============================================================ -->
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Act 10</p>
+    <h2>The full journey</h2>
+    <p class="lead">From tap to first frame</p>
+  </div>
+</section>
+
+<!-- S23 · Full flow -->
+<section class="slide">
+  <p class="kicker">Act 10 &middot; End to end</p>
+  <h2>From tap to first frame</h2>
+  <div class="body">
+    <div class="step flow-anim">
+      <div class="flow">
+        <div class="box"><b>Tap</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box teal"><b>SpringBoard</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box"><b>Process</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box"><b>dyld</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box"><b>@main</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box"><b>Views</b></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box teal"><b>Frame</b></div>
+      </div>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="takeaway step">One tap crosses <b>five system boundaries</b> in under 300 milliseconds.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The whole journey: tap, SpringBoard coordinates, process created, dyld loads binary, @main enters Swift, SwiftUI evaluates views, layout, compositing, first frame.</p>
+  </aside>
+</section>
+
+<!-- S24 · Five misconceptions -->
+<section class="slide">
+  <p class="kicker">Act 10 &middot; Misconceptions</p>
+  <h2>Five things that are <em>not</em> true</h2>
+  <div class="body top">
+    <div class="cols stretch">
+      <div>
+        <div class="misconception step">"<b>The icon directly calls Swift.</b>"<br>No — system UI coordinates the action.</div>
+        <div class="gap"></div>
+        <div class="misconception step">"<b>An app is the same as its process.</b>"<br>No — bundle and process differ.</div>
+        <div class="gap"></div>
+        <div class="misconception step">"<b>A process is the same as a scene.</b>"<br>No — execution context vs UI instance.</div>
+      </div>
+      <div>
+        <div class="misconception step">"<b>dyld compiles the app.</b>"<br>No — compilation is build time; dyld loads at runtime.</div>
+        <div class="gap"></div>
+        <div class="misconception step">"<b>SwiftUI body paints the screen.</b>"<br>No — it describes UI; frameworks render.</div>
+        <div class="gap"></div>
+        <div class="rule step">Correct all five and you understand the launch path.</div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>These are the five most common misconceptions. If you can explain why each is wrong, you've internalized the full journey.</p>
+  </aside>
+</section>
+
+<!-- S25 · Trainer challenge -->
+<section class="slide">
+  <p class="kicker">Trainer challenge</p>
+  <h2>Explain the full journey</h2>
+  <div class="body center">
+    <div style="max-width:820px;margin:0 auto">
+      <p class="lead" style="font-size:22px;line-height:1.6">"Starting from the moment I tap the PocketBank icon, explain what the <b style="color:var(--teal)">system</b> owns, what our <b>Swift code</b> owns, what happens only on a <b>new process launch</b>, and how a view description becomes the <b style="color:var(--teal)">first visible frame</b>."</p>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="step anim-up">
+      <div class="cols c3">
+        <div class="card accent"><span class="label">System owns</span><p>SpringBoard, process creation, sandbox, scheduling</p></div>
+        <div class="card accent"><span class="label">Your code owns</span><p>@main, App, WindowGroup, DashboardView, @State</p></div>
+        <div class="card accent"><span class="label">The bridge</span><p>Evaluate &rarr; layout &rarr; graphics &rarr; first frame</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This is the final challenge. Narrate the full journey yourself.</p>
+    <span class="notes-label">CONNECT</span><p>We now know how PocketBank comes alive. Next: how should we organize the code inside that running app?</p>
+  </aside>
+</section>
+
+<!-- S26 · End -->
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 0.1 complete</p>
+    <h2>iOS Architecture &amp;<br>App Startup</h2>
+    <p class="lead">Next: Lesson 0.2 &mdash; Application Architecture &amp; MVVM Overview</p>
+  </div>
+</section>
+
+</div>
+<script src="../../shared/deck.js"></script>
+</body>
+</html>
