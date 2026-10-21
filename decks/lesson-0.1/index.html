@@ -196,7 +196,7 @@
     <div class="diagram">
       <svg class="art" viewBox="0 0 760 460" role="img" aria-labelledby="s5t">
         <title id="s5t">Five stacked layers: your app (NPay), Apple frameworks, iOS services, the Darwin/XNU kernel, and hardware</title>
-    <g class="nd solid">
+    <g data-lit="5" class="nd solid">
       <path class="sh side" d="M20 380L170 424L170 446L20 402z"/>
       <path class="sh side" d="M170 424L320 380L320 402L170 446z" style="filter:brightness(.97)"/>
       <path class="sh" d="M170 336L320 380L170 424L20 380z"/>
@@ -205,7 +205,7 @@
       <text x="412" y="389">Apple hardware</text>
       <text class="sm" x="412" y="408">CPU, GPU, RAM, storage, sensors</text>
     </g>
-    <g class="nd" >
+    <g data-lit="4" class="nd" >
       <path class="sh side" d="M20 300L170 344L170 366L20 322z"/>
       <path class="sh side" d="M170 344L320 300L320 322L170 366z" style="filter:brightness(.97)"/>
       <path class="sh" d="M170 256L320 300L170 344L20 300z"/>
@@ -214,7 +214,7 @@
       <text x="412" y="309">Darwin / XNU kernel</text>
       <text class="sm" x="412" y="328">processes, threads, virtual memory, scheduling</text>
     </g>
-    <g class="nd">
+    <g data-lit="3" class="nd">
       <path class="sh side" d="M20 220L170 264L170 286L20 242z"/>
       <path class="sh side" d="M170 264L320 220L320 242L170 286z" style="filter:brightness(.97)"/>
       <path class="sh" d="M170 176L320 220L170 264L20 220z"/>
@@ -223,7 +223,7 @@
       <text x="412" y="229">iOS system services</text>
       <text class="sm" x="412" y="248">app lifecycle, security, notifications, graphics</text>
     </g>
-    <g class="nd">
+    <g data-lit="2" class="nd">
       <path class="sh side" d="M20 140L170 184L170 206L20 162z"/>
       <path class="sh side" d="M170 184L320 140L320 162L170 206z" style="filter:brightness(.97)"/>
       <path class="sh" d="M170 96L320 140L170 184L20 140z"/>
@@ -232,7 +232,7 @@
       <text x="412" y="149">Apple frameworks</text>
       <text class="sm" x="412" y="168">SwiftUI, UIKit, Foundation, Core Location, …</text>
     </g>
-    <g class="nd" data-lit="0">
+    <g data-lit="1" class="nd">
       <path class="sh side" d="M20 60L170 104L170 126L20 82z"/>
       <path class="sh side" d="M170 104L320 60L320 82L170 126z" style="filter:brightness(.97)"/>
       <path class="sh" d="M170 16L320 60L170 104L20 60z"/>
@@ -244,8 +244,10 @@
 
       </svg>
     </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
   </div>
   <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Five clicks, top to bottom: your app, Apple frameworks, iOS system services, the Darwin/XNU kernel, and the hardware.</p>
     <span class="notes-label">SAY</span><p>The important idea: your app does not own the iPhone. It runs under the operating system's supervision. It doesn't create its own process or control the display; it expresses intentions through APIs and the platform mediates.</p>
     <span class="notes-label">SAY</span><p>This is a conceptual diagram. Real frameworks and services communicate through several layers rather than always following one straight path.</p>
     <span class="notes-label">ASK</span><p>Can my Swift app directly read another app's files, or freely access the camera hardware?</p>
@@ -515,12 +517,12 @@
   <div class="body cols middle" style="grid-template-columns:1.25fr 1fr">
     <table class="tbl">
       <tr><th>Concept</th><th>Meaning</th></tr>
-      <tr class="step"><td><b>Program</b></td><td>Code stored on disk</td></tr>
-      <tr class="step"><td><b>Process</b></td><td>Running instance of a program</td></tr>
-      <tr class="step"><td><b>Thread</b></td><td>Execution path inside a process</td></tr>
-      <tr class="step"><td><b>Main thread</b></td><td>Handles the app&rsquo;s primary UI events</td></tr>
-      <tr class="step"><td><b>Heap</b></td><td>Dynamic memory storage</td></tr>
-      <tr class="step"><td><b>Stack</b></td><td>Execution storage for one thread</td></tr>
+      <tr><td><b>Program</b></td><td>Code stored on disk</td></tr>
+      <tr><td><b>Process</b></td><td>Running instance of a program</td></tr>
+      <tr><td><b>Thread</b></td><td>Execution path inside a process</td></tr>
+      <tr><td><b>Main thread</b></td><td>Handles the app&rsquo;s primary UI events</td></tr>
+      <tr><td><b>Heap</b></td><td>Dynamic memory storage</td></tr>
+      <tr><td><b>Stack</b></td><td>Execution storage for one thread</td></tr>
     </table>
     <div class="analogy step">
       <div class="icon"><svg viewBox="0 0 24 24"><use href="#i-book"/></svg></div>
@@ -952,8 +954,8 @@ struct NPayApp: App {
     </div>
     <table class="tbl" style="font-size:19px">
       <tr><th>Action</th><th>What to observe</th></tr>
-      <tr class="step"><td>Launch the app</td><td>Initial UI appears; the scene typically becomes active</td></tr>
-      <tr class="step"><td>Open Notification Center</td><td>The scene may become inactive</td></tr>
+      <tr><td>Launch the app</td><td>Initial UI appears; the scene typically becomes active</td></tr>
+      <tr><td>Open Notification Center</td><td>The scene may become inactive</td></tr>
     </table>
   </div>
   <aside class="notes-src">
@@ -1003,11 +1005,11 @@ struct NPayApp: App {
   <div class="body top">
     <table class="tbl">
       <tr><th>Concern</th><th>Cold launch</th><th>Warm activation</th></tr>
-      <tr class="step"><td>New OS process</td><td>Typically yes</td><td>No (if surviving)</td></tr>
-      <tr class="step"><td>Loading &amp; init</td><td>Full setup</td><td>May reuse state</td></tr>
-      <tr class="step hl"><td>In-memory state</td><td><b>Must rebuild</b></td><td class="green"><b>May survive</b></td></tr>
-      <tr class="step"><td>Scene activation</td><td>Yes</td><td>Yes</td></tr>
-      <tr class="step"><td>Fresh backend data</td><td>Often useful</td><td>Often useful</td></tr>
+      <tr><td>New OS process</td><td>Typically yes</td><td>No (if surviving)</td></tr>
+      <tr><td>Loading &amp; init</td><td>Full setup</td><td>May reuse state</td></tr>
+      <tr class="hl"><td>In-memory state</td><td><b>Must rebuild</b></td><td class="green"><b>May survive</b></td></tr>
+      <tr><td>Scene activation</td><td>Yes</td><td>Yes</td></tr>
+      <tr><td>Fresh backend data</td><td>Often useful</td><td>Often useful</td></tr>
     </table>
     <div class="gap"></div>
     <div class="card accent step">
@@ -1114,11 +1116,11 @@ struct NPayApp: App {
   <div class="body top">
     <table class="tbl">
       <tr><th>Myth</th><th>Reality</th></tr>
-      <tr class="step"><td>&ldquo;The icon directly calls Swift.&rdquo;</td><td>System UI coordinates the launch first.</td></tr>
-      <tr class="step"><td>&ldquo;An app is the same as its process.&rdquo;</td><td>The bundle is on disk; a process is created on demand.</td></tr>
-      <tr class="step"><td>&ldquo;A process is the same as a scene.&rdquo;</td><td>Execution context vs UI instance.</td></tr>
-      <tr class="step"><td>&ldquo;dyld compiles the app.&rdquo;</td><td>Compilation is build time; dyld loads at runtime.</td></tr>
-      <tr class="step"><td>&ldquo;SwiftUI <code>body</code> paints the screen.&rdquo;</td><td>It describes UI; the frameworks render it.</td></tr>
+      <tr><td>&ldquo;The icon directly calls Swift.&rdquo;</td><td>System UI coordinates the launch first.</td></tr>
+      <tr><td>&ldquo;An app is the same as its process.&rdquo;</td><td>The bundle is on disk; a process is created on demand.</td></tr>
+      <tr><td>&ldquo;A process is the same as a scene.&rdquo;</td><td>Execution context vs UI instance.</td></tr>
+      <tr><td>&ldquo;dyld compiles the app.&rdquo;</td><td>Compilation is build time; dyld loads at runtime.</td></tr>
+      <tr><td>&ldquo;SwiftUI <code>body</code> paints the screen.&rdquo;</td><td>It describes UI; the frameworks render it.</td></tr>
     </table>
     <div class="gap"></div>
     <div class="rule step">Correct all five and you understand the launch path.</div>

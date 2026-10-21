@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0.3 — iOS Application Lifecycle Deep Dive</title>
+<link rel="stylesheet" href="../../shared/deck.css">
+</head>
+<body data-deck="Unit 00 · Lesson 0.3 — iOS Application Lifecycle Deep Dive">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 00 &middot; Lesson 0.3</p>
+    <h1 style="font-size:54px;line-height:1.05">iOS Application<br>Lifecycle Deep Dive</h1>
+    <p class="lead" style="max-width:660px">When a user leaves an iPhone app, what actually happens to that app?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Today we answer a fundamental question: when a user leaves an iPhone app, what actually happens to that app? Does it stop? Does it keep running? Is it destroyed? And what happens when the user returns?</p>
+    <span class="notes-label">CONNECT</span><p>These questions lead us into the iOS application lifecycle. Here is our route.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.3 &middot; Our learning journey</p>
+  <h2>Six concepts, step by step</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-process"/></svg></span><p><b>Process versus scene</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p><b>Foreground, background and suspension</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></span><p><b>Cold launch versus warm activation</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><p><b>Memory pressure and app termination</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frameworks"/></svg></span><p><b>SwiftUI versus UIKit lifecycle</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p><b>Real-world architecture and challenges</b></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We will progressively cover six concepts: process versus scene; foreground, background and suspension; cold launch versus warm activation; memory pressure and termination; SwiftUI versus UIKit lifecycle; and what all of this means for real-world architecture.</p>
+    <span class="notes-label">CONNECT</span><p>We start with the most important distinction.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Process versus scene</h2>
+    <p class="lead">The most important distinction</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two words people use interchangeably, but iOS treats very differently.</p>
+    <span class="notes-label">CONNECT</span><p>Start with a picture: a shopping mall.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Analogy</p>
+  <h2>Think of a shopping mall</h2>
+  <div class="body cols middle" style="grid-template-columns:1.15fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 560 430" style="max-height:470px" role="img" aria-labelledby="s3mall">
+        <title id="s3mall">A shopping mall: mall management is the operating system, the building is the app process, each shop is a scene, and the user visits different shops.</title>
+        <g class="nd ghost" data-lit="1"><rect class="sh" x="10" y="34" width="540" height="390" rx="18"/></g>
+        <g class="nd" data-lit="1"><use href="#i-building" x="10" y="0" width="24" height="24"/><text class="mono" x="42" y="18">MALL MANAGEMENT: THE OPERATING SYSTEM</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="36" y="60" width="488" height="300" rx="14"/><text class="mono" x="56" y="88">MALL BUILDING: THE APP PROCESS</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="60" y="104" width="204" height="106" rx="12"/><use href="#i-grid" x="149" y="122" width="26" height="26"/><text x="162" y="176" text-anchor="middle">Shop A</text><text class="sm" x="162" y="196" text-anchor="middle">a scene</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="296" y="104" width="204" height="106" rx="12"/><use href="#i-grid" x="385" y="122" width="26" height="26"/><text x="398" y="176" text-anchor="middle">Shop B</text><text class="sm" x="398" y="196" text-anchor="middle">a scene</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="60" y="230" width="204" height="106" rx="12"/><use href="#i-grid" x="149" y="248" width="26" height="26"/><text x="162" y="302" text-anchor="middle">Shop C</text><text class="sm" x="162" y="322" text-anchor="middle">a scene</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="296" y="230" width="204" height="106" rx="12"/><use href="#i-grid" x="385" y="248" width="26" height="26"/><text x="398" y="302" text-anchor="middle">Shop D</text><text class="sm" x="398" y="322" text-anchor="middle">a scene</text></g>
+        <g class="fade" data-lit="4"><use href="#i-user" x="246" y="380" width="30" height="30" style="color:var(--teal)"/><text class="sm" x="284" y="400">the user visits different shops</text></g>
+      </svg>
+    </div>
+    <div>
+      <div class="points v">
+        <div class="step"><svg viewBox="0 0 24 24"><use href="#i-building"/></svg><span><b>Mall management</b><small>the operating system</small></span></div>
+        <div class="step"><svg viewBox="0 0 24 24"><use href="#i-process"/></svg><span><b>The mall building</b><small>an application process</small></span></div>
+        <div class="step"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg><span><b>Each shop</b><small>a scene</small></span></div>
+        <div class="step"><svg viewBox="0 0 24 24"><use href="#i-user"/></svg><span><b>The visitor</b><small>the user, moving between shops</small></span></div>
+      </div>
+      <div class="gap"></div>
+      <p class="step">One building can contain several shops. One app process can manage <b>multiple scenes</b>.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The mall building is the application process. Each shop is a scene. The operating system is the mall management, and the user visits different shops.</p>
+    <span class="notes-label">SAY</span><p>One building can contain several shops. Similarly, one iOS app process can manage multiple scenes.</p>
+    <span class="notes-label">CONNECT</span><p>Now the same idea in iOS terms.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Process vs scene &middot; conceptual</p>
+  <h2>One process, several scenes</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 332" style="max-height:360px" role="img" aria-labelledby="s4ps">
+        <title id="s4ps">One app process containing two scenes: scene A, product catalog, is active; scene B, order details, is in the background.</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="560" height="330" rx="18"/><use href="#i-process" x="22" y="20" width="26" height="26"/><text x="58" y="34">App process</text><text class="sm" x="58" y="54">shared executable code, memory, threads and services</text></g>
+        <g class="nd lit" data-lit="2+"><rect class="sh" x="24" y="90" width="244" height="210" rx="14"/><use href="#i-phone" x="132" y="112" width="28" height="28"/><text x="146" y="176" text-anchor="middle">Scene A</text><text class="sm" x="146" y="198" text-anchor="middle">product catalog</text></g>
+        <g class="fade" data-lit="2+"><text class="mono" x="146" y="262" text-anchor="middle">ACTIVE</text></g>
+        <g class="nd"><rect class="sh" x="292" y="90" width="244" height="210" rx="14"/><use href="#i-phone" x="400" y="112" width="28" height="28"/><text x="414" y="176" text-anchor="middle">Scene B</text><text class="sm" x="414" y="198" text-anchor="middle">order details</text></g>
+        <g class="fade" data-lit="2+"><text class="mono" x="414" y="262" text-anchor="middle">BACKGROUND</text></g>
+      </svg>
+    </div>
+      <i class="step cue"></i><i class="step cue"></i>
+      <p class="small muted" style="margin:10px 0 0">Conceptual multiwindow example. Most relevant on iPadOS; an ordinary iPhone app commonly has one main window scene.</p>
+    </div>
+    <div>
+      <div class="card accent"><div class="points v"><div><svg viewBox="0 0 24 24"><use href="#i-process"/></svg><span><b>Process</b><small>a running instance of your app: its execution environment</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg><span><b>Scene</b><small>an instance of your app&rsquo;s UI that the system manages, with its own lifecycle states</small></span></div></div></div>
+      <div class="gap"></div>
+      <div class="rule step" data-label="Critical point">One scene can be in the <b>background</b> while another scene of the same app is <b>active</b>. Scene lifecycle and process state are not the same.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A process is a running instance of your application; it contains the execution environment. A scene represents an instance of your app’s UI that the system manages, and scenes have their own lifecycle states.</p>
+    <span class="notes-label">SAY</span><p>Click two: scene A, the product catalog, is active while scene B, order details, is in the background. Same process, different scene states.</p>
+    <span class="notes-label">SAY</span><p>Multiple simultaneous windows matter most on iPadOS. An ordinary iPhone app commonly has one main window scene.</p>
+    <span class="notes-label">ASK</span><p>Can one scene be in the background while another scene of the same app is active?</p>
+    <span class="notes-label">EXPECT</span><p>Yes. Scene states are per scene; the process is shared.</p>
+    <span class="notes-label">CONNECT</span><p>So which states exist, and which belong to the scene versus the process?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Understand the lifecycle states</h2>
+    <p class="lead">Foreground, background and suspension</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>First, separate two categories of state: what the scene reports, and what the process is doing.</p>
+    <span class="notes-label">CONNECT</span><p>Two lists, not one.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Two categories</p>
+  <h2>Scene states vs process conditions</h2>
+  <div class="body">
+    <div class="cols stretch">
+      <div class="card accent step"><span class="label">Scene states (SwiftUI scenePhase)</span>
+        <ul><li>Active</li><li>Inactive</li><li>Background</li></ul></div>
+      <div class="card step"><span class="label">Process execution conditions</span>
+        <ul><li>Running</li><li>Suspended</li><li>Terminated</li></ul></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Watch the words"><b>Suspended</b> is not a SwiftUI scenePhase value. It describes the process, not the scene.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Scene states exposed through SwiftUI’s scenePhase are active, inactive and background. Process execution conditions are running, suspended and terminated.</p>
+    <span class="notes-label">SAY</span><p>Suspended is not a scenePhase value. Students often look for it there; it belongs to the process.</p>
+    <span class="notes-label">CONNECT</span><p>Now put them together for a typical single-scene iPhone app.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Lifecycle &middot; conceptual</p>
+  <h2>A typical single-scene iPhone app</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 282" role="img" aria-labelledby="s6states">
+        <title id="s6states">Not running, active, inactive, background, suspended, terminated</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="340" height="110" rx="14"/><use href="#i-cross" x="156" y="14" width="28" height="28"/><text x="170" y="74" text-anchor="middle">Not running</text><text class="sm" x="170" y="94" text-anchor="middle">no app process exists</text></g>
+        <path class="wire" d="M346 55H392M385 48l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="398" y="0" width="340" height="110" rx="14"/><use href="#i-play" x="554" y="14" width="28" height="28"/><text x="568" y="74" text-anchor="middle">Active</text><text class="sm" x="568" y="94" text-anchor="middle">foreground, accepting user interaction</text></g>
+        <path class="wire" d="M744 55H790M783 48l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="796" y="0" width="340" height="110" rx="14"/><use href="#i-clock" x="952" y="14" width="28" height="28"/><text x="966" y="74" text-anchor="middle">Inactive</text><text class="sm" x="966" y="94" text-anchor="middle">foreground, temporarily not active</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="170" width="340" height="110" rx="14"/><use href="#i-layers" x="156" y="184" width="28" height="28"/><text x="170" y="244" text-anchor="middle">Background</text><text class="sm" x="170" y="264" text-anchor="middle">no longer foreground; may run briefly</text></g>
+        <path class="wire" d="M346 225H392M385 218l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="398" y="170" width="340" height="110" rx="14"/><use href="#i-memory" x="554" y="184" width="28" height="28"/><text x="568" y="244" text-anchor="middle">Suspended</text><text class="sm" x="568" y="264" text-anchor="middle">kept in memory, not executing</text></g>
+        <path class="wire" d="M744 225H790M783 218l7 7-7 7"/>
+        <g class="nd alert" data-lit="6"><rect class="sh" x="796" y="170" width="340" height="110" rx="14"/><use href="#i-cross" x="952" y="184" width="28" height="28"/><text x="966" y="244" text-anchor="middle">Terminated</text><text class="sm" x="966" y="264" text-anchor="middle">process no longer exists</text></g>
+        <path class="wire" d="M966 110V140H170V164M163 157l7 7 7-7"/>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <p class="small muted">One possible progression, not a mandatory sequence. An app may return to the foreground, be terminated directly, or follow other transitions.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through: not running, no process exists. Active: in the foreground, accepting interaction. Inactive: still in the foreground but temporarily not active. Background: no longer in the foreground; execution may continue briefly. Suspended: the process is kept in memory but not executing. Terminated: the process no longer exists.</p>
+    <span class="notes-label">SAY</span><p>This is one possible path, not a required sequence. An app can come back to the foreground, be terminated directly, or take other transitions.</p>
+    <span class="notes-label">ASK</span><p>Is suspended one of the SwiftUI scenePhase values?</p>
+    <span class="notes-label">EXPECT</span><p>No. Suspended is a process condition, not a scene state.</p>
+    <span class="notes-label">CONNECT</span><p>Let's walk through it with NPay.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Let&rsquo;s simulate the app lifecycle</h2>
+    <p class="lead">One banking app, five moments</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Imagine using NPay, our banking app. We will watch its scene and its process change.</p>
+    <span class="notes-label">CONNECT</span><p>Five scenarios, one per click.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Lifecycle simulator &middot; conceptual</p>
+  <h2>NPay through five moments</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 272" role="img" aria-labelledby="s8sim">
+        <title id="s8sim">Five scenarios: not running, using the app, just left, suspended, terminated; each shows scene state, process status and the next event.</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="0" width="212" height="52" rx="12"/><text x="16" y="32">1. App not running</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="230" y="0" width="212" height="52" rx="12"/><text x="246" y="32">2. Using the app</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="460" y="0" width="212" height="52" rx="12"/><text x="476" y="32">3. Just left the app</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="690" y="0" width="212" height="52" rx="12"/><text x="706" y="32">4. Suspended</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="920" y="0" width="212" height="52" rx="12"/><text x="936" y="32">5. Terminated</text></g>
+        <g class="fade" data-lit="0"><text class="mono" x="0" y="100">SCENARIO 1 OF 5</text><text x="0" y="134" style="font-size:26px;font-weight:700">App not running</text><text x="0" y="168" style="font-size:19px;font-weight:400">NPay is installed, but there is no running process. The system launches the app and activates its initial scene.</text><g class="nd"><rect class="sh" x="0" y="196" width="360" height="74" rx="12"/><text class="mono" x="20" y="224">SCENE</text><text x="20" y="254">No scene</text></g><g class="nd"><rect class="sh" x="388" y="196" width="360" height="74" rx="12"/><text class="mono" x="408" y="224">PROCESS STATUS</text><text x="408" y="254">Not running</text></g><g class="nd" data-lit="0"><rect class="sh" x="776" y="196" width="360" height="74" rx="12"/><text class="mono" x="796" y="224">NEXT EVENT</text><text x="796" y="254">Tap the NPay icon</text></g></g>
+        <g class="fade" data-lit="1"><text class="mono" x="0" y="100">SCENARIO 2 OF 5</text><text x="0" y="134" style="font-size:26px;font-weight:700">Using the app</text><text x="0" y="168" style="font-size:19px;font-weight:400">The user checks the balance. The scene is active and the process is running.</text><g class="nd"><rect class="sh" x="0" y="196" width="360" height="74" rx="12"/><text class="mono" x="20" y="224">SCENE</text><text x="20" y="254">Active</text></g><g class="nd"><rect class="sh" x="388" y="196" width="360" height="74" rx="12"/><text class="mono" x="408" y="224">PROCESS STATUS</text><text x="408" y="254">Running</text></g><g class="nd" data-lit="1"><rect class="sh" x="776" y="196" width="360" height="74" rx="12"/><text class="mono" x="796" y="224">NEXT EVENT</text><text x="796" y="254">Swipe up to the Home Screen</text></g></g>
+        <g class="fade" data-lit="2"><text class="mono" x="0" y="100">SCENARIO 3 OF 5</text><text x="0" y="134" style="font-size:26px;font-weight:700">Just left the app</text><text x="0" y="168" style="font-size:19px;font-weight:400">The scene moves to the background. Execution may continue briefly.</text><g class="nd"><rect class="sh" x="0" y="196" width="360" height="74" rx="12"/><text class="mono" x="20" y="224">SCENE</text><text x="20" y="254">Background</text></g><g class="nd"><rect class="sh" x="388" y="196" width="360" height="74" rx="12"/><text class="mono" x="408" y="224">PROCESS STATUS</text><text x="408" y="254">Running briefly</text></g><g class="nd" data-lit="2"><rect class="sh" x="776" y="196" width="360" height="74" rx="12"/><text class="mono" x="796" y="224">NEXT EVENT</text><text x="796" y="254">Wait while the user is in another app</text></g></g>
+        <g class="fade" data-lit="3"><text class="mono" x="0" y="100">SCENARIO 4 OF 5</text><text x="0" y="134" style="font-size:26px;font-weight:700">Suspended</text><text x="0" y="168" style="font-size:19px;font-weight:400">The process stays in memory but no code runs.</text><g class="nd"><rect class="sh" x="0" y="196" width="360" height="74" rx="12"/><text class="mono" x="20" y="224">SCENE</text><text x="20" y="254">Background</text></g><g class="nd"><rect class="sh" x="388" y="196" width="360" height="74" rx="12"/><text class="mono" x="408" y="224">PROCESS STATUS</text><text x="408" y="254">Suspended</text></g><g class="nd" data-lit="3"><rect class="sh" x="776" y="196" width="360" height="74" rx="12"/><text class="mono" x="796" y="224">NEXT EVENT</text><text x="796" y="254">The user opens a memory-heavy game</text></g></g>
+        <g class="fade" data-lit="4"><text class="mono" x="0" y="100">SCENARIO 5 OF 5</text><text x="0" y="134" style="font-size:26px;font-weight:700">Terminated</text><text x="0" y="168" style="font-size:19px;font-weight:400">iOS reclaimed the memory. Opening NPay now is a fresh launch.</text><g class="nd"><rect class="sh" x="0" y="196" width="360" height="74" rx="12"/><text class="mono" x="20" y="224">SCENE</text><text x="20" y="254">No scene</text></g><g class="nd alert"><rect class="sh" x="388" y="196" width="360" height="74" rx="12"/><text class="mono" x="408" y="224">PROCESS STATUS</text><text x="408" y="254">Terminated</text></g><g class="nd" data-lit="4"><rect class="sh" x="776" y="196" width="360" height="74" rx="12"/><text class="mono" x="796" y="224">NEXT EVENT</text><text x="796" y="254">Tap the NPay icon again</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Scenario one: NPay is installed but not running; there is no process. The next event, tapping the icon, makes the system launch the app and activate its initial scene. Click through the other four: using the app, just leaving it, suspension, and termination.</p>
+    <span class="notes-label">SAY</span><p>Watch the two status boxes: the scene and the process change separately.</p>
+    <span class="notes-label">CONNECT</span><p>Two misconceptions come up at exactly this point.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Misconceptions</p>
+  <h2>Two things that are not true</h2>
+  <div class="body top">
+    <table class="tbl">
+      <tr><th>Myth</th><th>Reality</th></tr>
+      <tr><td>&ldquo;When the user switches apps, the old app is killed.&rdquo;</td><td>iOS usually moves its scene to the <b>background</b> and may eventually <b>suspend</b> the process. Termination is a separate possibility.</td></tr>
+      <tr><td>&ldquo;Background means continuous execution.&rdquo;</td><td>Background does <b>not</b> mean unrestricted execution.</td></tr>
+    </table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A common misconception: when the user switches apps, the old app is killed. That is incorrect. iOS usually moves the old app’s scene to the background and may eventually suspend its process. Termination is a separate possibility.</p>
+    <span class="notes-label">SAY</span><p>Another misconception: background means continuous execution. Background does not mean unrestricted execution.</p>
+    <span class="notes-label">CONNECT</span><p>So what does the system do when the user comes back?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Cold launch versus warm activation</h2>
+    <p class="lead">Same tap, different work</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user performs the same action, tapping the app icon, but iOS may perform different internal work.</p>
+    <span class="notes-label">CONNECT</span><p>Imagine opening a shopping app three times.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Three cases</p>
+  <h2>One tap, three possible situations</h2>
+  <div class="body">
+    <div class="cols c3 stretch">
+      <div class="card step"><span class="label">Cold</span><h3 style="font-size:22px;margin:4px 0 8px">New process</h3><p class="small" style="margin:0">Application initialization must happen again.</p></div>
+      <div class="card step"><span class="label">Warm</span><h3 style="font-size:22px;margin:4px 0 8px">Existing process</h3><p class="small" style="margin:0">Application state may already be in memory.</p></div>
+      <div class="card accent step"><span class="label">Running</span><h3 style="font-size:22px;margin:4px 0 8px">Existing running process</h3><p class="small" style="margin:0">The app can become foreground without being resumed from suspension.</p></div>
+    </div>
+    <div class="gap"></div>
+    <p class="small muted step">Cold, warm and hot launch are often used informally; their precise meanings vary by performance tool or discussion.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>For teaching, the clearest distinction: a new process means initialization must happen again. An existing process means application state may already be in memory. An existing running process can become foreground without being resumed from suspension.</p>
+    <span class="notes-label">SAY</span><p>The running case: the app is still executing eligible background work. The user brings it forward, the scene transitions through lifecycle states, and foreground interaction resumes, with no process creation or suspension recovery.</p>
+    <span class="notes-label">SAY</span><p>Developers use cold, warm and hot launch informally, and the exact meanings vary by tool. Teach the process distinction rather than the labels.</p>
+    <span class="notes-label">CONNECT</span><p>Why does this matter to us? A banking example.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Example &middot; conceptual</p>
+  <h2>Coming back to NPay</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 200" role="img" aria-labelledby="s11ex">
+        <title id="s11ex">The user switches away from NPay showing 50,000 rupees and returns; if the process survived the balance may still be in memory, if it was terminated the app must rebuild and restore.</title>
+        <g class="nd"><rect class="sh" x="388" y="0" width="360" height="62" rx="12"/><use href="#i-user" x="402" y="18" width="26" height="26"/><text x="440" y="28">Balance shows &#8377;50,000</text><text class="sm" x="440" y="46">the user switches apps, then returns</text></g>
+        <path class="wire" d="M568 62V86H190V112M183 105l7 7 7-7M568 86H946V112M939 105l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="118" width="380" height="78" rx="12"/><use href="#i-check" x="14" y="144" width="26" height="26"/><text x="52" y="154">Process survived</text><text class="sm" x="52" y="172">in-memory balance may still be &#8377;50,000</text></g>
+        <g class="nd alert" data-lit="2"><rect class="sh" x="756" y="118" width="380" height="78" rx="12"/><use href="#i-cross" x="770" y="144" width="26" height="26"/><text x="808" y="154">Process terminated</text><text class="sm" x="808" y="172">rebuild the interface, retrieve or restore data</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i>
+    <div class="gap-lg"></div>
+    <div class="rule step" data-label="Architectural rule">Never design an iOS application assuming that its <b>process will remain alive</b>.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay shows a balance of &#8377;50,000. The user switches to another app and returns. If the process survived, the in-memory balance may still be &#8377;50,000. If iOS terminated it, NPay must reconstruct its interface and retrieve or restore the right data.</p>
+    <span class="notes-label">ASK</span><p>If NPay was terminated while in the background, is its in-memory balance still there when the user returns?</p>
+    <span class="notes-label">EXPECT</span><p>No. A new process starts; the app must rebuild and fetch or restore its data.</p>
+    <span class="notes-label">CONNECT</span><p>Why would iOS keep a process around but stop it from running?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Why does iOS suspend applications?</h2>
+    <p class="lead">Balancing responsiveness, battery and memory</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The operating system must balance responsiveness, battery consumption, memory and permitted background activity.</p>
+    <span class="notes-label">CONNECT</span><p>Look at a device with several apps.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Device workload &middot; illustrative</p>
+  <h2>Many apps, one device</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 122" role="img" aria-labelledby="s13dev">
+        <title id="s13dev">Messaging suspended, camera running, shopping suspended, music playing background audio</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="266" height="120" rx="14"/><use href="#i-send" x="119" y="14" width="28" height="28"/><text x="133" y="84" text-anchor="middle">Messaging</text><text class="sm" x="133" y="104" text-anchor="middle">Suspended</text></g>
+        <g class="nd lit"><rect class="sh" x="290" y="0" width="266" height="120" rx="14"/><use href="#i-eye" x="409" y="14" width="28" height="28"/><text x="423" y="84" text-anchor="middle">Camera</text><text class="sm" x="423" y="104" text-anchor="middle">Running</text></g>
+        <g class="nd"><rect class="sh" x="580" y="0" width="266" height="120" rx="14"/><use href="#i-app" x="699" y="14" width="28" height="28"/><text x="713" y="84" text-anchor="middle">Shopping</text><text class="sm" x="713" y="104" text-anchor="middle">Suspended</text></g>
+        <g class="nd"><rect class="sh" x="870" y="0" width="266" height="120" rx="14"/><use href="#i-play" x="989" y="14" width="28" height="28"/><text x="1003" y="84" text-anchor="middle">Music</text><text class="sm" x="1003" y="104" text-anchor="middle">Background audio</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <p>A <b>suspended</b> app stays resident in memory but <b>does not execute instructions</b>.</p>
+    <div class="tip step" data-label="Why suspend"><div class="points p4"><div><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg><span><b>Saves energy</b><small>CPU time and battery</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg><span><b>Keeps useful state</b><small>still in memory</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-play"/></svg><span><b>Faster return</b><small>no rebuild needed</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg><span><b>Foreground first</b><small>the system prioritizes it</small></span></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An illustrative device: messaging and shopping are suspended, the camera is running in front, and music continues as background audio.</p>
+    <span class="notes-label">SAY</span><p>When an app is suspended, its process can remain in memory but it does not execute instructions. That saves CPU time and energy, preserves useful state in memory, can make returning faster, and lets the system prioritize foreground work.</p>
+    <span class="notes-label">CONNECT</span><p>But music kept playing. How?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Background capabilities</p>
+  <h2>What about music or navigation apps?</h2>
+  <div class="body">
+    <div class="cols stretch">
+      <div class="card accent step"><span class="label">Audio playback</span><p>Can continue in the background when the app is <b>properly configured</b> and follows the relevant audio rules.</p></div>
+      <div class="card accent step"><span class="label">Navigation</span><p>May receive <b>background location updates</b> under appropriate permissions and conditions.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Not an exemption">These are specific <b>permitted capabilities</b>, not a general exemption to execute indefinitely.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Some apps can do specific background work through supported iOS capabilities. Audio playback can continue when the app is properly configured and operating under the relevant audio rules. Navigation apps may receive background location updates under appropriate permissions and conditions.</p>
+    <span class="notes-label">SAY</span><p>These are permitted capabilities, not a general exemption that lets any app run forever.</p>
+    <span class="notes-label">CONNECT</span><p>Suspended apps also have a risk: the system may need their memory.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Memory pressure</h2>
+    <p class="lead">Why iOS terminates apps</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Now the user opens a memory-intensive game. The system needs memory for the game, graphics resources and other active services.</p>
+    <span class="notes-label">CONNECT</span><p>Watch what happens to the suspended apps.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Memory pressure &middot; illustrative</p>
+  <h2>When the system needs memory back</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 226" role="img" aria-labelledby="s16mem">
+        <title id="s16mem">Memory pressure rises from 35 percent to 65 and 90 percent as a game runs; at high pressure the suspended messaging and shopping apps are terminated.</title>
+        <text class="mono" x="0" y="16">ILLUSTRATIVE MEMORY PRESSURE</text>
+        <g class="nd"><rect class="sh" x="0" y="28" width="1136" height="40" rx="10"/></g>
+        <g class="fade" data-lit="0"><g class="nd lit"><rect class="sh" x="0" y="28" width="397" height="40" rx="10"/></g><text x="0" y="112" style="font-size:40px;font-weight:800">35%</text><text x="110" y="100" style="font-size:22px;font-weight:700">Low pressure</text><text x="110" y="126" style="font-size:18px;font-weight:400">The system has relatively little need to reclaim memory.</text></g>
+        <g class="fade" data-lit="1"><g class="nd lit"><rect class="sh" x="0" y="28" width="738" height="40" rx="10"/></g><text x="0" y="112" style="font-size:40px;font-weight:800">65%</text><text x="110" y="100" style="font-size:22px;font-weight:700">Rising pressure</text><text x="110" y="126" style="font-size:18px;font-weight:400">The game needs more memory; the system looks for resources to reclaim.</text></g>
+        <g class="fade" data-lit="2"><g class="nd lit"><rect class="sh" x="0" y="28" width="1022" height="40" rx="10"/></g><text x="0" y="112" style="font-size:40px;font-weight:800">90%</text><text x="110" y="100" style="font-size:22px;font-weight:700">High pressure</text><text x="110" y="126" style="font-size:18px;font-weight:400">Suspended apps become candidates for termination so the system can reclaim memory.</text></g>
+        <g class="nd"><rect class="sh" x="0" y="160" width="356" height="64" rx="12"/><use href="#i-send" x="14" y="179" width="26" height="26"/><text x="52" y="189">Messaging</text><text class="sm" x="52" y="208">suspended</text></g>
+        <g class="nd"><rect class="sh" x="390" y="160" width="356" height="64" rx="12"/><use href="#i-app" x="404" y="179" width="26" height="26"/><text x="442" y="189">Shopping</text><text class="sm" x="442" y="208">suspended</text></g>
+        <g class="nd" data-lit="1+"><rect class="sh" x="780" y="160" width="356" height="64" rx="12"/><use href="#i-chip" x="794" y="179" width="26" height="26"/><text x="832" y="189">Game</text><text class="sm" x="832" y="207">in front, needs memory</text></g>
+        <g class="fade" data-lit="2"><g class="nd alert"><rect class="sh" x="0" y="160" width="746" height="64" rx="12"/><use href="#i-cross" x="14" y="179" width="26" height="26"/><text x="52" y="189">Messaging and Shopping terminated</text><text class="sm" x="52" y="208">suspended apps ended to reclaim memory</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <p class="small muted">Teaching simulation, not an actual iPhone memory measurement or Apple&rsquo;s process-termination algorithm. The percentages are illustrative.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>At 35% the system has relatively little need to reclaim memory. Click: the game needs more. Click: under high pressure, suspended apps become candidates for termination so the system can reclaim resources.</p>
+    <span class="notes-label">SAY</span><p>This is a teaching simulation. The numbers are illustrative, not real measurements or Apple’s algorithm.</p>
+    <span class="notes-label">ASK</span><p>Which apps does the system reclaim memory from first in this picture?</p>
+    <span class="notes-label">EXPECT</span><p>The suspended ones, messaging and shopping, while the game in front keeps running.</p>
+    <span class="notes-label">CONNECT</span><p>The mechanism behind this has a name: jetsam.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Jetsam</p>
+  <h2>What is a jetsam termination?</h2>
+  <div class="body">
+    <p style="margin:0 0 20px">iOS uses memory-management mechanisms commonly called <b>jetsam</b> to terminate processes when it must manage memory pressure.</p>
+    <div class="points v">
+      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg><span><b>No resume first</b><small>A suspended app can be terminated without being resumed.</small></span></div>
+      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg><span><b>No final callback</b><small>The app cannot rely on a last cleanup call.</small></span></div>
+      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg><span><b>Next launch rebuilds</b><small>State may need to be reconstructed.</small></span></div>
+      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg><span><b>Foreground apps too</b><small>If their memory use becomes problematic.</small></span></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step">Persist important user data at <b>appropriate moments</b>, not when you expect termination.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Four facts. A suspended app can be terminated without first being resumed. It cannot rely on a final cleanup callback. The next launch may need to reconstruct its state. And foreground apps can also be terminated if their memory use becomes problematic.</p>
+    <span class="notes-label">SAY</span><p>That is why we save important data as we go, not when we think the app is about to end.</p>
+    <span class="notes-label">CONNECT</span><p>So how do we design for this?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>How to design for termination</h2>
+    <p class="lead">Process memory is temporary</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A user fills out a long registration form, switches to another app, and later iOS terminates the app under memory pressure.</p>
+    <span class="notes-label">CONNECT</span><p>What happens to the form?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Design</p>
+  <h2>The registration form</h2>
+  <div class="body">
+    <div class="cols stretch">
+      <div class="card step"><span class="label">Poor design</span><p>Keep all form data <b>only in memory</b>.</p><p class="small muted" style="margin:0">Process termination makes unsaved progress disappear.</p></div>
+      <div class="card accent step"><span class="label">Better design</span><p><b>Persist a draft</b> as the user makes progress.</p><p class="small muted" style="margin:0">A new process can recover the saved draft.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Principle"><b>Process memory is temporary.</b> Durable user data belongs in persistent storage.</div>
+    <p class="small muted step" style="margin:14px 0 0">SwiftData, files and Keychain serve different purposes. Sensitive information needs protection; not every field belongs in plain preferences.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user has entered their name, address and more, then switched apps. Later iOS terminates the app under memory pressure. With the poor design, everything lived only in memory, so the progress is gone. With the better design, a draft was saved as they went, and the new process recovers it.</p>
+    <span class="notes-label">SAY</span><p>SwiftData, files, Keychain and other storage mechanisms serve different purposes. Sensitive information needs appropriate protection; not every field should go in plain preferences.</p>
+    <span class="notes-label">ASK</span><p>Where should the registration draft be saved: in memory, or in persistent storage?</p>
+    <span class="notes-label">EXPECT</span><p>Persistent storage, saved as the user goes. Process memory disappears with the process.</p>
+    <span class="notes-label">CONNECT</span><p>Finally, how do UIKit and SwiftUI let us observe all of this?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>SwiftUI versus UIKit lifecycle</h2>
+    <p class="lead">Two ways to define an app</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Historically UIKit apps used an app delegate; modern UIKit apps may also use a scene delegate. SwiftUI introduced a more declarative approach.</p>
+    <span class="notes-label">CONNECT</span><p>Compare the two.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; App entry approaches</p>
+  <h2>UIKit vs SwiftUI</h2>
+  <div class="body top">
+    <div class="cols stretch">
+      <div class="card step"><span class="label">UIKit</span><h3 style="font-size:24px;margin:4px 0 10px">Delegate-driven approach</h3>
+        <p class="small" style="margin:0">Historically <b>UIApplicationDelegate</b>; modern UIKit apps may also use <b>UISceneDelegate</b>.</p>
+        <div class="gap"></div>
+        <div class="cw"><div class="ch"><span>AppDelegate.swift</span></div><pre class="cb" style="font-size:13.5px">class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions:
+            [UIApplication.LaunchOptionsKey: Any]?) -&gt; Bool {
+        true
+    }
+}</pre></div></div>
+      <div class="card accent step"><span class="label">SwiftUI</span><h3 style="font-size:24px;margin:4px 0 10px">Declarative approach</h3>
+        <p class="small" style="margin:0">Defines the application structure declaratively and <b>observes scene lifecycle changes</b>.</p>
+        <div class="gap"></div>
+        <div class="cw"><div class="ch"><span>NPayApp.swift</span></div><pre class="cb" style="font-size:13.5px">@main
+struct NPayApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some Scene {
+        WindowGroup { Text(&quot;NPay&quot;) }
+            .onChange(of: scenePhase) { _, phase in
+                print(phase)
+            }
+    }
+}</pre></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>On the left, the system calls the app delegate when launch finishes. On the right, the SwiftUI App declares a WindowGroup and reacts to scenePhase changes; there is no delegate to implement.</p>
+    <span class="notes-label">SAY</span><p>Historically, UIKit apps commonly used UIApplicationDelegate, and modern UIKit apps may also use UISceneDelegate: the system calls delegate methods as the app and its scenes change state. SwiftUI introduced a more declarative way to define application structure and observe scene lifecycle changes.</p>
+    <span class="notes-label">CONNECT</span><p>Let's check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Commit to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can an app start a normal timer and assume it will fire every second after the app is suspended?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 1</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can an app start a normal timer and assume it will fire every second after the app is suspended?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Once suspended, the app&rsquo;s ordinary code is not executing. Time-sensitive or background work needs a system-supported mechanism, subject to iOS policies.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating suspended like paused-but-ticking.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes. A suspended app runs no code, so its timer does not fire.</p>
+    <span class="notes-label">SAY</span><p>No. Once suspended, the app’s ordinary code is not executing. Time-sensitive or background work needs an appropriate system-supported mechanism, and execution is subject to iOS policies.</p>
+    <span class="notes-label">CONNECT</span><p>That wraps up the lifecycle.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 0.3 complete</p>
+    <h2>iOS Application<br>Lifecycle Deep Dive</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: SwiftUI app lifecycle vs UIKit AppDelegate</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Recap: a process is not a scene; scenes move between active, inactive and background, while the process runs, suspends or is terminated. Same tap, different work. Suspension saves resources; memory pressure can end suspended apps without warning. So persist important data as the user goes: process memory is temporary; never assume your process stays alive.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 0.4: how our Swift code finds out about these events, through SwiftUI’s App lifecycle and UIKit’s AppDelegate and SceneDelegate.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../shared/art.js"></script>
+<script src="../../shared/deck.js"></script>
+</body>
+</html>

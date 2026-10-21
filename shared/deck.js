@@ -56,7 +56,8 @@
   slides.forEach(function (s, i) {
     // footer
     var foot = mk('div', 'foot');
-    foot.innerHTML = '<span>' + esc(deckName) + '</span><span>' + (i + 1) + ' / ' + slides.length + '</span>';
+    // footer: deck name · click counter (only on slides with steps) · slide number
+    foot.innerHTML = '<span>' + esc(deckName) + '</span><span class="stepc"></span><span>' + (i + 1) + ' / ' + slides.length + '</span>';
     s.append(foot);
 
     // overview button
@@ -138,7 +139,9 @@
 
   // data-lit="2" | "2-4" | "2+" (space-separated) → .lit while that many steps are shown
   function light(s) {
-    var n = s.querySelectorAll('.step.shown').length;
+    var n = s.querySelectorAll('.step.shown').length, total = s.querySelectorAll('.step').length;
+    var counter = s.querySelector('.foot .stepc');
+    if (counter) counter.textContent = total ? 'click ' + n + ' / ' + total : '';
     s.querySelectorAll('[data-lit]').forEach(function (el) {
       var on = el.dataset.lit.split(/\s+/).some(function (r) {
         var m = r.match(/^(\d+)(\+|-(\d+))?$/);

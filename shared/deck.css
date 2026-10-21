@@ -93,6 +93,8 @@ body { overflow: hidden; }
   font-size: 13px; color: var(--muted); letter-spacing: .02em; font-weight: 500;
 }
 .slide > .foot .teal { color: var(--teal); font-weight: 700; }
+.slide > .foot .stepc { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--ink-4); }
+.slide.title > .foot .stepc, .slide.end > .foot .stepc { color: #64748b; }
 
 /* ---------- typography ---------- */
 .kicker {
@@ -372,6 +374,24 @@ em { font-style: italic; }
 .cb .dim { opacity: .4; }
 .cb mark { background: rgba(94, 234, 212, .15); color: inherit; border-radius: 3px; outline: 2px solid rgba(94, 234, 212, .5); padding: 0 3px; }
 
+/* live state demo (browser simulation on a slide) */
+.demo-phone {
+  border: 10px solid var(--navy); border-radius: 44px; background: var(--soft);
+  padding: 46px 34px; text-align: center; max-width: 380px; margin: 0 auto;
+}
+.demo-balance { font-size: 52px; font-weight: 800; letter-spacing: -.02em; margin: 6px 0 26px; color: var(--ink); }
+.demo-actions { display: flex; flex-direction: column; gap: 12px; }
+.demo-btn {
+  font-family: var(--sans); font-size: 18px; font-weight: 700; padding: 12px 18px; border-radius: 12px; cursor: pointer;
+  border: 2px solid var(--teal); background: var(--teal); color: #fff;
+}
+.demo-btn.ghost { background: transparent; color: var(--teal); }
+.demo-btn:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+
+/* end slide: two-column list of what comes next */
+.next-list { columns: 2; column-gap: 48px; max-width: 900px; margin: 0 auto; text-align: left; font-size: 20px; color: #cbd5e1; }
+.next-list li { margin: 0 0 8px; break-inside: avoid; }
+
 /* folder tree / plain monospace listing (no Swift colouring) */
 .tree {
   margin: 0; padding: 22px 26px; border-radius: 12px; background: var(--code-bg); color: var(--code-ink);
@@ -530,9 +550,10 @@ em { font-style: italic; }
 .art .nd.solid.lit text.on { fill: #fff; }
 .art .nd.ghost .sh { fill: none; stroke: var(--ink-4); stroke-dasharray: 6 5; }
 .art .nd.ghost { opacity: .75; }
+.art .nd.ghost.cover .sh { fill: var(--paper); }   /* ghost drawn over another box: hide what is underneath */
 .art .nd.alert, .art .nd.alert.lit { color: var(--orange); }
 .art .nd.alert .sh { fill: var(--orange-soft); stroke: var(--orange); }
-.art .nd.alert text { fill: var(--orange); }
+.art .nd.alert text, .art .nd.alert.lit text, .art .nd.alert.lit text.sm { fill: var(--orange); }
 
 .art .wire { fill: none; stroke: var(--ink-3); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .art .wire.lit { stroke: var(--teal); }
@@ -949,6 +970,9 @@ svg .anim-pulse, svg .anim-float, svg .anim-spin, svg .anim-ping, svg .anim-brea
     page-break-after: always; break-after: page; animation: none;
   }
   .step { opacity: 1 !important; transform: none !important; }
-  .progress, .chrome, .notes, .overview, .help { display: none !important; }
+  .progress, .chrome, .notes, .overview, .help, .slide > .foot .stepc { display: none !important; }
   .slide.title, .slide.chapter, .slide.end, .slide.hero, .cw { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* long divider subtitles stay centred */
+.slide.chapter .lead { margin-left: auto; margin-right: auto; }

@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0.7 — iOS Security Architecture</title>
+<link rel="stylesheet" href="../../shared/deck.css">
+</head>
+<body data-deck="Unit 00 · Lesson 0.7 — iOS Security Architecture">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 00 &middot; Lesson 0.7</p>
+    <h1 style="font-size:54px;line-height:1.05">iOS Security<br>Architecture</h1>
+    <p class="lead" style="max-width:680px">Thousands of apps run on an iPhone. How does iOS stop one app from stealing another app&rsquo;s data?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>If thousands of applications run on an iPhone, how does iOS prevent one from stealing another’s data? We continue with NPay, our banking app, and explore the iOS security architecture.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.7 &middot; Outcomes</p>
+  <h2>By the end, you will be able to</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Explain <b>least privilege</b> and why apps need isolation</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Describe iOS security as <b>layers</b> that work together</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></span><p>Explain the <b>sandbox</b> and authorized data sharing</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p>Tell <b>entitlements</b> from <b>privacy permissions</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></span><p>Explain what <b>code signing</b> does, and does not, guarantee</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-chip"/></svg></span><p>Choose <b>Keychain</b> for secrets; place the <b>Secure Enclave</b></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Six outcomes, one question: how does iOS keep apps from reaching what they are not authorized to use?</p>
+    <span class="notes-label">CONNECT</span><p>Start with the problem itself.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The security problem</h2>
+    <p class="lead">Many developers, one device</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An iPhone runs apps written by many different developers. Not every app can be trusted equally, so the operating system must provide isolation.</p>
+    <span class="notes-label">CONNECT</span><p>Picture three apps on one phone.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Isolation &middot; conceptual</p>
+  <h2>Three apps on one iPhone</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 192" role="img" aria-labelledby="s4apps">
+        <title id="s4apps">NPay with bank data, PhotoGallery with private photos and ShopEasy with orders, each inside its own security boundary</title>
+        <g class="nd ghost"><rect class="sh" x="0" y="0" width="1136" height="190" rx="18"/></g>
+        <text class="mono" x="20" y="28">iOS ENFORCES SECURITY BOUNDARIES</text>
+        <g class="nd" data-lit="1"><rect class="sh" x="40" y="50" width="330" height="116" rx="14"/><use href="#i-bank" x="191" y="64" width="28" height="28"/><text x="205" y="130" text-anchor="middle">NPay</text><text class="sm" x="205" y="150" text-anchor="middle">bank data</text></g>
+        <g class="fade" data-lit="1+"><use href="#i-lock" x="336" y="58" width="24" height="24" style="color:var(--teal)"/></g>
+        <g class="nd"><rect class="sh" x="402" y="50" width="330" height="116" rx="14"/><use href="#i-frame" x="553" y="64" width="28" height="28"/><text x="567" y="130" text-anchor="middle">PhotoGallery</text><text class="sm" x="567" y="150" text-anchor="middle">private photos</text></g>
+        <g class="fade" data-lit="1+"><use href="#i-lock" x="698" y="58" width="24" height="24" style="color:var(--teal)"/></g>
+        <g class="nd"><rect class="sh" x="764" y="50" width="330" height="116" rx="14"/><use href="#i-app" x="915" y="64" width="28" height="28"/><text x="929" y="130" text-anchor="middle">ShopEasy</text><text class="sm" x="929" y="150" text-anchor="middle">orders</text></g>
+        <g class="fade" data-lit="1+"><use href="#i-lock" x="1060" y="58" width="24" height="24" style="color:var(--teal)"/></g>
+      </svg>
+    </div>
+    <i class="step cue"></i>
+    <div class="gap"></div>
+    <ul class="small" style="columns:3;column-gap:28px;margin:0">
+      <li>Can ShopEasy directly read NPay&rsquo;s private files?</li>
+      <li>Can NPay secretly activate the camera?</li>
+      <li>Can a malicious app replace another app&rsquo;s executable?</li>
+    </ul>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Least privilege">Apps should only access the resources they are <b>authorized</b> to use.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A user has three apps: NPay with banking information, PhotoGallery with personal photographs, and ShopEasy for shopping. Can ShopEasy read NPay’s private files? Can NPay secretly turn on the camera? Can a malicious app replace another app’s executable? The rest of the lesson answers these.</p>
+    <span class="notes-label">SAY</span><p>The first principle: applications should only access resources they are authorized to use. That is the principle of least privilege.</p>
+    <span class="notes-label">ASK</span><p>What would you guess for each of the three questions?</p>
+    <span class="notes-label">EXPECT</span><p>Collect guesses. The answers come part by part: no, no, and no, each for a different reason.</p>
+    <span class="notes-label">CONNECT</span><p>iOS answers them with several layers of protection.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>The big picture</h2>
+    <p class="lead">Security in layers</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Security is not one library or one permission dialog. iOS uses multiple layers of protection.</p>
+    <span class="notes-label">CONNECT</span><p>Here are the layers.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Layers &middot; conceptual</p>
+  <h2>iOS security architecture</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 600 340" style="max-height:380px" role="img" aria-labelledby="s6lay">
+        <title id="s6lay">Application security, privacy and permissions, sandbox and entitlements, code signing and runtime protections, kernel and hardware security</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="600" height="58" rx="12"/><use href="#i-code" x="14" y="16" width="26" height="26"/><text x="52" y="26">Application security</text><text class="sm" x="52" y="44">secure coding, authentication, data handling</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="70" width="600" height="58" rx="12"/><use href="#i-eye" x="14" y="86" width="26" height="26"/><text x="52" y="96">Privacy &amp; permissions</text><text class="sm" x="52" y="114">camera, microphone, photos, location</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="140" width="600" height="58" rx="12"/><use href="#i-lock" x="14" y="156" width="26" height="26"/><text x="52" y="166">Sandbox &amp; entitlements</text><text class="sm" x="52" y="184">filesystem boundaries, approved capabilities</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="210" width="600" height="58" rx="12"/><use href="#i-file" x="14" y="226" width="26" height="26"/><text x="52" y="236">Code signing &amp; runtime protections</text><text class="sm" x="52" y="254">code integrity, platform enforcement</text></g>
+        <g class="nd solid" data-lit="5"><rect class="sh" x="0" y="280" width="600" height="58" rx="12"/><use class="on" href="#i-chip" x="14" y="296" width="26" height="26"/><text class="on" x="52" y="306">Kernel &amp; hardware security</text><text class="sm on" x="52" y="324">process isolation, memory protection, Secure Enclave</text></g>
+      </svg>
+    </div>
+      <p class="small muted" style="margin:8px 0 0">Conceptual. The layers overlap and work together, not in a strict top-to-bottom sequence.</p>
+    </div>
+    <div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <div class="analogy step"><div class="icon"><svg viewBox="0 0 24 24"><use href="#i-building"/></svg></div>
+        <p>An international <b>airport</b> has identity checks, boarding passes, restricted areas and screening. Passing <b>one checkpoint</b> does not open everything.</p></div>
+      <div class="gap"></div>
+      <div class="rule step">A <b>signed</b> app cannot automatically use <b>every device capability</b>.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through the layers: application security, privacy and permissions, sandbox and entitlements, code signing and runtime protections, and kernel and hardware security. These are conceptual; the mechanisms overlap and work together.</p>
+    <span class="notes-label">SAY</span><p>Think of an airport: identity checks, boarding passes, restricted areas, security screening, protected infrastructure. Passing one checkpoint does not grant access to everything. Likewise, a signed app does not get every device capability.</p>
+    <span class="notes-label">CONNECT</span><p>Start with the boundary every app lives inside: the sandbox.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>The App Sandbox</h2>
+    <p class="lead">Each app in its own container</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The sandbox restricts what an application process can access.</p>
+    <span class="notes-label">CONNECT</span><p>Watch ShopEasy try three things.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Sandbox &middot; conceptual</p>
+  <h2>Explore application isolation</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 274" role="img" aria-labelledby="s8sand">
+        <title id="s8sand">ShopEasy can read its own container, is blocked from reading NPay's private files directly, and can open a document shared through an approved system interface</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="330" height="70" rx="12"/><use href="#i-bank" x="14" y="22" width="26" height="26"/><text x="52" y="32">NPay</text><text class="sm" x="52" y="50">private app container</text></g>
+        <g class="nd"><rect class="sh" x="806" y="0" width="330" height="70" rx="12"/><use href="#i-app" x="820" y="22" width="26" height="26"/><text x="858" y="32">ShopEasy</text><text class="sm" x="858" y="50">private app container</text></g>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="100" width="356" height="52" rx="12"/><text x="16" y="132">Its own private files</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="380" y="100" width="356" height="52" rx="12"/><text x="396" y="132">NPay’s private files directly</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="760" y="100" width="356" height="52" rx="12"/><text x="776" y="132">A document shared with it</text></g>
+        <g class="fade" data-lit="0"><path class="wire" d="M970 70V88M963 81l7 7 7-7"/><text class="mono" x="0" y="196">SHOPEASY ATTEMPTS: ITS OWN PRIVATE FILES</text><g class="nd lit"><rect class="sh" x="0" y="210" width="1136" height="62" rx="12"/><text x="16" y="238">Normally allowed</text><text class="sm" x="16" y="256">ShopEasy can access its own container, subject to filesystem and data-protection rules.</text></g></g>
+        <g class="fade" data-lit="1"><path class="wire dash" d="M806 35H336M343 28l-7 7 7 7"/><text class="mono" x="0" y="196">SHOPEASY ATTEMPTS: NPAY’S PRIVATE FILES DIRECTLY</text><g class="nd alert"><rect class="sh" x="0" y="210" width="1136" height="62" rx="12"/><text x="16" y="238">Blocked</text><text class="sm" x="16" y="256">The sandbox stops one app browsing another app’s private container.</text></g></g>
+        <g class="fade" data-lit="2+"><text class="mono" x="0" y="196">SHOPEASY ATTEMPTS: A DOCUMENT SHARED WITH IT</text><g class="nd lit"><rect class="sh" x="0" y="210" width="1136" height="62" rx="12"/><text x="16" y="238">Allowed, through the system</text><text class="sm" x="16" y="256">The user shares a document through an approved system interface, so access is authorized.</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Authorized, not never">Apps can still exchange data through <b>App Groups</b>, extensions, document pickers and system-mediated services.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Each app normally has its own private data container. Click through what ShopEasy tries: its own files, allowed; NPay’s private files directly, blocked; a document the user shares through an approved system interface, allowed because the system mediates it.</p>
+    <span class="notes-label">SAY</span><p>The sandbox does not mean apps can never exchange data. App Groups, extensions, document pickers and system-mediated services allow controlled communication. The important word is authorized.</p>
+    <span class="notes-label">CONNECT</span><p>How does an app get approved capabilities like an App Group? Entitlements.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Entitlements</h2>
+    <p class="lead">Signed declarations of capability</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An entitlement is a signed declaration of a capability granted to an app, for example access to an App Group or certain Apple services.</p>
+    <span class="notes-label">CONNECT</span><p>Here is how it flows.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Entitlements &middot; conceptual</p>
+  <h2>From declaration to enforcement</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 98" role="img" aria-labelledby="s10ent">
+        <title id="s10ent">NPay application, signed entitlements, system-enforced capabilities</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="352" height="96" rx="14"/><use href="#i-bank" x="162" y="14" width="28" height="28"/><text x="176" y="74" text-anchor="middle">NPay application</text></g>
+        <path class="wire" d="M358 48H386M379 41l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="392" y="0" width="352" height="96" rx="14"/><use href="#i-key" x="554" y="14" width="28" height="28"/><text x="568" y="74" text-anchor="middle">Signed entitlements</text></g>
+        <path class="wire" d="M750 48H778M771 41l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="784" y="0" width="352" height="96" rx="14"/><use href="#i-shield" x="946" y="14" width="28" height="28"/><text x="960" y="74" text-anchor="middle">System-enforced capabilities</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap-lg"></div>
+    <div class="rule step" data-label="Not a runtime switch">An entitlement is not a boolean an app sets at runtime. It must be <b>configured</b>, <b>signed</b> and <b>accepted</b> by the platform.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay declares a capability, such as an App Group. It is part of the signed entitlements, and the system enforces it.</p>
+    <span class="notes-label">SAY</span><p>An entitlement is not something an app can switch on at runtime to grab any privilege. The capability must be configured, signed and accepted by the platform.</p>
+    <span class="notes-label">CONNECT</span><p>Entitlements are often confused with permissions. Compare them.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Comparison</p>
+  <h2>Entitlements vs privacy permissions</h2>
+  <div class="body top">
+    <table class="tbl" style="font-size:20px">
+      <tr><th>Entitlement</th><th>Privacy permission</th></tr>
+      <tr><td>Declares an app capability</td><td>Authorizes access to privacy-sensitive resources</td></tr>
+      <tr><td>Usually configured at build or signing time</td><td>Often involves user choice at runtime</td></tr>
+      <tr><td>Example: App Groups</td><td>Example: camera access</td></tr>
+      <tr><td>Enforced by platform services</td><td>Enforced by privacy and system APIs</td></tr>
+    </table>
+    <div class="gap"></div>
+    <div class="rule step">Some capabilities also require runtime authorization. These mechanisms can <b>work together</b>.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An entitlement declares a capability, is usually configured at build or signing time, and is enforced by platform services; App Groups is an example. A privacy permission authorizes access to privacy-sensitive resources, often involves a user choice at runtime, and is enforced by privacy and system APIs; camera access is an example.</p>
+    <span class="notes-label">CONNECT</span><p>Let’s follow a privacy permission: NPay and the camera.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>NPay requests the camera</h2>
+    <p class="lead">Privacy permission in action</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay supports scanning a cheque, so it needs camera access.</p>
+    <span class="notes-label">CONNECT</span><p>Follow the authorization flow.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Camera authorization &middot; conceptual</p>
+  <h2>Scanning a cheque</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 274" role="img" aria-labelledby="s13cam">
+        <title id="s13cam">The user taps Scan Cheque, NPay requests camera authorization, the system prompts; the state is not determined, allowed or denied</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="352" height="62" rx="12"/><use href="#i-tap" x="14" y="18" width="26" height="26"/><text x="52" y="37">User taps Scan Cheque</text></g>
+        <path class="wire" d="M358 31H386M379 24l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="392" y="0" width="352" height="62" rx="12"/><use href="#i-eye" x="406" y="18" width="26" height="26"/><text x="444" y="37">NPay requests camera authorization</text></g>
+        <path class="wire" d="M750 31H778M771 24l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="784" y="0" width="352" height="62" rx="12"/><use href="#i-phone" x="798" y="18" width="26" height="26"/><text x="836" y="37">System permission prompt</text></g>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="100" width="356" height="52" rx="12"/><text x="16" y="132">Not determined</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="380" y="100" width="356" height="52" rx="12"/><text x="396" y="132">Allow</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="760" y="100" width="356" height="52" rx="12"/><text x="776" y="132">Don&rsquo;t Allow</text></g>
+        <g class="fade" data-lit="0"><text class="mono" x="0" y="196">CAMERA PERMISSION</text><g class="nd"><rect class="sh" x="0" y="210" width="1136" height="62" rx="12"/><text x="16" y="238">Not determined</text><text class="sm" x="16" y="256">No decision has been made yet.</text></g></g>
+        <g class="fade" data-lit="1"><text class="mono" x="0" y="196">CAMERA PERMISSION</text><g class="nd lit"><rect class="sh" x="0" y="210" width="1136" height="62" rx="12"/><text x="16" y="238">Allow</text><text class="sm" x="16" y="256">Camera authorized: NPay can scan the cheque.</text></g></g>
+        <g class="fade" data-lit="2+"><text class="mono" x="0" y="196">CAMERA PERMISSION</text><g class="nd alert"><rect class="sh" x="0" y="210" width="1136" height="62" rx="12"/><text x="16" y="238">Don&rsquo;t Allow</text><text class="sm" x="16" y="256">Camera denied: NPay must offer another way to continue.</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <p class="small">Add a privacy usage description such as <code>NSCameraUsageDescription</code>, and explain <b>why</b> before the system prompt appears.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user taps Scan Cheque; NPay requests camera authorization; the system shows its prompt. Until the user decides, the state is not determined. Click: Allow, and NPay can use the camera. Click: Don’t Allow, and NPay must offer another way to continue.</p>
+    <span class="notes-label">SAY</span><p>A real app also needs the privacy usage description, such as NSCameraUsageDescription, in its configuration. The user should understand why access is requested before the system prompt appears.</p>
+    <span class="notes-label">ASK</span><p>Can NPay secretly activate the camera, as we asked at the start?</p>
+    <span class="notes-label">EXPECT</span><p>No. Camera access goes through the system’s privacy authorization, with the user’s choice.</p>
+    <span class="notes-label">CONNECT</span><p>Now the third question: can a malicious app replace another app’s executable?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Code signing</h2>
+    <p class="lead">Why iOS trusts the executable</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Imagine a malicious app tries to modify NPay’s executable. How does iOS protect code integrity? One major mechanism is code signing.</p>
+    <span class="notes-label">CONNECT</span><p>Follow it from build to execution.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Code signing &middot; conceptual</p>
+  <h2>From build to trusted execution</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 600 304" style="max-height:380px" role="img" aria-labelledby="s16sig">
+        <title id="s16sig">The developer builds the app, it is signed, iOS validates execution requirements, and the app runs under restrictions</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="600" height="58" rx="12"/><use href="#i-code" x="14" y="16" width="26" height="26"/><text x="52" y="26">Developer builds the app</text><text class="sm" x="52" y="44">compiler and linker produce executable code</text></g>
+        <path class="wire" d="M300 58V76M293.0 69l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="82" width="600" height="58" rx="12"/><use href="#i-file" x="14" y="98" width="26" height="26"/><text x="52" y="108">The app is signed</text><text class="sm" x="52" y="126">signature and metadata protect code integrity</text></g>
+        <path class="wire" d="M300 140V158M293.0 151l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="164" width="600" height="58" rx="12"/><use href="#i-shield" x="14" y="180" width="26" height="26"/><text x="52" y="190">iOS validates execution requirements</text><text class="sm" x="52" y="208">platform policies and code-signing checks apply</text></g>
+        <path class="wire" d="M300 222V240M293.0 233l7 7 7-7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="246" width="600" height="58" rx="12"/><use href="#i-lock" x="14" y="262" width="26" height="26"/><text x="52" y="272">The app runs under restrictions</text><text class="sm" x="52" y="290">signing does not bypass sandbox or privacy controls</text></g>
+      </svg>
+    </div>
+    <div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <div class="rule step" data-label="Identity, not safety">A valid signature establishes code <b>identity</b> and <b>integrity</b>. It is not proof that the app&rsquo;s logic is <b>secure</b>.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through: the developer builds the app; the app is signed, with a signature and metadata protecting its integrity; iOS validates execution requirements through platform policies and signing checks; and the app runs under restrictions. Signing does not bypass the sandbox or privacy controls.</p>
+    <span class="notes-label">ASK</span><p>Does a valid code signature guarantee the app has no security vulnerabilities?</p>
+    <span class="notes-label">EXPECT</span><p>No. Signing establishes identity and integrity under platform policy. It says nothing about whether the app’s logic is secure.</p>
+    <span class="notes-label">CONNECT</span><p>Inside a secure app: where should secrets live?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Keychain</h2>
+    <p class="lead">Where sensitive secrets live</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>After login, NPay receives an authentication token. Where should it store it?</p>
+    <span class="notes-label">CONNECT</span><p>Compare the two common options.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Storage choice</p>
+  <h2>UserDefaults vs Keychain</h2>
+  <div class="body">
+    <div class="cols stretch">
+      <div class="card step"><span class="label">UserDefaults</span><p>Application <b>preferences</b> and lightweight settings.</p><p class="small muted" style="margin:0">Examples: selected theme, onboarding completed.</p></div>
+      <div class="card accent step"><span class="label">Keychain</span><p>Sensitive <b>credentials</b> and small secret values.</p><p class="small muted" style="margin:0">Examples: authentication tokens, cryptographic key references.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Accessibility policies">Keychain items control <b>when</b> data can be accessed. A <b>WhenUnlocked</b> class is intended for use while the device is unlocked. Choose by security and background-access needs.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>UserDefaults is for preferences and lightweight settings like the selected theme or whether onboarding is done. Storing sensitive credentials there is generally inappropriate. The Keychain is for credentials and small secrets: authentication tokens and cryptographic key references.</p>
+    <span class="notes-label">SAY</span><p>Keychain items support accessibility policies. An item with a WhenUnlocked class is intended to be accessible while the device is unlocked. The right policy depends on the app’s security and background-access requirements.</p>
+    <span class="notes-label">CONNECT</span><p>Some keys get even stronger, hardware-backed protection.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>The Secure Enclave</h2>
+    <p class="lead">Hardware-backed security</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The Secure Enclave is a hardware-based security subsystem on supported Apple devices.</p>
+    <span class="notes-label">CONNECT</span><p>See where it sits.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Secure Enclave &middot; conceptual</p>
+  <h2>Isolated security operations</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 600 252" style="max-height:360px" role="img" aria-labelledby="s19se">
+        <title id="s19se">The application process uses security frameworks such as Keychain, LocalAuthentication and CryptoKit, which use the Secure Enclave for protected key operations</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="600" height="64" rx="12"/><use href="#i-app" x="14" y="19" width="26" height="26"/><text x="52" y="38">Application process</text></g>
+        <path class="wire" d="M300 64V88M293.0 81l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="94" width="600" height="64" rx="12"/><use href="#i-frameworks" x="14" y="113" width="26" height="26"/><text x="52" y="123">Security frameworks and services</text><text class="sm" x="52" y="141">Keychain, LocalAuthentication, CryptoKit and Security APIs</text></g>
+        <path class="wire" d="M300 158V182M293.0 175l7 7 7-7"/>
+        <g class="nd solid" data-lit="3"><rect class="sh" x="0" y="188" width="600" height="64" rx="12"/><use class="on" href="#i-chip" x="14" y="207" width="26" height="26"/><text class="on" x="52" y="217">Secure Enclave</text><text class="sm on" x="52" y="235">protected key operations and security functions</text></g>
+      </svg>
+    </div>
+    <div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <p>It provides <b>isolated</b> security operations and helps protect certain cryptographic keys.</p>
+      <div class="rule step" data-label="Critical distinction">Not every Keychain item is stored inside the Secure Enclave. It supports particular operations and key types; it is not a general-purpose database.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click down the stack: the app process calls security frameworks and services such as Keychain, LocalAuthentication, CryptoKit and the Security APIs; those use the Secure Enclave for protected key operations.</p>
+    <span class="notes-label">SAY</span><p>A critical distinction: not every Keychain item lives in the Secure Enclave. It supports particular operations and key types and is not a general-purpose database for app data.</p>
+    <span class="notes-label">CONNECT</span><p>Let’s put it all together in one NPay login.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 9</p>
+    <h2>Putting it together</h2>
+    <p class="lead">An NPay login, end to end</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Follow a secure login at a conceptual level.</p>
+    <span class="notes-label">CONNECT</span><p>Five steps.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 9 &middot; Secure login &middot; conceptual</p>
+  <h2>A secure NPay login</h2>
+  <div class="body cols middle" style="grid-template-columns:1.15fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 640 342" style="max-height:400px" role="img" aria-labelledby="s22log">
+        <title id="s22log">Open the signed sandboxed app, authenticate over HTTPS, receive and validate a token, store it in the Keychain, retrieve it later</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="640" height="54" rx="12"/><use href="#i-bank" x="14" y="14" width="26" height="26"/><text x="52" y="24">User opens NPay</text><text class="sm" x="52" y="42">the signed app runs inside its sandbox</text></g>
+        <path class="wire" d="M320 54V66M313.0 59l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="72" width="640" height="54" rx="12"/><use href="#i-user" x="14" y="86" width="26" height="26"/><text x="52" y="96">User authenticates</text><text class="sm" x="52" y="114">authenticated HTTPS to the backend</text></g>
+        <path class="wire" d="M320 126V138M313.0 131l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="144" width="640" height="54" rx="12"/><use href="#i-globe" x="14" y="158" width="26" height="26"/><text x="52" y="168">Backend returns a token</text><text class="sm" x="52" y="186">the app validates the response</text></g>
+        <path class="wire" d="M320 198V210M313.0 203l7 7 7-7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="216" width="640" height="54" rx="12"/><use href="#i-key" x="14" y="230" width="26" height="26"/><text x="52" y="240">Token is stored securely</text><text class="sm" x="52" y="258">Keychain accessibility and access controls</text></g>
+        <path class="wire" d="M320 270V282M313.0 275l7 7 7-7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="288" width="640" height="54" rx="12"/><use href="#i-clock" x="14" y="302" width="26" height="26"/><text x="52" y="312">User returns later</text><text class="sm" x="52" y="330">the app retrieves credentials when appropriate</text></g>
+      </svg>
+    </div>
+    <div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <p class="small step">Only one part of secure banking. Production systems also need <b>backend authorization</b>, token lifecycle management, secure sessions, fraud controls, logging policies and <b>threat modeling</b>.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through: the user opens NPay, a signed app running in its sandbox; the user authenticates over authenticated HTTPS; the backend returns a token, which the app validates; the token is stored with appropriate Keychain accessibility and access controls; later, the app retrieves the credentials when appropriate.</p>
+    <span class="notes-label">SAY</span><p>This is only one part of a secure banking architecture. Backend authorization, token lifecycle, session handling, fraud controls, logging policy and threat modeling all matter too.</p>
+    <span class="notes-label">CONNECT</span><p>Let's check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Four questions. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can one iOS app directly read another app’s private container?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can one iOS app directly read another app&rsquo;s private container?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Normally no</span>
+          <p class="q-why">The sandbox keeps each app in its own container. Sharing goes through authorized mechanisms.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming files on the same device are visible to every app.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no; ask how authorized sharing works.</p>
+    <span class="notes-label">SAY</span><p>Normally no. The sandbox keeps each app in its own container. Sharing goes through authorized mechanisms.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does code signing mean an app is free of vulnerabilities?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does code signing mean an app is free of vulnerabilities?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Signing establishes code identity and integrity. It is not proof the app&rsquo;s logic is secure.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating a signature as a security audit.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Signing establishes code identity and integrity. It is not proof the app&rsquo;s logic is secure.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Where should an authentication token generally be stored: UserDefaults, the Keychain, or a hardcoded constant?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Where should an authentication token generally be stored: UserDefaults, the Keychain, or a hardcoded constant?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Keychain</span>
+          <p class="q-why">It is designed for credentials and small secrets, with accessibility policies. UserDefaults and constants are not.</p>
+          <p class="q-trap"><b>Common trap:</b> Storing tokens in UserDefaults for convenience.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most get this; ask why not UserDefaults.</p>
+    <span class="notes-label">SAY</span><p>Keychain. It is designed for credentials and small secrets, with accessibility policies. UserDefaults and constants are not.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Is every Keychain item stored inside the Secure Enclave?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-chip"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Is every Keychain item stored inside the Secure Enclave?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The Secure Enclave supports particular operations and key types. It is not a general-purpose store.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming Keychain and Secure Enclave are the same thing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes.</p>
+    <span class="notes-label">SAY</span><p>No. The Secure Enclave supports particular operations and key types. It is not a general-purpose store.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 0.7 complete</p>
+    <h2>iOS Security<br>Architecture</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Least privilege, enforced at every layer.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Recap: apps get only what they are authorized to use. Security comes in layers: app security, privacy permissions, sandbox and entitlements, code signing, and kernel and hardware protection. The sandbox isolates containers; entitlements and permissions grant specific capabilities; signing proves identity and integrity, not safety; secrets go in the Keychain; and the Secure Enclave protects particular keys.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../shared/art.js"></script>
+<script src="../../shared/deck.js"></script>
+</body>
+</html>

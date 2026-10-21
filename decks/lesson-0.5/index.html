@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0.5 — Main Thread, RunLoop &amp; Event Handling</title>
+<link rel="stylesheet" href="../../shared/deck.css">
+</head>
+<body data-deck="Unit 00 · Lesson 0.5 — Main Thread, RunLoop &amp; Event Handling">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 00 &middot; Lesson 0.5</p>
+    <h1 style="font-size:54px;line-height:1.05">Main Thread, RunLoop<br>&amp; Event Handling</h1>
+    <p class="lead" style="max-width:680px">When a user taps a button, how does that touch become Swift code, and how does the screen change?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Today: when a user taps a button on an iPhone, how does that touch become Swift code, and how does the screen change? This lesson connects operating systems, threads, event loops, SwiftUI, rendering and concurrency.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.5 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step" style="row-gap:16px">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg></span><p>The <b>main thread</b> handles critical UI work</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>A <b>RunLoop</b> supports event-driven execution</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-tap"/></svg></span><p>How a <b>touch</b> reaches your Swift code</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>How SwiftUI <b>responds to state</b> with view updates</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></span><p>Why <b>blocking</b> the main thread hurts responsiveness</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Why <b>tasks</b> and OS <b>threads</b> differ</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Why performance is <b>measured</b>, not guessed</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Seven ideas you should be able to explain to other developers by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>Start with the main thread.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>First understand the main thread</h2>
+    <p class="lead">One receptionist for the whole restaurant</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Before RunLoops and rendering: what is the main thread, and why does it matter so much?</p>
+    <span class="notes-label">CONNECT</span><p>Start with a restaurant.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Main thread &middot; conceptual</p>
+  <h2>The main thread is the receptionist</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 560 332" style="max-height:380px" role="img" aria-labelledby="s3main">
+        <title id="s3main">User interface events go to the main thread, which handles taps, layout and UI updates; networking, file I/O and expensive computation belong to background execution.</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="560" height="62" rx="12"/><use href="#i-user" x="14" y="18" width="26" height="26"/><text x="52" y="28">User interface</text><text class="sm" x="52" y="46">touch, scroll, text input, navigation</text></g>
+        <path class="wire" d="M280 62V88M273 81l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="94" width="560" height="130" rx="14"/><use href="#i-thread" x="16" y="110" width="26" height="26"/><text x="54" y="122">Main thread</text><text class="sm" x="54" y="141">processes UI events and main-thread work</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="20" y="160" width="160" height="44" rx="10"/><text class="sm" x="100" y="187" text-anchor="middle">Tap</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="198" y="160" width="160" height="44" rx="10"/><text class="sm" x="278" y="187" text-anchor="middle">Layout</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="376" y="160" width="160" height="44" rx="10"/><text class="sm" x="456" y="187" text-anchor="middle">UI update</text></g>
+        <path class="wire dash" d="M280 224V262M273 255l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="268" width="560" height="62" rx="12"/><use href="#i-layers" x="14" y="286" width="26" height="26"/><text x="52" y="296">Background execution</text><text class="sm" x="52" y="314">networking, file I/O, expensive computations</text></g>
+      </svg>
+    </div>
+    <div>
+      <div class="analogy">
+        <div class="icon"><svg viewBox="0 0 24 24"><use href="#i-user"/></svg></div>
+        <p>One <b>receptionist</b> receives customers and coordinates service. If they start <b>cooking a complicated meal</b> personally, every new customer waits.</p>
+      </div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <div class="gap"></div>
+      <div class="rule step" data-label="Rule">Keep the main thread <b>responsive</b>. No expensive synchronous work inside button actions or UI callbacks.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A restaurant with one receptionist: they receive customers, take requests and coordinate service. If the receptionist starts cooking a complicated meal personally, incoming customers must wait. The receptionist is the main thread.</p>
+    <span class="notes-label">SAY</span><p>Click through: UI events arrive; the main thread handles taps, layout and UI updates; networking, file I/O and heavy computation belong elsewhere. UIKit requires its UI APIs on the main thread, and SwiftUI has main-actor isolation requirements for UI state and updates.</p>
+    <span class="notes-label">ASK</span><p>What happens to other taps while a button action does three seconds of work on the main thread?</p>
+    <span class="notes-label">EXPECT</span><p>They wait. The receptionist is busy cooking.</p>
+    <span class="notes-label">CONNECT</span><p>Where does the main thread live? Inside the process.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Process versus thread</h2>
+    <p class="lead">The environment and the paths through it</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 0.1 introduced processes and threads. Now we need the difference precisely.</p>
+    <span class="notes-label">CONNECT</span><p>Look inside NPay's process.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Process vs thread &middot; conceptual</p>
+  <h2>One process, several threads</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 560 332" style="max-height:380px" role="img" aria-labelledby="s5proc">
+        <title id="s5proc">The NPay process contains the main thread and other threads, which share the process resources: heap, loaded code, open files and network resources.</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="560" height="330" rx="18"/><use href="#i-process" x="20" y="18" width="26" height="26"/><text x="56" y="37">NPay process</text></g>
+        <g class="nd" data-lit="1+"><rect class="sh" x="24" y="64" width="246" height="130" rx="14"/><use href="#i-thread" x="134" y="84" width="28" height="28"/><text x="147" y="140" text-anchor="middle">Main thread</text><text class="sm" x="147" y="162" text-anchor="middle">UI events, rendering coordination</text></g>
+        <g class="nd"><rect class="sh" x="290" y="64" width="246" height="130" rx="14"/><use href="#i-thread" x="400" y="84" width="28" height="28"/><text x="413" y="140" text-anchor="middle">Other threads</text><text class="sm" x="413" y="162" text-anchor="middle">system and application work</text></g>
+        <g class="nd" data-lit="2+"><rect class="sh" x="24" y="214" width="512" height="92" rx="14"/><text class="mono" x="44" y="244">SHARED PROCESS RESOURCES</text><text x="44" y="276">Heap, loaded code, open files, network resources</text></g>
+      </svg>
+    </div>
+    <div>
+      <div class="card accent"><div class="points v"><div><svg viewBox="0 0 24 24"><use href="#i-process"/></svg><span><b>Process</b><small>the app&rsquo;s execution environment</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg><span><b>Thread</b><small>a path of execution within it</small></span></div></div></div>
+      <i class="step cue"></i><i class="step cue"></i>
+      <div class="gap"></div>
+      <p class="small">Threads <b>share</b> the process&rsquo;s address space; each has its <b>own stack</b> and scheduling state.</p>
+      <div class="rule step" data-label="Modern Swift">An asynchronous Swift <b>task is not a thread</b>. Tasks can suspend without blocking an OS thread.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A process is the application’s execution environment; a thread is a path of execution within it. Threads share the process address space, but each has its own execution stack and scheduling state.</p>
+    <span class="notes-label">SAY</span><p>For modern Swift: an asynchronous task is not the same thing as a thread. Swift concurrency schedules tasks onto executors, and tasks may suspend without blocking an operating-system thread. We return to this shortly.</p>
+    <span class="notes-label">CONNECT</span><p>How does the main thread wait for work without spinning? A RunLoop.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>What is a RunLoop?</h2>
+    <p class="lead">How a thread waits for work</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The main thread does not poll in a busy loop. It waits, handles one piece of work, and waits again.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the cycle.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; RunLoop &middot; conceptual</p>
+  <h2>The RunLoop cycle</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 520 300" style="max-height:360px" role="img" aria-labelledby="s7loop">
+        <title id="s7loop">RunLoop cycle: wait for work, receive an event, dispatch the callback, return to waiting</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="10" y="10" width="220" height="104" rx="14"/><use href="#i-clock" x="106" y="24" width="28" height="28"/><text x="120" y="92" text-anchor="middle">Wait for work</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="290" y="10" width="220" height="104" rx="14"/><use href="#i-tap" x="386" y="24" width="28" height="28"/><text x="400" y="92" text-anchor="middle">Receive an event</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="290" y="190" width="220" height="104" rx="14"/><use href="#i-code" x="386" y="204" width="28" height="28"/><text x="400" y="272" text-anchor="middle">Dispatch the callback</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="10" y="190" width="220" height="104" rx="14"/><use href="#i-thread" x="106" y="204" width="28" height="28"/><text x="120" y="272" text-anchor="middle">Return to waiting</text></g>
+        <path class="wire" d="M236 62H284M277 55l7 7-7 7"/>
+        <path class="wire" d="M400 120V184M393 177l7 7 7-7"/>
+        <path class="wire" d="M284 242H236M243 235l-7 7 7 7"/>
+        <path class="wire" d="M120 184V120M113 127l7-7 7 7"/>
+      </svg>
+    </div>
+    <div>
+      <p>A <b>RunLoop</b> lets a thread wait for and process work: input events, timers and scheduled callbacks. The main thread&rsquo;s run loop takes part in app event processing.</p>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <div class="rule step" data-label="Why it matters">It can only handle the next event when execution <b>returns to it</b>. A callback that blocks for seconds stops everything else.</div>
+      <p class="small muted" style="margin:14px 0 0">Conceptual. The real Core Foundation RunLoop has modes, input sources, observers, timers and dispatch-queue integration.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A RunLoop lets a thread wait for and process sources of work: input events, timers and scheduled callbacks. Click through the cycle: the receptionist waits, receives an event, dispatches the relevant callback, and returns to waiting.</p>
+    <span class="notes-label">SAY</span><p>Why it matters: the loop only handles the next event when execution returns to it. If a main-thread callback blocks for several seconds, other main-thread work cannot proceed normally.</p>
+    <span class="notes-label">CONNECT</span><p>Now follow one tap all the way through.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Follow a button tap</h2>
+    <p class="lead">From finger to screen</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Let's trace the full journey of one tap.</p>
+    <span class="notes-label">CONNECT</span><p>Eight steps, one per click.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Event journey &middot; conceptual</p>
+  <h2>One tap, eight steps</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 196" role="img" aria-labelledby="s9tap">
+        <title id="s9tap">A tap travels from the touchscreen through iOS event delivery, the main run loop, hit testing, the button action, state change, view update and display</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0.0" y="0" width="130" height="52" rx="12"/><text x="16.0" y="32">Touch</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="144.3" y="0" width="130" height="52" rx="12"/><text x="160.3" y="32">iOS events</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="288.6" y="0" width="130" height="52" rx="12"/><text x="304.6" y="32">Main RunLoop</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="432.90000000000003" y="0" width="130" height="52" rx="12"/><text x="448.90000000000003" y="32">Hit testing</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="577.2" y="0" width="130" height="52" rx="12"/><text x="593.2" y="32">Action runs</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="721.5" y="0" width="130" height="52" rx="12"/><text x="737.5" y="32">State changes</text></g>
+        <g class="nd" data-lit="6"><rect class="sh" x="865.8000000000001" y="0" width="130" height="52" rx="12"/><text x="881.8000000000001" y="32">View update</text></g>
+        <g class="nd" data-lit="7"><rect class="sh" x="1010.1000000000001" y="0" width="130" height="52" rx="12"/><text x="1026.1000000000001" y="32">On screen</text></g>
+        <g class="fade" data-lit="0"><text class="mono" x="0" y="112">STEP 1 OF 8</text><text x="0" y="148" style="font-size:26px;font-weight:700">The finger touches the screen</text><text x="0" y="182" style="font-size:19px;font-weight:400">The touchscreen hardware detects the contact.</text></g>
+        <g class="fade" data-lit="1"><text class="mono" x="0" y="112">STEP 2 OF 8</text><text x="0" y="148" style="font-size:26px;font-weight:700">The system delivers an event</text><text x="0" y="182" style="font-size:19px;font-weight:400">iOS turns the touch into an event for the app in front.</text></g>
+        <g class="fade" data-lit="2"><text class="mono" x="0" y="112">STEP 3 OF 8</text><text x="0" y="148" style="font-size:26px;font-weight:700">The main thread picks it up</text><text x="0" y="182" style="font-size:19px;font-weight:400">The main run loop receives the event and dispatches it.</text></g>
+        <g class="fade" data-lit="3"><text class="mono" x="0" y="112">STEP 4 OF 8</text><text x="0" y="148" style="font-size:26px;font-weight:700">The framework finds the control</text><text x="0" y="182" style="font-size:19px;font-weight:400">SwiftUI or UIKit works out which control or gesture was tapped.</text></g>
+        <g class="fade" data-lit="4"><text class="mono" x="0" y="112">STEP 5 OF 8</text><text x="0" y="148" style="font-size:26px;font-weight:700">Your Button action runs</text><text x="0" y="182" style="font-size:19px;font-weight:400">Your Swift code executes on the main actor.</text></g>
+        <g class="fade" data-lit="5"><text class="mono" x="0" y="112">STEP 6 OF 8</text><text x="0" y="148" style="font-size:26px;font-weight:700">State changes</text><text x="0" y="182" style="font-size:19px;font-weight:400">SwiftUI’s state-tracking machinery detects that UI-relevant information changed.</text></g>
+        <g class="fade" data-lit="6"><text class="mono" x="0" y="112">STEP 7 OF 8</text><text x="0" y="148" style="font-size:26px;font-weight:700">SwiftUI updates the views</text><text x="0" y="182" style="font-size:19px;font-weight:400">Relevant view bodies are evaluated, reconciled and laid out.</text></g>
+        <g class="fade" data-lit="7"><text class="mono" x="0" y="112">STEP 8 OF 8</text><text x="0" y="148" style="font-size:26px;font-weight:700">The new frame is displayed</text><text x="0" y="182" style="font-size:19px;font-weight:400">The graphics system presents the updated pixels.</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <p class="small muted" style="margin:16px 0 0">Deliberately simplified. A SwiftUI Button does not read raw touchscreen hardware events; the OS and frameworks handle that.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Step six is the moment SwiftUI’s state tracking notices that something relevant to the interface changed. Click through all eight to see the whole path from hardware to pixels.</p>
+    <span class="notes-label">SAY</span><p>The hardware and system-event pathway is deliberately simplified. A Button is not responsible for reading raw touchscreen events; the OS and UI frameworks handle the low-level details so we can work with controls and gestures.</p>
+    <span class="notes-label">ASK</span><p>At which steps is the main thread busy?</p>
+    <span class="notes-label">EXPECT</span><p>From the run loop picking up the event, through your action and the view update. That is why your action must be quick.</p>
+    <span class="notes-label">CONNECT</span><p>So what happens if step five, your action, is slow?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Why blocking the main thread freezes an app</h2>
+    <p class="lead">One line can stop everything</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Now the most common performance mistake in UI code.</p>
+    <span class="notes-label">CONNECT</span><p>Look at this button.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Blocking</p>
+  <h2>One line that freezes the app</h2>
+  <div class="body">
+    <div class="cols middle" style="grid-template-columns:1fr 1.15fr">
+      <div class="cw"><div class="ch"><span>ReportView.swift</span></div><pre class="cb" style="font-size:17px">Button(&quot;Load Report&quot;) {
+    Thread.sleep(forTimeInterval: 3)
+    reportLoaded = true
+}</pre></div>
+      <p>The action runs on the <b>main actor</b>, and <code>Thread.sleep</code> blocks the executing thread for three seconds. Other main-thread work cannot proceed.</p>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 166" role="img" aria-labelledby="s11time">
+        <title id="s11time">Illustrative timeline: blocking keeps the main thread busy for three seconds; the non-blocking version leaves it free</title>
+        <text class="mono" x="0" y="16">BLOCKING</text><text class="mono" x="0" y="96">NON-BLOCKING</text>
+        <text class="sm" x="230" y="160" text-anchor="middle">0s</text>
+        <text class="sm" x="430" y="160" text-anchor="middle">1s</text>
+        <text class="sm" x="630" y="160" text-anchor="middle">2s</text>
+        <text class="sm" x="830" y="160" text-anchor="middle">3s</text>
+        <text class="sm" x="1030" y="160" text-anchor="middle">4s</text>
+        <g class="nd alert"><rect class="sh" x="130" y="28" width="600" height="40" rx="8"/><text class="sm" x="430" y="53" text-anchor="middle">blocked: main thread cannot process other UI work</text></g>
+        <g class="nd"><rect class="sh" x="730" y="28" width="400" height="40" rx="8"/><text class="sm" x="930" y="53" text-anchor="middle">free</text></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="130" y="108" width="1000" height="40" rx="8"/><text class="sm" x="630" y="133" text-anchor="middle">free: the task suspends while it waits; UI work keeps flowing</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i>
+    <p class="small muted" style="margin:8px 0 0">Illustrative timeline, not a measured trace. Real scheduling and event timing vary.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The button action runs on the main actor, and Thread.sleep blocks the executing thread for three seconds. During that time other main-thread work cannot proceed normally: taps, scrolling and animations all wait.</p>
+    <span class="notes-label">SAY</span><p>Click: the non-blocking version. The task suspends while it waits, and the main thread stays free for UI work.</p>
+    <span class="notes-label">CONNECT</span><p>What does the non-blocking version look like?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Non-blocking</p>
+  <h2>Suspend instead of block</h2>
+  <div class="body cols middle" style="grid-template-columns:1.2fr 1fr">
+    <div class="cw"><div class="ch"><span>ReportView.swift</span></div><pre class="cb" style="font-size:15px">Button(&quot;Load Report&quot;) {
+    Task {
+        isLoading = true
+
+        do {
+            let report = try await reportService.load()
+            currentReport = report
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+}</pre></div>
+    <div>
+      <div class="tip" data-label="How it works"><div class="points v"><div><svg viewBox="0 0 24 24"><use href="#i-send"/></svg><span><b>await suspends</b><small>the task pauses while the operation is pending</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg><span><b>The main thread stays free</b><small>no blocking is required</small></span></div></div></div>
+      <div class="gap"></div>
+      <div class="rule step" data-label="Nuance"><code>async</code> does <b>not</b> move CPU-heavy work off the main actor. Heavy synchronous computation still needs to run elsewhere.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Use asynchronous APIs for operations that can suspend, such as networking. await lets the task suspend while the operation is pending, without blocking the main thread.</p>
+    <span class="notes-label">SAY</span><p>Important nuance: async does not automatically move CPU-intensive work off the main actor. Heavy synchronous computation still needs appropriate isolation or execution elsewhere.</p>
+    <span class="notes-label">CONNECT</span><p>We keep saying main actor. How is that different from the main thread?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Main thread versus MainActor</h2>
+    <p class="lead">Related, but not identical</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two terms people use interchangeably. They are closely related, but they are different concepts.</p>
+    <span class="notes-label">CONNECT</span><p>Compare them side by side.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Comparison</p>
+  <h2>Main thread vs MainActor</h2>
+  <div class="body top">
+    <table class="tbl" style="font-size:20px">
+      <tr><th>Main thread</th><th>MainActor</th></tr>
+      <tr><td>Operating-system thread</td><td>Swift concurrency global actor</td></tr>
+      <tr><td>Executes UI event processing</td><td>Serializes access to main-actor-isolated code</td></tr>
+      <tr><td>Exists at runtime</td><td>Enforced through Swift&rsquo;s actor isolation model</td></tr>
+      <tr><td>Can be blocked by synchronous work</td><td>Can suspend at <code>await</code> points</td></tr>
+      <tr><td>Used by UIKit</td><td>Commonly used for SwiftUI UI-related state</td></tr>
+    </table>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Mental model"><b>MainActor</b> is a concurrency isolation mechanism that coordinates main-thread-bound application work.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The main thread is an operating-system thread that executes UI event processing; it exists at runtime and can be blocked by synchronous work. MainActor is a Swift concurrency global actor that serializes access to main-actor-isolated code, enforced by Swift’s actor isolation model, and it can suspend at await points.</p>
+    <span class="notes-label">SAY</span><p>Mental model: MainActor is an isolation mechanism that coordinates main-thread-bound work.</p>
+    <span class="notes-label">CONNECT</span><p>Here it is on a ViewModel.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; @MainActor</p>
+  <h2>A main-actor ViewModel</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="cw"><div class="ch"><span>BalanceViewModel.swift</span></div><pre class="cb" style="font-size:17px">@MainActor
+@Observable
+class BalanceViewModel {
+    var balance: Decimal = 0
+
+    func updateBalance(_ newBalance: Decimal) {
+        balance = newBalance
+    }
+}</pre></div>
+    <div>
+      <p>The annotation helps ensure the ViewModel&rsquo;s mutable state is accessed <b>consistently through the main actor</b>.</p>
+      <div class="gap"></div>
+      <div class="rule step" data-label="Isolation, not speed"><code>@MainActor</code> does not make a slow calculation faster. A long synchronous calculation on the main actor can still freeze the UI.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Marking the ViewModel @MainActor means its mutable state, like balance, is always accessed through the main actor, which is where SwiftUI reads it.</p>
+    <span class="notes-label">ASK</span><p>Does @MainActor make a slow calculation faster?</p>
+    <span class="notes-label">EXPECT</span><p>No. It provides isolation, not acceleration. A long synchronous calculation on the main actor can still freeze the interface.</p>
+    <span class="notes-label">CONNECT</span><p>"Background work" means several different things. Separate them.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Background work</h2>
+    <p class="lead">Not all work is the same</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three different concepts developers often confuse.</p>
+    <span class="notes-label">CONNECT</span><p>Here they are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Three kinds of work</p>
+  <h2>Three things called &ldquo;background&rdquo;</h2>
+  <div class="body">
+    <div class="cols c3 stretch">
+      <div class="card accent step"><span class="label">Asynchronous I/O</span><p>Network and file operations that can <b>wait without occupying a thread</b> continuously.</p></div>
+      <div class="card accent step"><span class="label">CPU-bound parallel work</span><p>Image processing, data transformation and expensive calculations that need <b>CPU time away from the main actor</b>.</p></div>
+      <div class="card accent step"><span class="label">iOS background execution</span><p>Work allowed while the app is <b>no longer foreground</b>, subject to system policies and capabilities.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step">An async task does <b>not</b> mean iOS will let it continue after the app is suspended.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Asynchronous I/O: network and file operations that can wait without occupying a thread. CPU-bound parallel work: image processing, data transformation, expensive calculations that need CPU execution away from the main actor. iOS background execution: work allowed after the app leaves the foreground, subject to system policies and specific capabilities, as in Lesson 0.3.</p>
+    <span class="notes-label">SAY</span><p>These are different concerns. An async task does not automatically mean iOS will let it continue after the app is suspended.</p>
+    <span class="notes-label">CONNECT</span><p>Now the deadline the main thread is racing against: the frame.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>The rendering pipeline and frame budget</h2>
+    <p class="lead">The screen refreshes on a schedule</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The display refreshes at a fixed rate. Each refresh is a deadline.</p>
+    <span class="notes-label">CONNECT</span><p>Compare 60 Hz and 120 Hz.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Frame budget &middot; illustrative</p>
+  <h2>One refresh, one deadline</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 160" role="img" aria-labelledby="s19frame">
+        <title id="s19frame">Refresh interval per display refresh: 16.67 milliseconds at 60 Hz, 8.33 milliseconds at 120 Hz</title>
+        <g class="fade" data-lit="0+"><text class="mono" x="0" y="16">60 HZ</text><g class="nd lit"><rect class="sh" x="0" y="26" width="900" height="44" rx="10"/></g><text x="918" y="58" style="font-size:26px;font-weight:800">16.67 ms</text></g>
+        <g class="fade" data-lit="1+"><text class="mono" x="0" y="102">120 HZ</text><g class="nd lit"><rect class="sh" x="0" y="112" width="450" height="44" rx="10"/></g><text x="468" y="144" style="font-size:26px;font-weight:800">8.33 ms</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i>
+    <div class="gap"></div>
+    <p>Your app does <b>not</b> get the whole interval: the system also needs time for layout, rendering and compositing.</p>
+    <div class="rule step" data-label="Miss the deadline">If main-thread work or rendering misses it, no new frame arrives in time: visible <b>stutter</b> or <b>dropped frames</b>.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An iPhone display updates at a rate the device and conditions support. At 60 Hz one refresh interval is about 16.67 milliseconds; click, and at 120 Hz it is about 8.33.</p>
+    <span class="notes-label">SAY</span><p>That does not mean the app gets the whole interval for arbitrary computation; the system also needs time for layout, rendering, compositing and other work. Miss the deadline and the interface may not deliver a new frame in time, which shows as stutter or dropped frames.</p>
+    <span class="notes-label">CONNECT</span><p>So what actually happens between a state change and new pixels?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 9</p>
+    <h2>How does an iPhone draw a screen?</h2>
+    <p class="lead">From a state change to pixels</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Why an app can be slow even when its code is logically correct.</p>
+    <span class="notes-label">CONNECT</span><p>The NPay balance changes from &#8377;5,000 to &#8377;6,000.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 9 &middot; Rendering &middot; conceptual</p>
+  <h2>From &#8377;5,000 to &#8377;6,000</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 106" role="img" aria-labelledby="s21render">
+        <title id="s21render">State change, evaluate views, reconcile, layout, graphics rendering, display</title>
+        <g class="nd pass" data-lit="1" style="--d:0.0s"><rect class="sh" x="0" y="0" width="168" height="104" rx="14"/><use href="#i-eye" x="70" y="14" width="28" height="28"/><text x="84" y="68" text-anchor="middle">State changes</text><text class="sm" x="84" y="88" text-anchor="middle">balance = 6000</text></g>
+        <path class="wire" d="M172 52H188M181 45l7 7-7 7"/>
+        <g class="nd pass" data-lit="1" style="--d:0.2s"><rect class="sh" x="192" y="0" width="168" height="104" rx="14"/><use href="#i-code" x="262" y="14" width="28" height="28"/><text x="276" y="68" text-anchor="middle">Evaluate views</text><text class="sm" x="276" y="88" text-anchor="middle">the desired interface</text></g>
+        <path class="wire" d="M364 52H380M373 45l7 7-7 7"/>
+        <g class="nd pass" data-lit="1" style="--d:0.4s"><rect class="sh" x="384" y="0" width="168" height="104" rx="14"/><use href="#i-diff" x="454" y="14" width="28" height="28"/><text x="468" y="68" text-anchor="middle">Reconcile</text><text class="sm" x="468" y="88" text-anchor="middle">what changed</text></g>
+        <path class="wire" d="M556 52H572M565 45l7 7-7 7"/>
+        <g class="nd pass" data-lit="1" style="--d:0.6s"><rect class="sh" x="576" y="0" width="168" height="104" rx="14"/><use href="#i-layout" x="646" y="14" width="28" height="28"/><text x="660" y="68" text-anchor="middle">Layout</text><text class="sm" x="660" y="88" text-anchor="middle">sizes and positions</text></g>
+        <path class="wire" d="M748 52H764M757 45l7 7-7 7"/>
+        <g class="nd pass" data-lit="1" style="--d:0.8s"><rect class="sh" x="768" y="0" width="168" height="104" rx="14"/><use href="#i-layers" x="838" y="14" width="28" height="28"/><text x="852" y="68" text-anchor="middle">Graphics</text><text class="sm" x="852" y="88" text-anchor="middle">prepare content</text></g>
+        <path class="wire" d="M940 52H956M949 45l7 7-7 7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="960" y="0" width="168" height="104" rx="14"/><use href="#i-frame" x="1030" y="14" width="28" height="28"/><text x="1044" y="68" text-anchor="middle">Display</text><text class="sm" x="1044" y="88" text-anchor="middle">pixels visible</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i>
+    <div class="gap-lg"></div>
+    <div class="rule step" data-label="Key insight">SwiftUI&rsquo;s <code>body</code> is a <b>description</b>, not a drawing function. Recomputing it does not mean every element is redrawn.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The balance changes from &#8377;5,000 to &#8377;6,000. SwiftUI does not repaint the whole screen: it tracks the change, re-evaluates view descriptions, reconciles what changed, lays out as needed and works with the graphics pipeline until updated pixels appear. Click to watch it sweep through.</p>
+    <span class="notes-label">SAY</span><p>body is a description of UI, not a drawing function. Recomputing a body does not mean every element is redrawn. That distinction is essential for SwiftUI performance.</p>
+    <span class="notes-label">CONNECT</span><p>So why do frames drop?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 10</p>
+    <h2>Why do frames drop?</h2>
+    <p class="lead">Work against the deadline</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Compare a smooth frame with one delayed by too much main-thread work.</p>
+    <span class="notes-label">CONNECT</span><p>Three cases.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 10 &middot; Frame timing &middot; illustrative</p>
+  <h2>Does the work fit the frame?</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 300" role="img" aria-labelledby="s23exp">
+        <title id="s23exp">Three cases: 10 ms at 60 Hz fits; 20 ms at 60 Hz misses; 10 ms at 120 Hz misses</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="0" width="360" height="52" rx="12"/><text x="16" y="32">10 ms of work at 60 Hz</text></g>
+        <g class="fade" data-lit="0"><text class="mono" x="0" y="100">REFRESH INTERVAL 16.67 MS</text><g class="nd"><rect class="sh" x="0" y="112" width="861" height="40" rx="8"/></g><text class="mono" x="0" y="190">SIMULATED WORK 10 MS</text><g class="nd lit"><rect class="sh" x="0" y="202" width="516" height="40" rx="8"/></g><path class="wire dash" d="M861 104V250"/><text x="0" y="290" style="font-size:20px;font-weight:400">Fits within one refresh interval, but real rendering still needs time for other system work.</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="388" y="0" width="360" height="52" rx="12"/><text x="404" y="32">20 ms of work at 60 Hz</text></g>
+        <g class="fade" data-lit="1"><text class="mono" x="0" y="100">REFRESH INTERVAL 16.67 MS</text><g class="nd"><rect class="sh" x="0" y="112" width="861" height="40" rx="8"/></g><text class="mono" x="0" y="190">SIMULATED WORK 20 MS</text><g class="nd alert"><rect class="sh" x="0" y="202" width="1033" height="40" rx="8"/></g><path class="wire dash" d="M861 104V250"/><text x="0" y="290" style="font-size:20px;font-weight:400">Longer than one refresh interval: the frame misses its deadline.</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="776" y="0" width="360" height="52" rx="12"/><text x="792" y="32">10 ms of work at 120 Hz</text></g>
+        <g class="fade" data-lit="2"><text class="mono" x="0" y="100">REFRESH INTERVAL 8.33 MS</text><g class="nd"><rect class="sh" x="0" y="112" width="430" height="40" rx="8"/></g><text class="mono" x="0" y="190">SIMULATED WORK 10 MS</text><g class="nd alert"><rect class="sh" x="0" y="202" width="516" height="40" rx="8"/></g><path class="wire dash" d="M430 104V250"/><text x="0" y="290" style="font-size:20px;font-weight:400">The same work misses at 120 Hz: the deadline is twice as tight.</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i>
+    <p class="small muted" style="margin:10px 0 0">Conceptual budget comparison, not a measured iPhone frame trace.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Case one: 10 ms of work at 60 Hz fits within the 16.67 ms interval, though real rendering still needs time for other system work. Click: 20 ms misses the deadline. Click: the same 10 ms misses at 120 Hz, where the interval is 8.33 ms.</p>
+    <span class="notes-label">SAY</span><p>The lesson: avoid expensive synchronous work on the main thread, minimize unnecessary UI computation, and measure before optimizing.</p>
+    <span class="notes-label">CONNECT</span><p>Which brings us to async versus parallel work.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 11</p>
+    <h2>Async versus parallel execution</h2>
+    <p class="lead">Waiting is not computing</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two operations can both take time for completely different reasons.</p>
+    <span class="notes-label">CONNECT</span><p>Compare a download with a calculation.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 11 &middot; Two kinds of slow</p>
+  <h2>Waiting vs computing</h2>
+  <div class="body">
+    <div class="cols stretch">
+      <div class="card accent step"><span class="label">Asynchronous I/O</span><h3 style="font-size:22px;margin:4px 0 6px">Download a customer profile</h3><p class="small" style="margin:0">Mostly <b>waiting</b> for an external response.</p></div>
+      <div class="card step"><span class="label">CPU-bound work</span><h3 style="font-size:22px;margin:4px 0 6px">Process a million transactions</h3><p class="small" style="margin:0">Mostly <b>executing calculations</b> on a CPU.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="cols middle" style="grid-template-columns:1.3fr 1fr">
+      <div class="cw"><div class="ch"><span>ProfileService.swift</span></div><pre class="cb" style="font-size:14px">func fetchProfile() async throws -&gt; Data {
+    let url = URL(
+        string: &quot;https://example.com/profile&quot;
+    )!
+
+    let (data, _) = try await URLSession.shared.data(from: url)
+    return data
+}</pre></div>
+      <p class="small">While <code>URLSession</code> waits for the response, the task <b>suspends</b>. No thread sits idle waiting.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Operation A downloads a customer profile: mostly waiting for a server. Operation B processes a million transaction records: mostly executing calculations. Both take time, for different reasons.</p>
+    <span class="notes-label">SAY</span><p>For networking: when URLSession waits for the response, the calling task can suspend. The executing thread does not need to sit idle.</p>
+    <span class="notes-label">CONNECT</span><p>But what about the calculation?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 11 &middot; async is not parallel</p>
+  <h2>async does not mean background</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="cw"><div class="ch"><span>Totals.swift</span></div><pre class="cb" style="font-size:17px">@MainActor
+func calculateTotal() async -&gt; Int {
+    var total = 0
+
+    for number in 1...10_000_000 {
+        total += number % 7
+    }
+
+    return total
+}</pre></div>
+    <div>
+      <p>Declared <code>async</code>, but it does <b>synchronous CPU work on the main actor</b> with no suspension point. It can block the UI.</p>
+      <div class="gap"></div>
+      <div class="rule step" data-label="Remember"><code>async</code> enables <b>suspension</b>. It does not guarantee parallel execution or a different thread.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Despite being declared async, this function runs ten million iterations of synchronous CPU work on the main actor. It contains no suspension point, so it can block UI responsiveness.</p>
+    <span class="notes-label">ASK</span><p>Does adding async automatically create a background thread?</p>
+    <span class="notes-label">EXPECT</span><p>No. async enables suspension; it does not guarantee parallel execution or a different thread.</p>
+    <span class="notes-label">CONNECT</span><p>So where should each kind of work run?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 12</p>
+    <h2>What should run where?</h2>
+    <p class="lead">Match the work to the place</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A quick reference for deciding where work belongs.</p>
+    <span class="notes-label">CONNECT</span><p>Seven common kinds of work.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 12 &middot; Reference</p>
+  <h2>Where each kind of work belongs</h2>
+  <div class="body top">
+    <table class="tbl" style="font-size:19px">
+      <tr><th>Work</th><th>Preferred approach</th></tr>
+      <tr><td>Button handling</td><td>Main actor</td></tr>
+      <tr><td>UI state changes</td><td>Main actor or appropriate SwiftUI isolation</td></tr>
+      <tr><td>HTTP request</td><td>URLSession async API</td></tr>
+      <tr><td>Expensive image processing</td><td>Non-main-actor execution</td></tr>
+      <tr><td>Large data transformations</td><td>Appropriate background executor or parallel processing</td></tr>
+      <tr><td>Saving persistent data</td><td>Storage API with suitable concurrency</td></tr>
+      <tr><td>Scheduled work after app backgrounding</td><td>Approved iOS background APIs</td></tr>
+    </table>
+    <div class="gap"></div>
+    <div class="rule step">A <b>background thread</b> and iOS <b>background-mode</b> execution are different concepts.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Button handling and UI state on the main actor. HTTP through URLSession’s async API. Expensive image processing off the main actor. Large transformations on an appropriate background executor or in parallel. Persistent saves through a storage API with suitable concurrency. Work after backgrounding only through approved iOS background APIs.</p>
+    <span class="notes-label">SAY</span><p>Background thread execution and iOS background-mode execution are different things.</p>
+    <span class="notes-label">CONNECT</span><p>Finally: how do we know where time actually goes?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 13</p>
+    <h2>Measure with Xcode Instruments</h2>
+    <p class="lead">Evidence before optimization</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Performance must be measured, not guessed. Xcode Instruments is how.</p>
+    <span class="notes-label">CONNECT</span><p>Five tools to know.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 13 &middot; Instruments</p>
+  <h2>Tools for measuring performance</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="points v">
+      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg><span><b>Time Profiler</b><small>where CPU time is spent</small></span></div>
+      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg><span><b>Hangs</b><small>periods when the app is unresponsive</small></span></div>
+      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg><span><b>Allocations</b><small>memory allocations</small></span></div>
+      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg><span><b>Leaks</b><small>certain memory leaks</small></span></div>
+      <div class="step"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg><span><b>SwiftUI profiling</b><small>view updates and rendering, where your Xcode supports it</small></span></div>
+    </div>
+    <div class="rule step" data-label="Method">Show a <b>slow app</b>, <b>measure</b> it, make a <b>targeted change</b>, then <b>measure again</b>.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Time Profiler finds where CPU time is spent. Hangs identifies periods when the app becomes unresponsive. Allocations examines memory allocations; Leaks investigates certain memory leaks. SwiftUI profiling tools examine view updates and rendering where the installed Xcode supports them.</p>
+    <span class="notes-label">LIVE DEMO</span><p>Run a deliberately slow screen (for example the Thread.sleep button), record it with Time Profiler and Hangs, fix it with async, and record again to show the difference.</p>
+    <span class="notes-label">CONNECT</span><p>Let's check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Four questions. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does every SwiftUI body evaluation redraw the entire screen?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does every SwiftUI <code>body</code> evaluation redraw the entire screen?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">body is a description. SwiftUI reconciles changes and updates only what is needed.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating body like a paint method.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes. Recomputing a description is not redrawing pixels.</p>
+    <span class="notes-label">SAY</span><p>No. body is a description. SwiftUI reconciles changes and updates only what is needed.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does async automatically mean background-thread execution?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>async</code> automatically mean background-thread execution?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">async enables suspension; it does not guarantee parallel execution or a different thread.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming async moves work off the main actor.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes.</p>
+    <span class="notes-label">SAY</span><p>No. async enables suspension; it does not guarantee parallel execution or a different thread.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which is most likely to freeze the UI: awaiting URLSession data, Thread.sleep on the main thread, or updating a small @State value?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Which is most likely to freeze the UI: awaiting URLSession data, <code>Thread.sleep</code> on the main thread, or updating a small <code>@State</code> value?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Thread.sleep</span>
+          <p class="q-why">It blocks the main thread. Awaiting suspends, and a small state update is cheap.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking any slow-looking operation freezes the UI.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most get this; ask why awaiting does not freeze.</p>
+    <span class="notes-label">SAY</span><p>Thread.sleep. It blocks the main thread. Awaiting suspends, and a small state update is cheap.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does @MainActor make a slow calculation faster?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>@MainActor</code> make a slow calculation faster?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It provides isolation, not acceleration. A long synchronous calculation on the main actor still freezes the UI.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing isolation with performance.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some assume main-actor code is optimized.</p>
+    <span class="notes-label">SAY</span><p>No. It provides isolation, not acceleration. A long synchronous calculation on the main actor still freezes the UI.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 0.5 complete</p>
+    <h2>Main Thread, RunLoop<br>&amp; Event Handling</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: iOS memory architecture &amp; ARC</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Recap: the main thread handles critical UI work; a RunLoop supports event-driven execution; touches travel through iOS and the frameworks before reaching our code; SwiftUI responds to state with declarative updates; blocking the main thread damages responsiveness; tasks and OS threads differ; and performance must be measured, not guessed.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 0.6: stack versus heap, structs versus classes, reference counting, strong and weak references, retain cycles and why leaks happen, especially for developers coming from Java, Python or C++.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../shared/art.js"></script>
+<script src="../../shared/deck.js"></script>
+</body>
+</html>

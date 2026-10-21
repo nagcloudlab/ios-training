@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0.6 — iOS Memory Architecture &amp; ARC</title>
+<link rel="stylesheet" href="../../shared/deck.css">
+</head>
+<body data-deck="Unit 00 · Lesson 0.6 — iOS Memory Architecture &amp; ARC">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 00 &middot; Lesson 0.6</p>
+    <h1 style="font-size:54px;line-height:1.05">iOS Memory<br>Architecture &amp; ARC</h1>
+    <p class="lead" style="max-width:660px">Who creates objects in memory, who owns them, and who destroys them?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One of the most important topics in Swift and iOS: who creates objects in memory, who owns them, and who destroys them? This prepares you to explain memory management to developers coming from Java, Python, C++ and other languages. We go slowly, from fundamentals to real iOS leaks.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.6 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Why Swift distinguishes <b>value</b> and <b>reference</b> semantics</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><p>How <b>ARC</b> manages class-instance lifetimes</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>Why <b>strong-reference cycles</b> occur</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>How <b>weak</b> and <b>unowned</b> differ</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Why <b>closures</b> and <b>timers</b> can retain objects</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>How to <b>investigate</b> unexpected retention in Xcode</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Six things you should be comfortable explaining by the end. The route: process memory, stack and heap, structs and classes, ARC, strong, weak and unowned, retain cycles, and diagnosing memory in Xcode.</p>
+    <span class="notes-label">CONNECT</span><p>Why does an app need memory at all?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Why does an app need memory?</h2>
+    <p class="lead">How iOS organizes process memory</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A shopping app needs memory for its product list, cart, user information, images, network responses and interface state. Some data lives only while a function runs; other data must survive many calls.</p>
+    <span class="notes-label">CONNECT</span><p>Here is how the process memory is organized.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Process memory &middot; conceptual</p>
+  <h2>Simplified iOS process memory</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 340" style="max-height:380px" role="img" aria-labelledby="s3mem">
+        <title id="s3mem">Process memory: code, global and static data, heap, thread stacks, other mapped memory</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="560" height="58" rx="12"/><use href="#i-code" x="14" y="16" width="26" height="26"/><text x="52" y="26">Code / text</text><text class="sm" x="52" y="44">executable machine instructions</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="70" width="560" height="58" rx="12"/><use href="#i-file" x="14" y="86" width="26" height="26"/><text x="52" y="96">Global &amp; static data</text><text class="sm" x="52" y="114">global and static storage</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="140" width="560" height="58" rx="12"/><use href="#i-memory" x="14" y="156" width="26" height="26"/><text x="52" y="166">Heap</text><text class="sm" x="52" y="184">dynamic objects and allocations</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="210" width="560" height="58" rx="12"/><use href="#i-thread" x="14" y="226" width="26" height="26"/><text x="52" y="236">Thread stacks</text><text class="sm" x="52" y="254">function call frames, execution state</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="280" width="560" height="58" rx="12"/><use href="#i-layers" x="14" y="296" width="26" height="26"/><text x="52" y="306">Other mapped memory</text><text class="sm" x="52" y="324">libraries, files, graphics-related mappings</text></g>
+      </svg>
+    </div>
+      <p class="small muted" style="margin:8px 0 0">Conceptual regions, not their physical order. iOS uses virtual memory, not fixed partitions of RAM.</p>
+    </div>
+    <div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <div class="analogy step">
+        <div class="icon"><svg viewBox="0 0 24 24"><use href="#i-building"/></svg></div>
+        <p>A large <b>office building</b> is the address space. <b>Temporary desks</b> hold immediate work; <b>shared storage</b> holds what is needed longer.</p>
+      </div>
+      <div class="gap"></div>
+      <p class="small step">The OS provides the virtual memory environment; the language runtime and the app manage allocations inside it.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through the five regions: code, global and static data, the heap for dynamic objects, thread stacks for call frames, and other mapped memory such as libraries and graphics mappings. These are conceptual regions in virtual memory, not fixed slices of RAM.</p>
+    <span class="notes-label">SAY</span><p>Think of an office building. The building is the address space; different rooms serve different purposes. Temporary desks are for immediate work; shared storage areas hold things needed longer.</p>
+    <span class="notes-label">CONNECT</span><p>Two of those regions matter most for us: the stack and the heap.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Stack versus heap</h2>
+    <p class="lead">Temporary desks and shared storage</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Start with a simple function and ask where its values live.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the function.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Stack and heap &middot; conceptual</p>
+  <h2>Where do values live?</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1.1fr">
+    <div class="cw"><div class="ch"><span>Totals.swift</span></div><pre class="cb" style="font-size:17px">func calculateTotal() {
+    let price = 100
+    let quantity = 3
+    let total = price * quantity
+
+    print(total)
+}
+
+calculateTotal()</pre></div>
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 226" role="img" aria-labelledby="s5sh">
+        <title id="s5sh">Stack: call frame, temporary values, return information. Heap: object A, object B, shared storage.</title>
+        <text class="mono" x="0" y="16">STACK</text><text class="mono" x="300" y="16">HEAP</text>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="28" width="260" height="54" rx="12"/><text x="16" y="61">Call frame</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="94" width="260" height="54" rx="12"/><text x="16" y="127">Temporary values</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="160" width="260" height="54" rx="12"/><text x="16" y="193">Return information</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="300" y="28" width="260" height="54" rx="12"/><text x="316" y="61">Object A</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="300" y="94" width="260" height="54" rx="12"/><text x="316" y="127">Object B</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="300" y="160" width="260" height="54" rx="12"/><text x="316" y="193">Shared storage</text></g>
+      </svg>
+    </div>
+      <i class="step cue"></i><i class="step cue"></i>
+      <div class="gap"></div>
+      <p class="small">The <b>stack</b> is efficient for call-related storage. The <b>heap</b> is more flexible, but involves allocation and lifetime management.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>calculateTotal needs temporary execution storage for price, quantity and total. Click: the stack, tied to function calls and thread execution, with the call frame, temporary values and return information. Click: the heap, for dynamically allocated storage and objects.</p>
+    <span class="notes-label">SAY</span><p>The stack is typically efficient for call-related storage; heap allocation is more flexible but needs allocation and lifetime management.</p>
+    <span class="notes-label">CONNECT</span><p>A warning before we go further.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Swift nuance</p>
+  <h2>Not simply stack versus heap</h2>
+  <div class="body">
+    <div class="cols stretch">
+      <div class="card step"><span class="label">Common belief</span><p>&ldquo;Structs live on the stack; classes live on the heap.&rdquo;</p></div>
+      <div class="card accent step"><span class="label">In Swift</span><p>A struct is <b>not guaranteed</b> to live on the stack, and a class reference variable is <b>not necessarily</b> on the heap. Placement depends on implementation and optimization.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="The reliable distinction"><b>Value semantics</b> versus <b>reference semantics</b>, not simply stack versus heap.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Developers from other languages often learn "structs on the stack, classes on the heap". In Swift that is not a guarantee: storage placement depends on the implementation and optimization.</p>
+    <span class="notes-label">SAY</span><p>The reliable language-level distinction is value semantics versus reference semantics.</p>
+    <span class="notes-label">CONNECT</span><p>So what do value and reference semantics mean in practice?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Swift structs versus classes</h2>
+    <p class="lead">Value type versus reference type</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A struct is a value type; a class is a reference type. Let's see what that means with the same Account written both ways.</p>
+    <span class="notes-label">CONNECT</span><p>First, the struct.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Value type</p>
+  <h2>A struct: independent values</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="cw"><div class="ch"><span>Account.swift</span></div><pre class="cb" style="font-size:16px">struct Account {
+    var balance: Int
+}
+
+var accountA = Account(balance: 5000)
+var accountB = accountA
+
+accountB.balance = 9000
+
+print(accountA.balance) // 5000
+print(accountB.balance) // 9000</pre></div>
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 124" role="img" aria-labelledby="s8val">
+        <title id="s8val">accountA and accountB both hold 5,000 rupees; changing accountB to 9,000 leaves accountA at 5,000</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="250" height="80" rx="12"/><text x="16" y="37">accountA</text><text class="sm" x="16" y="55">&#8377;5,000</text></g>
+        <g class="nd"><rect class="sh" x="300" y="0" width="250" height="80" rx="12"/><text x="316" y="37">accountB</text><text class="sm" x="316" y="55">&#8377;5,000</text></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="300" y="0" width="250" height="80" rx="12"/><text x="316" y="37">accountB</text><text class="sm" x="316" y="55">&#8377;9,000</text></g></g>
+        <text class="sm" x="0" y="116">Each variable holds its own value.</text>
+      </svg>
+    </div>
+      <i class="step cue"></i>
+      <div class="gap"></div>
+      <div class="rule step">Assigning <code>accountA</code> to <code>accountB</code> gives <b>independent values</b>.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>accountB starts as a copy of accountA. Click: we change accountB to &#8377;9,000; accountA still shows &#8377;5,000. Each variable changes separately.</p>
+    <span class="notes-label">CONNECT</span><p>Now the same code with a class.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Reference type</p>
+  <h2>A class: one shared instance</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="cw"><div class="ch"><span>Account.swift</span></div><pre class="cb" style="font-size:14.5px">class Account {
+    var balance: Int
+
+    init(balance: Int) {
+        self.balance = balance
+    }
+}
+
+let accountA = Account(balance: 5000)
+let accountB = accountA
+
+accountB.balance = 9000
+
+print(accountA.balance) // 9000
+print(accountB.balance) // 9000</pre></div>
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 204" role="img" aria-labelledby="s9ref">
+        <title id="s9ref">accountA and accountB both reference one Account instance; changing it through accountB to 9,000 changes it for both</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="200" height="56" rx="12"/><text x="16" y="25">accountA</text><text class="sm" x="16" y="43">reference</text></g>
+        <g class="nd"><rect class="sh" x="0" y="110" width="200" height="56" rx="12"/><text x="16" y="135">accountB</text><text class="sm" x="16" y="153">reference</text></g>
+        <path class="wire" d="M200 28H270V70H316M309 63l7 7-7 7"/>
+        <path class="wire" d="M200 138H270V96H316M309 89l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="322" y="44" width="230" height="78" rx="12"/><text x="338" y="80">Account instance</text><text class="sm" x="338" y="98">&#8377;5,000</text></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="322" y="44" width="230" height="78" rx="12"/><text x="338" y="80">Account instance</text><text class="sm" x="338" y="98">&#8377;9,000</text></g></g>
+        <text class="sm" x="0" y="196">Both references observe the same balance.</text>
+      </svg>
+    </div>
+      <i class="step cue"></i>
+      <div class="gap"></div>
+      <div class="rule step">Both variables <b>reference the same instance</b>.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>With a class, accountA and accountB are two references to one instance. Click: change the balance through accountB and accountA sees &#8377;9,000 too.</p>
+    <span class="notes-label">ASK</span><p>Why can accountA be a let constant and still change?</p>
+    <span class="notes-label">EXPECT</span><p>let fixes the reference, not the instance it points to. The instance itself is mutable.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the full comparison.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Comparison</p>
+  <h2>Struct vs class</h2>
+  <div class="body top">
+    <table class="tbl" style="font-size:20px">
+      <tr><th>Struct</th><th>Class</th></tr>
+      <tr><td>Value semantics</td><td>Reference semantics</td></tr>
+      <tr><td>Assignment produces independent values</td><td>Assignment shares an instance</td></tr>
+      <tr><td>No class inheritance</td><td>Supports inheritance</td></tr>
+      <tr><td>No identity by default</td><td>Has object identity</td></tr>
+      <tr><td>Can use <code>mutating</code> methods</td><td>Can mutate properties through shared references</td></tr>
+      <tr class="hl"><td>Not managed as a class instance by ARC</td><td>Class instance lifetime managed by <b>ARC</b></td></tr>
+    </table>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Copy-on-write">Value types can share storage internally. Value semantics does not always mean <b>copying every byte</b> immediately.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Six differences. The last row leads into the rest of this lesson: class instance lifetimes are managed by ARC.</p>
+    <span class="notes-label">SAY</span><p>Copy-on-write: value types can internally share storage until one copy is modified, so value semantics does not always mean immediately copying all the underlying bytes.</p>
+    <span class="notes-label">CONNECT</span><p>So how does ARC decide when a class instance can go away?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Automatic Reference Counting</h2>
+    <p class="lead">ARC: the central concept</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift uses Automatic Reference Counting to manage the lifetime of class instances.</p>
+    <span class="notes-label">CONNECT</span><p>Think of a rented conference room.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; ARC &middot; conceptual</p>
+  <h2>Counting strong references</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 226" role="img" aria-labelledby="s12arc">
+        <title id="s12arc">A Customer object with three strong references; releasing them one by one brings the count from 3 to 0, and then the object can be deinitialized</title>
+        <g class="nd lit" data-lit="0-2"><rect class="sh" x="353" y="0" width="430" height="104" rx="14"/></g>
+        <g class="fade" data-lit="3+"><g class="nd alert"><rect class="sh" x="353" y="0" width="430" height="104" rx="14"/></g></g>
+        <text x="377" y="32">Customer object</text>
+        <g class="fade" data-lit="0"><text x="377" y="84" style="font-size:40px;font-weight:800">3</text><text class="sm" x="412" y="80">strong references</text><text class="mono" x="760" y="84" text-anchor="end">ALIVE</text></g>
+        <g class="fade" data-lit="1"><text x="377" y="84" style="font-size:40px;font-weight:800">2</text><text class="sm" x="412" y="80">strong references</text><text class="mono" x="760" y="84" text-anchor="end">ALIVE</text></g>
+        <g class="fade" data-lit="2"><text x="377" y="84" style="font-size:40px;font-weight:800">1</text><text class="sm" x="412" y="80">strong reference</text><text class="mono" x="760" y="84" text-anchor="end">ALIVE</text></g>
+        <g class="fade" data-lit="3+"><text x="377" y="84" style="font-size:40px;font-weight:800">0</text><text class="sm" x="412" y="80">strong references</text><text class="mono" x="760" y="84" text-anchor="end">DEINIT CAN RUN</text></g>
+        <g class="fade" data-lit="0-2"><path class="wire lit" d="M240 168V110M233 117l7-7 7 7"/><g class="nd"><rect class="sh" x="120" y="168" width="240" height="56" rx="12"/><text x="136" y="193">Reference A</text><text class="sm" x="136" y="211">strong</text></g></g>
+        <g class="fade" data-lit="3+"><g class="nd ghost"><rect class="sh" x="120" y="168" width="240" height="56" rx="12"/><text x="136" y="193">Reference A</text><text class="sm" x="136" y="211">released</text></g></g>
+        <g class="fade" data-lit="0-1"><path class="wire lit" d="M560 168V110M553 117l7-7 7 7"/><g class="nd"><rect class="sh" x="440" y="168" width="240" height="56" rx="12"/><text x="456" y="193">Reference B</text><text class="sm" x="456" y="211">strong</text></g></g>
+        <g class="fade" data-lit="2+"><g class="nd ghost"><rect class="sh" x="440" y="168" width="240" height="56" rx="12"/><text x="456" y="193">Reference B</text><text class="sm" x="456" y="211">released</text></g></g>
+        <g class="fade" data-lit="0-0"><path class="wire lit" d="M880 168V110M873 117l7-7 7 7"/><g class="nd"><rect class="sh" x="760" y="168" width="240" height="56" rx="12"/><text x="776" y="193">Reference C</text><text class="sm" x="776" y="211">strong</text></g></g>
+        <g class="fade" data-lit="1+"><g class="nd ghost"><rect class="sh" x="760" y="168" width="240" height="56" rx="12"/><text x="776" y="193">Reference C</text><text class="sm" x="776" y="211">released</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap-lg"></div>
+    <div class="cols">
+      <div class="analogy"><div class="icon"><svg viewBox="0 0 24 24"><use href="#i-building"/></svg></div><p>Each strong reference is someone holding a <b>booking</b> for a conference room. When nobody holds it, the room is <b>released</b>.</p></div>
+      <p class="small muted">Conceptual. The compiler and runtime may optimize reference-count operations; they are not necessarily visible one-for-one.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>ARC tracks strong references to a class instance. When no strong references keep it alive, it can be deinitialized. Click through: three references, then two, then one, then none, and the object can be destroyed.</p>
+    <span class="notes-label">SAY</span><p>An object is like a rented conference room; each strong reference is someone holding a valid booking. When nobody holds the room, it can be released.</p>
+    <span class="notes-label">CONNECT</span><p>Now the same thing in Swift code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; ARC in code</p>
+  <h2>Setting one reference to nil</h2>
+  <div class="body cols middle" style="grid-template-columns:1.3fr 1fr">
+    <div class="cw"><div class="ch"><span>Customer.swift</span></div><pre class="cb" style="font-size:13px;line-height:1.36;padding:12px 20px">class Customer {
+    let name: String
+
+    init(name: String) {
+        self.name = name
+        print(&quot;Customer created&quot;)
+    }
+
+    deinit {
+        print(&quot;Customer destroyed&quot;)
+    }
+}
+
+var customer1: Customer? = Customer(name: &quot;Ravi&quot;)
+var customer2 = customer1
+
+customer1 = nil
+// Object is still alive through customer2
+
+customer2 = nil
+// No strong references remain
+// deinit can execute</pre></div>
+    <div>
+      <div class="points v stages"><div class="step"><span class="q-num">1</span><span><b>Two strong references</b><small>customer1 and customer2 point to Ravi</small></span></div><div class="step"><span class="q-num">2</span><span><b><code>customer1 = nil</code></b><small>the instance is still alive through customer2</small></span></div><div class="step"><span class="q-num">3</span><span><b><code>customer2 = nil</code></b><small>no strong references remain; deinit can run</small></span></div></div>
+      <div class="gap"></div>
+      <div class="rule step">Setting one variable to <code>nil</code> does not necessarily destroy the instance.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two variables reference the same Customer. Setting customer1 to nil releases one reference, but the object survives through customer2. Only when customer2 is also nil do no strong references remain, and deinit can execute.</p>
+    <span class="notes-label">ASK</span><p>After customer1 = nil, has "Customer destroyed" printed?</p>
+    <span class="notes-label">EXPECT</span><p>No. customer2 still holds a strong reference.</p>
+    <span class="notes-label">CONNECT</span><p>Strong is only one kind of reference.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Strong, weak and unowned</h2>
+    <p class="lead">Three ownership relationships</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift provides different ownership relationships for different lifetime situations.</p>
+    <span class="notes-label">CONNECT</span><p>Here are the three.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Reference kinds</p>
+  <h2>Strong, weak and unowned</h2>
+  <div class="body">
+    <div class="cols c3 stretch">
+      <div class="card accent step"><span class="label">Strong</span><p>Keeps the instance <b>alive</b>. Strong ownership is the <b>default</b>.</p></div>
+      <div class="card accent step"><span class="label">Weak</span><p>Does <b>not</b> keep it alive. Optional, and automatically becomes <b>nil</b> when the instance is deallocated.</p></div>
+      <div class="card accent step"><span class="label">Unowned</span><p>Does <b>not</b> retain it. Assumes the instance is <b>still alive</b> whenever accessed; violating that can crash.</p></div>
+    </div>
+    <div class="gap"></div>
+    <p class="small step">A parent usually <b>strongly owns</b> a child. A child may hold a <b>weak</b> reference back to a parent that can disappear independently. Use <b>unowned</b> only when the lifetime relationship guarantees safe access.</p>
+    <div class="rule step" data-label="Do not overcorrect">Do not replace every strong reference with weak. Strong ownership is <b>normal and necessary</b>.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Strong keeps the instance alive and is the default. Weak does not keep it alive; it is optional and becomes nil automatically when the instance is deallocated. Unowned does not retain it either, but assumes the instance is still alive whenever accessed; violating that assumption can cause a runtime failure.</p>
+    <span class="notes-label">SAY</span><p>A parent usually strongly owns a child; the child may hold a weak back-reference. And do not teach students to replace every strong reference with weak: weak and unowned solve particular lifetime relationships.</p>
+    <span class="notes-label">CONNECT</span><p>What goes wrong when two objects own each other?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Retain cycles</h2>
+    <p class="lead">The classic ARC problem</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Imagine two people holding each other's hands and refusing to let go.</p>
+    <span class="notes-label">CONNECT</span><p>In Swift, two class instances can do the same.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Retain cycle &middot; conceptual</p>
+  <h2>Two objects that never let go</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
+    <div class="cw"><div class="ch"><span>Ownership.swift</span></div><pre class="cb" style="font-size:13.5px;line-height:1.38">class Person {
+    var apartment: Apartment?
+}
+
+class Apartment {
+    var tenant: Person?
+}
+
+var person: Person? = Person()
+var apartment: Apartment? = Apartment()
+
+person?.apartment = apartment
+apartment?.tenant = person
+
+person = nil
+apartment = nil</pre></div>
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 240" role="img" aria-labelledby="s16cyc">
+        <title id="s16cyc">Person and Apartment strongly reference each other; removing the outside variables leaks both; making tenant weak breaks the cycle</title>
+        <g class="nd"><rect class="sh" x="30" y="0" width="200" height="50" rx="12"/><text x="46" y="22">person</text><text class="sm" x="46" y="40">outside variable</text></g>
+        <g class="nd"><rect class="sh" x="330" y="0" width="200" height="50" rx="12"/><text x="346" y="22">apartment</text><text class="sm" x="346" y="40">outside variable</text></g>
+        <g class="fade" data-lit="0"><path class="wire" d="M130 50V96M123 89l7 7 7-7"/><path class="wire" d="M430 50V96M423 89l7 7 7-7"/></g>
+        <g class="fade" data-lit="1+"><text class="sm" x="280" y="80" text-anchor="middle">set to nil</text></g>
+        <g class="nd"><rect class="sh" x="30" y="102" width="200" height="64" rx="12"/><use href="#i-user" x="44" y="121" width="26" height="26"/><text x="82" y="131">Person</text><text class="sm" x="82" y="149">instance</text></g>
+        <g class="nd"><rect class="sh" x="330" y="102" width="200" height="64" rx="12"/><use href="#i-building" x="344" y="121" width="26" height="26"/><text x="382" y="131">Apartment</text><text class="sm" x="382" y="149">instance</text></g>
+        <path class="wire" d="M230 124H324M317 117l7 7-7 7"/>
+        <text class="sm" x="277" y="116" text-anchor="middle">strong</text>
+        <g class="fade" data-lit="0-1"><path class="wire" d="M330 146H236M243 139l-7 7 7 7"/><text class="sm" x="283" y="164" text-anchor="middle">strong</text></g>
+        <g class="fade" data-lit="2+"><path class="wire dash" d="M330 146H236M243 139l-7 7 7 7"/><text class="sm" x="283" y="164" text-anchor="middle">weak</text></g>
+        <g class="fade" data-lit="0"><text class="mono" x="280" y="206" text-anchor="middle">BOTH REACHABLE FROM OUTSIDE</text></g>
+        <g class="fade" data-lit="1"><g class="nd alert"><rect class="sh" x="30" y="186" width="500" height="50" rx="12"/><text x="46" y="208">Leak: both stay alive</text><text class="sm" x="46" y="226">they retain each other</text></g></g>
+        <g class="fade" data-lit="2+"><g class="nd lit"><rect class="sh" x="30" y="186" width="500" height="50" rx="12"/><text x="46" y="208">Weak tenant: both can be released</text><text class="sm" x="46" y="226">the cycle is broken</text></g></g>
+      </svg>
+    </div>
+      <i class="step cue"></i><i class="step cue"></i>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Person strongly references its apartment and Apartment strongly references its tenant. Both are also reachable from outside variables. Click: set the outside variables to nil. The two instances still retain one another, so neither is released: a leak.</p>
+    <span class="notes-label">SAY</span><p>Click: make Apartment’s reference to its tenant weak. Now nothing keeps Person alive once the outside reference goes, and the cycle no longer prevents deallocation.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the fix in code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Fix</p>
+  <h2>Break the cycle with weak</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="cw"><div class="ch"><span>Ownership.swift</span></div><pre class="cb" style="font-size:15px">class Person {
+    var apartment: Apartment?
+
+    deinit {
+        print(&quot;Person deinitialized&quot;)
+    }
+}
+
+class Apartment {
+    weak var tenant: Person?
+
+    deinit {
+        print(&quot;Apartment deinitialized&quot;)
+    }
+}</pre></div>
+    <div>
+      <p>The apartment no longer <b>strongly owns</b> its tenant.</p>
+      <div class="gap"></div>
+      <div class="rule step">When the external strong references are released, the cycle <b>no longer prevents deallocation</b>. Both deinit messages print.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One word changes: weak var tenant. The apartment no longer strongly owns its tenant, so once the outside references are released, both objects can be deinitialized and both messages print.</p>
+    <span class="notes-label">CONNECT</span><p>Cycles between two classes are easy to spot. Cycles through closures are not.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Retain cycles in closures</h2>
+    <p class="lead">One of the most common memory bugs</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A closure is a block of code that can capture values from its surrounding context, including self.</p>
+    <span class="notes-label">CONNECT</span><p>Look at this ViewModel.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Closure cycle</p>
+  <h2>A closure that captures self</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
+    <div class="cw"><div class="ch"><span>ProfileViewModel.swift</span></div><pre class="cb" style="font-size:15px">class ProfileViewModel {
+
+    var onUpdate: (() -&gt; Void)?
+
+    func configure() {
+        onUpdate = {
+            print(self)
+        }
+    }
+
+    deinit {
+        print(&quot;ProfileViewModel destroyed&quot;)
+    }
+}</pre></div>
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 248" role="img" aria-labelledby="s19clo">
+        <title id="s19clo">ProfileViewModel owns its onUpdate closure, which captures self strongly; after the external owner is released, the two keep each other alive</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="250" height="56" rx="12"/><text x="16" y="34">External owner</text></g>
+        <g class="fade" data-lit="0"><path class="wire" d="M125 56V92M118 85l7 7 7-7"/></g>
+        <g class="fade" data-lit="1+"><text class="sm" x="140" y="82">released</text></g>
+        <g class="nd"><rect class="sh" x="0" y="98" width="250" height="70" rx="12"/><use href="#i-layout" x="14" y="120" width="26" height="26"/><text x="52" y="130">ProfileViewModel</text><text class="sm" x="52" y="148">self</text></g>
+        <g class="nd"><rect class="sh" x="320" y="98" width="240" height="70" rx="12"/><use href="#i-code" x="334" y="120" width="26" height="26"/><text x="372" y="139">onUpdate closure</text></g>
+        <path class="wire" d="M250 120H314M307 113l7 7-7 7"/>
+        <text class="sm" x="282" y="112" text-anchor="middle">owns</text>
+        <path class="wire" d="M320 150H256M263 143l-7 7 7 7"/>
+        <text class="sm" x="288" y="168" text-anchor="middle">captures self</text>
+        <g class="fade" data-lit="1+"><g class="nd alert"><rect class="sh" x="0" y="196" width="560" height="50" rx="12"/><text x="16" y="218">Still alive: the closure keeps the ViewModel</text><text class="sm" x="16" y="236">a cycle without an outside owner</text></g></g>
+      </svg>
+    </div>
+      <i class="step cue"></i>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The ViewModel owns its onUpdate closure. The closure captures self strongly, and self is the ViewModel. Both keep each other alive.</p>
+    <span class="notes-label">SAY</span><p>Click: the external owner releases the ViewModel. The cycle remains, so deinit never runs.</p>
+    <span class="notes-label">CONNECT</span><p>The fix is a capture list.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Fix</p>
+  <h2><code>[weak self]</code></h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="cw"><div class="ch"><span>ProfileViewModel.swift</span></div><pre class="cb" style="font-size:15px">class ProfileViewModel {
+
+    var onUpdate: (() -&gt; Void)?
+
+    func configure() {
+        onUpdate = { [weak self] in
+            guard let self else { return }
+            print(self)
+        }
+    }
+
+    deinit {
+        print(&quot;ProfileViewModel destroyed&quot;)
+    }
+}</pre></div>
+    <div>
+      <div class="points v stages"><div class="step"><span class="q-num">1</span><span><b><code>[weak self]</code></b><small>the closure no longer retains the ViewModel</small></span></div><div class="step"><span class="q-num">2</span><span><b><code>guard let self</code></b><small>a temporary strong reference while the closure runs, if the object still exists</small></span></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>[weak self] prevents the closure from retaining the ViewModel through its capture. guard let self temporarily obtains a strong reference while the closure executes, if the object still exists; otherwise it returns.</p>
+    <span class="notes-label">CONNECT</span><p>Compare the two captures side by side.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Strong versus weak capture</h2>
+    <p class="lead">Same code, one keyword different</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Let's compare what happens when the external owner goes away.</p>
+    <span class="notes-label">CONNECT</span><p>Two captures, one per click.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Capture experiment &middot; conceptual</p>
+  <h2>Strong vs weak capture</h2>
+  <div class="body cols middle" style="grid-template-columns:1.25fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 690 242" role="img" aria-labelledby="s22cap">
+        <title id="s22cap">With strong capture the ViewModel stays alive after its external owner is released; with weak capture it is deallocated</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="0" width="270" height="52" rx="12"/><text x="16" y="32">Strong capture</text></g>
+        <g class="nd" data-lit="1+"><rect class="sh" x="290" y="0" width="270" height="52" rx="12"/><text x="306" y="32">Weak capture</text></g>
+        <g class="nd"><rect class="sh" x="0" y="90" width="260" height="70" rx="12"/><use href="#i-layout" x="14" y="112" width="26" height="26"/><text x="52" y="131">ViewModel</text></g>
+        <g class="nd"><rect class="sh" x="420" y="90" width="260" height="70" rx="12"/><use href="#i-code" x="434" y="112" width="26" height="26"/><text x="472" y="131">Closure</text></g>
+        <path class="wire" d="M260 110H414M407 103l7 7-7 7"/>
+        <text class="sm" x="337" y="102" text-anchor="middle">owns</text>
+        <g class="fade" data-lit="0"><path class="wire" d="M420 142H266M273 135l-7 7 7 7"/><text class="sm" x="343" y="160" text-anchor="middle">strong capture</text></g>
+        <g class="fade" data-lit="1+"><path class="wire dash" d="M420 142H266M273 135l-7 7 7 7"/><text class="sm" x="343" y="160" text-anchor="middle">weak capture</text></g>
+        <g class="fade" data-lit="0"><g class="nd alert"><rect class="sh" x="0" y="190" width="680" height="50" rx="12"/><text x="16" y="212">External owner released: ViewModel stays alive</text><text class="sm" x="16" y="230">strong ownership cycle</text></g></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="0" y="190" width="680" height="50" rx="12"/><text x="16" y="212">External owner released: ViewModel deallocated</text><text class="sm" x="16" y="230">no cycle</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i>
+    <div class="rule step" data-label="Not for every closure"><code>[weak self]</code> matters for <b>escaping closures</b> that are retained and create a cycle. A short-lived, non-escaping closure does not need it.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Strong capture: release the external owner and the ViewModel stays alive in an ownership cycle. Click: with weak capture, the same release lets the ViewModel be deallocated.</p>
+    <span class="notes-label">SAY</span><p>Do not teach [weak self] as mandatory for every closure. It matters for escaping closures retained in a way that creates an unwanted cycle or extends a lifetime beyond what is intended. A short-lived non-escaping closure does not automatically need it.</p>
+    <span class="notes-label">CONNECT</span><p>Weak is one way to break a cycle. When is unowned the right choice?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 9</p>
+    <h2>Weak versus unowned</h2>
+    <p class="lead">When should we use each?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Both avoid retaining. They differ in what happens when the other object goes away.</p>
+    <span class="notes-label">CONNECT</span><p>Two relationships to compare.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 9 &middot; Comparison</p>
+  <h2>strong vs weak vs unowned</h2>
+  <div class="body top">
+    <table class="tbl" style="font-size:19px">
+      <tr><th>Property</th><th>strong</th><th>weak</th><th>unowned</th></tr>
+      <tr><td>Keeps object alive</td><td>Yes</td><td>No</td><td>No</td></tr>
+      <tr><td>Becomes nil on deallocation</td><td>No</td><td>Yes</td><td>No (ordinary unowned)</td></tr>
+      <tr><td>Common usage</td><td>Ownership</td><td>Optional back-reference</td><td>Guaranteed lifetime relationship</td></tr>
+      <tr><td>Risk</td><td>Retain cycle</td><td>Reference may be nil</td><td>Invalid access may crash</td></tr>
+    </table>
+    <div class="gap"></div>
+    <div class="cols">
+      <div class="card accent step"><span class="label">Weak: apartment and tenant</span><p class="small" style="margin:0">The tenant can move out, so the apartment&rsquo;s reference to its tenant is <b>weak</b>.</p></div>
+      <div class="card accent step"><span class="label">Unowned: card and customer</span><p class="small" style="margin:0">A card cannot exist without its customer: an <b>unowned</b> candidate, if that guarantee is enforced.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Strong keeps the object alive; the risk is a retain cycle. Weak does not, and becomes nil on deallocation; the risk is that it may be nil. Unowned does not keep it alive and does not become nil; invalid access may crash.</p>
+    <span class="notes-label">SAY</span><p>The tenant can move out, so the apartment’s reference is weak. A credit card that cannot exist without its customer can be unowned, provided that lifetime guarantee is enforced.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the card in code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 9 &middot; unowned</p>
+  <h2>A card that cannot outlive its customer</h2>
+  <div class="body cols middle" style="grid-template-columns:1.2fr 1fr">
+    <div class="cw"><div class="ch"><span>CreditCard.swift</span></div><pre class="cb" style="font-size:14.5px">class Customer {
+    let name: String
+    var card: CreditCard?
+
+    init(name: String) {
+        self.name = name
+    }
+}
+
+class CreditCard {
+    let number: String
+    unowned let customer: Customer
+
+    init(number: String, customer: Customer) {
+        self.number = number
+        self.customer = customer
+    }
+}</pre></div>
+    <div>
+      <div class="rule step" data-label="Only if">Safe only if the card is <b>never accessed</b> after its customer has been deallocated.</div>
+      <div class="gap"></div>
+      <p class="small step">Teach <b>weak first</b>. Introduce unowned only once students understand lifetime guarantees.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The customer strongly owns the card; the card holds an unowned reference back. This design is safe only if the card is never accessed after its customer has been deallocated.</p>
+    <span class="notes-label">SAY</span><p>Introduce weak first, and teach unowned only after students understand lifetime guarantees.</p>
+    <span class="notes-label">CONNECT</span><p>Is every high-memory app leaking? No.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 10</p>
+    <h2>Memory leak versus high memory usage</h2>
+    <p class="lead">Not the same thing</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two problems that are often confused.</p>
+    <span class="notes-label">CONNECT</span><p>Compare them.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 10 &middot; Two problems</p>
+  <h2>Leak vs high usage</h2>
+  <div class="body">
+    <div class="cols stretch">
+      <div class="card accent step"><span class="label">Memory leak</span><p>Memory stays allocated though <b>no longer needed</b>, and cannot be reclaimed through the intended ownership path.</p></div>
+      <div class="card step"><span class="label">High memory usage</span><p>The app uses a lot of memory. That may be <b>legitimate</b>, or a sign of excessive caching or allocation.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="analogy step"><div class="icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div><p>A photo app keeps recent images in a <b>cache</b>: not a leak. But a cache that grows <b>without bounds</b> can still cause memory problems, even when everything stays reachable.</p></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A leak is memory that stays allocated though no longer needed and cannot be reclaimed through the intended ownership path. High memory usage may be legitimate, or may indicate excessive caching or allocation.</p>
+    <span class="notes-label">SAY</span><p>An app can use a lot of memory without leaking; and a small leak repeated thousands of times can eventually cause serious memory pressure. An image cache is fine until it grows without bounds.</p>
+    <span class="notes-label">CONNECT</span><p>How do we find out which one we have?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 11</p>
+    <h2>Detecting leaks with Xcode</h2>
+    <p class="lead">Memory Graph, Allocations and Leaks</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Xcode provides several tools for investigating memory.</p>
+    <span class="notes-label">CONNECT</span><p>Start with the Memory Graph Debugger.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 11 &middot; Tools</p>
+  <h2>Three memory tools</h2>
+  <div class="body cols c3 stretch">
+    <div class="card accent step"><span class="label">Memory Graph Debugger</span><p class="small">Inspect object relationships and find instances that <b>remain alive unexpectedly</b>.</p></div>
+    <div class="card accent step"><span class="label">Instruments: Allocations</span><p class="small">Allocation patterns, object <b>lifetimes</b> and memory <b>growth</b>.</p></div>
+    <div class="card accent step"><span class="label">Instruments: Leaks</span><p class="small">Detects certain leaked allocations. Objects still reachable through a <b>cycle</b> may not be reported.</p></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The Memory Graph Debugger shows object relationships, so you can find instances that stay alive unexpectedly. Allocations shows allocation patterns, lifetimes and growth. Leaks detects certain leaked allocations, but not every unwanted retained object is reported, especially one still reachable through a reference cycle.</p>
+    <span class="notes-label">LIVE DEMO</span><p>Open a screen that creates a ViewModel, navigate away, check whether deinit runs; if it does not, open the Memory Graph and find the strong-reference chain keeping it alive. A missing deinit alone does not prove a leak: the object may be intentionally owned.</p>
+    <span class="notes-label">CONNECT</span><p>Here is a repeatable sequence for any suspected leak.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 11 &middot; Debugging sequence</p>
+  <h2>Six steps for a suspected leak</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 178" role="img" aria-labelledby="s30seq">
+        <title id="s30seq">Reproduce, observe, inspect the memory graph, identify the strong reference, correct ownership, verify</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="352" height="66" rx="12"/><text x="16" y="30">1. Reproduce</text><text class="sm" x="16" y="48">the suspected leak</text></g>
+        <path class="wire" d="M358 33H386M379 26l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="392" y="0" width="352" height="66" rx="12"/><text x="408" y="30">2. Observe</text><text class="sm" x="408" y="48">memory growth or missing deinit</text></g>
+        <path class="wire" d="M750 33H778M771 26l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="784" y="0" width="352" height="66" rx="12"/><text x="800" y="30">3. Inspect</text><text class="sm" x="800" y="48">Memory Graph and ownership</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="110" width="352" height="66" rx="12"/><text x="16" y="140">4. Identify</text><text class="sm" x="16" y="158">the unexpected strong reference</text></g>
+        <path class="wire" d="M358 143H386M379 136l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="392" y="110" width="352" height="66" rx="12"/><text x="408" y="140">5. Correct</text><text class="sm" x="408" y="158">ownership or lifecycle handling</text></g>
+        <path class="wire" d="M750 143H778M771 136l7 7-7 7"/>
+        <g class="nd" data-lit="6"><rect class="sh" x="784" y="110" width="352" height="66" rx="12"/><text x="800" y="140">6. Verify</text><text class="sm" x="800" y="158">repeat the test</text></g>
+        <path class="wire" d="M960 66V88H176V104M169 97l7 7 7-7"/>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <p class="small muted">A missing deinit message alone does not prove a leak: the object may still be intentionally owned.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through: reproduce the suspected leak; observe memory growth or a missing deinit; inspect the Memory Graph and ownership; identify the unexpected strong reference; correct the ownership or lifecycle handling; then repeat the test and verify.</p>
+    <span class="notes-label">CONNECT</span><p>A real-world case: the repeating timer.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 12</p>
+    <h2>Real-world example: a timer</h2>
+    <p class="lead">A retain cycle hiding in plain sight</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A repeating timer can keep an object alive if its closure strongly captures that object.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 12 &middot; Timer cycle</p>
+  <h2>A repeating timer that never lets go</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 116" role="img" aria-labelledby="s33tim">
+        <title id="s33tim">Timer infrastructure retains the timer, the timer retains its closure, the closure retains the controller, and the controller holds the timer</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="240" height="60" rx="12"/><text x="16" y="36">Timer infrastructure</text></g>
+        <g class="nd"><rect class="sh" x="300" y="0" width="200" height="60" rx="12"/><use href="#i-clock" x="314" y="17" width="26" height="26"/><text x="352" y="36">Timer</text></g>
+        <g class="nd"><rect class="sh" x="560" y="0" width="200" height="60" rx="12"/><use href="#i-code" x="574" y="17" width="26" height="26"/><text x="612" y="36">Closure</text></g>
+        <g class="nd"><rect class="sh" x="820" y="0" width="316" height="60" rx="12"/><use href="#i-layout" x="834" y="17" width="26" height="26"/><text x="872" y="27">DashboardController</text><text class="sm" x="872" y="45">self</text></g>
+        <path class="wire" d="M240 30H294M287 23l7 7-7 7"/>
+        <path class="wire" d="M500 30H554M547 23l7 7-7 7"/>
+        <path class="wire" d="M760 30H814M807 23l7 7-7 7"/>
+        <path class="wire" d="M978 60V92H400V66M393 73l7-7 7 7"/>
+        <text class="sm" x="689" y="110" text-anchor="middle">the controller also holds the timer</text>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:1.2fr 1fr;align-items:center">
+      <div class="cw"><div class="ch"><span>DashboardController.swift</span></div><pre class="cb" style="font-size:11.5px;line-height:1.3;padding:10px 18px">class DashboardController {
+
+    var timer: Timer?
+
+    func startTimer() {
+        timer = Timer.scheduledTimer(
+            withTimeInterval: 1,
+            repeats: true
+        ) { _ in
+            self.refreshDashboard()
+        }
+    }
+
+    func refreshDashboard() {
+        print(&quot;Refreshing...&quot;)
+    }
+
+    deinit {
+        timer?.invalidate()
+        print(&quot;Dashboard destroyed&quot;)
+    }
+}</pre></div>
+      <div class="rule step" data-label="The trap"><code>deinit</code> cleanup cannot help if the cycle stops <code>deinit</code> from <b>ever running</b>.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The timer infrastructure retains the timer, the timer retains its closure, and the closure retains self. The controller also holds a reference to the timer. This can prevent the controller from ever being released.</p>
+    <span class="notes-label">SAY</span><p>The invalidate call in deinit looks like cleanup, but it cannot solve the problem if the cycle prevents deinit from running in the first place.</p>
+    <span class="notes-label">CONNECT</span><p>So what is the safer design?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 12 &middot; Fix</p>
+  <h2>Weak capture and explicit cancellation</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="cw"><div class="ch"><span>DashboardController.swift</span></div><pre class="cb" style="font-size:16px">func startTimer() {
+    timer = Timer.scheduledTimer(
+        withTimeInterval: 1,
+        repeats: true
+    ) { [weak self] _ in
+        self?.refreshDashboard()
+    }
+}
+
+func stopTimer() {
+    timer?.invalidate()
+    timer = nil
+}</pre></div>
+    <div>
+      <div class="tip" data-label="Two related fixes"><div class="points v"><div><svg viewBox="0 0 24 24"><use href="#i-code"/></svg><span><b>Weak capture</b><small>addresses the closure owning self</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg><span><b>Explicit invalidation</b><small>stops the timer when the feature no longer needs it</small></span></div></div></div>
+      <div class="gap"></div>
+      <div class="rule step">They solve <b>related but distinct</b> problems: ownership versus ongoing activity.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Weak capture addresses the closure’s ownership of self. Explicit invalidation, in stopTimer, addresses the timer’s continuing activity when the feature no longer needs it. Related, but distinct problems; you usually need both.</p>
+    <span class="notes-label">CONNECT</span><p>Let's check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Four questions. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does assigning a Swift struct to another variable always create an immediate deep copy of all storage?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does assigning a Swift struct to another variable always create an immediate deep copy of all storage?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Value semantics are guaranteed, but storage may be shared until a copy is modified (copy-on-write).</p>
+          <p class="q-trap"><b>Common trap:</b> Equating value semantics with copying every byte.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Value semantics are guaranteed, but storage may be shared until a copy is modified (copy-on-write).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What keeps a class instance alive under ARC?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">What keeps a class instance alive under ARC?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Strong references</span>
+          <p class="q-why">Weak references do not keep it alive, and its class name has nothing to do with lifetime.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking any reference keeps an object alive.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most get this; ask why a weak reference does not count.</p>
+    <span class="notes-label">SAY</span><p>Strong references. Weak references do not keep it alive, and its class name has nothing to do with lifetime.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can two class instances that strongly retain each other stay alive after external references disappear?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can two class instances that strongly retain each other stay alive after external references disappear?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">That is a retain cycle: each keeps the other alive, so neither is deallocated.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming ARC detects and breaks cycles.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some expect ARC to clean it up, as a garbage collector might.</p>
+    <span class="notes-label">SAY</span><p>Yes. That is a retain cycle: each keeps the other alive, so neither is deallocated.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should every closure capture self weakly?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should every closure capture <code>self</code> weakly?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Weak capture matters for escaping closures that create an unwanted cycle. Short-lived non-escaping closures do not need it.</p>
+          <p class="q-trap"><b>Common trap:</b> Adding [weak self] everywhere by reflex.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes after this lesson; push back.</p>
+    <span class="notes-label">SAY</span><p>No. Weak capture matters for escaping closures that create an unwanted cycle. Short-lived non-escaping closures do not need it.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 0.6 complete</p>
+    <h2>iOS Memory<br>Architecture &amp; ARC</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: how iOS protects apps from one another</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We have now connected iOS process architecture, lifecycle, the main thread, concurrency and memory management. You can explain value and reference semantics, how ARC manages lifetimes, why strong-reference cycles occur, how weak and unowned differ, why closures and timers can retain objects, and how to investigate retention in Xcode.</p>
+    <span class="notes-label">SAY</span><p>The next natural foundation is how iOS protects applications from one another.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../shared/art.js"></script>
+<script src="../../shared/deck.js"></script>
+</body>
+</html>
