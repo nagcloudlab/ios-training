@@ -6,6 +6,8 @@
           S   speaker notes       O  overview      F  fullscreen
           B   blank screen        ?  help
    Mark any element with class="step" to reveal incrementally.
+   data-lit="N" on any element adds .lit while N steps are shown
+   (also "N-M", "N+"); <i class="step cue"></i> = invisible step.
    Put speaker notes in <aside class="notes-src"> inside a slide.
    <pre class="cb"> inside a .cw gets Swift syntax colouring.
    ===================================================================== */
@@ -59,7 +61,10 @@
 
     // overview button
     var b = mk('button');
-    var title = (s.querySelector('h1,h2') || {}).textContent || 'Slide ' + (i + 1);
+    // data-title overrides; <br> in a heading becomes a space
+    var h = s.querySelector('h1,h2');
+    var title = s.dataset.title || (h ? h.innerHTML.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ') : '') || 'Slide ' + (i + 1);
     b.innerHTML = '<small>' + (i + 1) + '</small><span>' + esc(title.trim()) + '</span>';
     b.onclick = function () { go(i); toggle(overview, false); };
     overview.append(b);
@@ -83,8 +88,14 @@
     // mark past steps
     st.forEach(function (x) { x.classList.remove('past'); });
     if (showAll) st.forEach(function (x) { x.classList.add('past'); });
+    light(s);
 
     progress.style.width = ((current + 1) / slides.length * 100) + '%';
+
+    // edge to edge: letterbox strips continue the slide's own background
+    var cs = getComputedStyle(s);
+    document.body.style.backgroundColor = /^rgba\(0, 0, 0, 0\)$|^transparent$/.test(cs.backgroundColor) ? '#0f172a' : cs.backgroundColor;
+    document.body.style.backgroundImage = cs.backgroundImage;
 
     // speaker notes
     var src = s.querySelector('aside.notes-src');
@@ -107,6 +118,7 @@
       steps(slides[current]).forEach(function (x) {
         if (x.classList.contains('shown') && x !== hidden[0]) x.classList.add('past');
       });
+      light(slides[current]);
       return;
     }
     if (current < slides.length - 1) go(current + 1);
@@ -118,13 +130,28 @@
       var last = shown[shown.length - 1];
       last.classList.remove('shown');
       last.classList.remove('past');
+      light(slides[current]);
       return;
     }
     if (current > 0) go(current - 1, true);
   }
 
+  // data-lit="2" | "2-4" | "2+" (space-separated) → .lit while that many steps are shown
+  function light(s) {
+    var n = s.querySelectorAll('.step.shown').length;
+    s.querySelectorAll('[data-lit]').forEach(function (el) {
+      var on = el.dataset.lit.split(/\s+/).some(function (r) {
+        var m = r.match(/^(\d+)(\+|-(\d+))?$/);
+        if (!m) return false;
+        var a = +m[1];
+        return m[2] === '+' ? n >= a : m[3] ? n >= a && n <= +m[3] : n === a;
+      });
+      el.classList.toggle('lit', on);
+    });
+  }
+
   function fit() {
-    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720) * 0.97;
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
     document.documentElement.style.setProperty('--scale', 'scale(' + s.toFixed(4) + ')');
   }
 
@@ -176,6 +203,24 @@
     var dx = e.changedTouches[0].clientX - touchX;
     if (Math.abs(dx) > 50) (dx < 0 ? next : prev)();
     touchX = null;
+  });
+
+  /* ---------- print: every slide in its final state ---------- */
+  window.addEventListener('beforeprint', function () {
+    slides.forEach(function (s) {
+      steps(s).forEach(function (x) { x.classList.add('shown', 'past'); });
+      light(s);
+    });
+  });
+  window.addEventListener('afterprint', function () {
+    slides.forEach(function (s) { steps(s).forEach(function (x) { x.classList.remove('shown', 'past'); }); });
+    go(current);
+  });
+
+  // typing #12 in the address bar jumps to slide 12
+  window.addEventListener('hashchange', function () {
+    var i = (parseInt(location.hash.slice(1), 10) || 1) - 1;
+    if (i !== current) go(i);
   });
 
   /* ---------- init ---------- */

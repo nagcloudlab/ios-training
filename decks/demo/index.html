@@ -52,17 +52,17 @@
   <div class="body top">
     <div class="cols c3">
       <div class="card teal">
-        <span class="label">Teal</span>
+        <span class="label">Focus</span>
         <h3>Primary card</h3>
         <p>Used for key concepts</p>
       </div>
       <div class="card blue">
-        <span class="label">Blue</span>
+        <span class="label">Info</span>
         <h3>Info card</h3>
         <p>Supplementary details</p>
       </div>
       <div class="card amber">
-        <span class="label">Amber</span>
+        <span class="label">Note</span>
         <h3>Warning card</h3>
         <p>Things to watch out for</p>
       </div>
@@ -74,7 +74,7 @@
         <p>Teal left border for emphasis</p>
       </div>
       <div class="card red step">
-        <span class="label">Red</span>
+        <span class="label">Alert</span>
         <h3>Danger card</h3>
         <p>Critical mistakes or anti-patterns</p>
       </div>
@@ -107,7 +107,7 @@
     <div class="answer step"><b>No.</b> If a process for the app already exists, the system foregrounds it instead of creating a new one.</div>
     <div class="gap"></div>
     <div class="analogy step">
-      <div class="icon">&#x1F4DA;</div>
+      <div class="icon"><svg viewBox="0 0 24 24"><use href="#i-book"/></svg></div>
       <p>A <b>recipe book</b> (installed program) is not the same as a <b>working kitchen</b> (running process).</p>
     </div>
   </div>
@@ -175,7 +175,7 @@
       <div class="pill amber">Kernel</div>
     </div>
     <div class="layers">
-      <div class="layer teal">PocketBank app code (Swift)</div>
+      <div class="layer teal">NPay app code (Swift)</div>
       <div class="layer">SwiftUI / UIKit / Foundation</div>
       <div class="layer">iOS services &amp; platform facilities</div>
       <div class="layer">Darwin / XNU kernel</div>
@@ -190,11 +190,11 @@
   <h2>Swift syntax highlighting</h2>
   <div class="body top">
     <div class="cw">
-      <div class="ch"><span>PocketBankApp.swift</span></div>
+      <div class="ch"><span>NPayApp.swift</span></div>
       <pre class="cb">import SwiftUI
 
 @main
-struct PocketBankApp: App {
+struct NPayApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -250,7 +250,7 @@ struct PocketBankApp: App {
         <rect x="135" y="332" width="70" height="4" rx="2" fill="#0f172a" opacity=".25"/>
         <!-- Screen content -->
         <rect x="86" y="48" width="168" height="36" rx="8" fill="#f0fdfa" stroke="#0d9488" stroke-width="1.5"/>
-        <text x="170" y="72" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#0d9488">PocketBank</text>
+        <text x="170" y="72" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#0d9488">NPay</text>
         <!-- Balance card -->
         <rect x="86" y="96" width="168" height="56" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
         <text x="98" y="114" font-family="IBM Plex Mono,monospace" font-size="9" fill="#64748b" letter-spacing=".08em">BALANCE</text>
@@ -258,17 +258,17 @@ struct PocketBankApp: App {
         <!-- Action buttons -->
         <rect x="86" y="164" width="78" height="32" rx="8" fill="#0d9488"/>
         <text x="125" y="184" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" font-weight="600" fill="#fff">Send</text>
-        <rect x="176" y="164" width="78" height="32" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
-        <text x="215" y="184" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" font-weight="600" fill="#2563eb">History</text>
+        <rect x="176" y="164" width="78" height="32" rx="8" fill="#f1f5f9" stroke="#475569" stroke-width="1"/>
+        <text x="215" y="184" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" font-weight="600" fill="#475569">History</text>
         <!-- Transaction list -->
         <line x1="86" y1="212" x2="254" y2="212" stroke="#e2e8f0" stroke-width="1"/>
         <text x="98" y="230" font-family="DM Sans,sans-serif" font-size="10" fill="#64748b">Today</text>
         <rect x="86" y="238" width="168" height="28" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width=".5"/>
         <text x="98" y="256" font-family="DM Sans,sans-serif" font-size="10" fill="#0f172a">Coffee Shop</text>
-        <text x="242" y="256" text-anchor="end" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="#dc2626">-$4.50</text>
+        <text x="242" y="256" text-anchor="end" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="#ea580c">-$4.50</text>
         <rect x="86" y="272" width="168" height="28" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width=".5"/>
         <text x="98" y="290" font-family="DM Sans,sans-serif" font-size="10" fill="#0f172a">Salary Deposit</text>
-        <text x="242" y="290" text-anchor="end" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="#16a34a">+$3,200</text>
+        <text x="242" y="290" text-anchor="end" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="#0d9488">+$3,200</text>
       </svg>
     </div>
   </div>
@@ -316,14 +316,14 @@ struct PocketBankApp: App {
           <rect width="400" height="180" rx="12" fill="#f8fafc"/>
           <!-- Process box -->
           <rect x="20" y="20" width="360" height="140" rx="10" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 3"/>
-          <text x="36" y="42" font-family="IBM Plex Mono,monospace" font-size="11" fill="#0d9488" font-weight="600">PocketBank Process</text>
+          <text x="36" y="42" font-family="IBM Plex Mono,monospace" font-size="11" fill="#0d9488" font-weight="600">NPay Process</text>
           <!-- Memory regions -->
-          <rect x="36" y="56" width="100" height="40" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
-          <text x="86" y="80" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="#2563eb">Code</text>
+          <rect x="36" y="56" width="100" height="40" rx="6" fill="#f1f5f9" stroke="#475569" stroke-width="1"/>
+          <text x="86" y="80" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="#475569">Code</text>
           <rect x="150" y="56" width="100" height="40" rx="6" fill="#f0fdfa" stroke="#0d9488" stroke-width="1"/>
           <text x="200" y="80" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="#0d9488">Heap</text>
-          <rect x="264" y="56" width="100" height="40" rx="6" fill="#fffbeb" stroke="#d97706" stroke-width="1"/>
-          <text x="314" y="80" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="#d97706">Stack</text>
+          <rect x="264" y="56" width="100" height="40" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1"/>
+          <text x="314" y="80" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="#475569">Stack</text>
           <!-- Thread bars -->
           <rect x="36" y="110" width="150" height="12" rx="4" fill="#0d9488" opacity=".7"/>
           <text x="42" y="119" font-family="IBM Plex Mono,monospace" font-size="8" fill="#fff" font-weight="600">Main Thread</text>
@@ -399,7 +399,7 @@ struct PocketBankApp: App {
       <div class="gap"></div>
       <div class="step layers-anim">
         <div class="layers">
-          <div class="layer teal">PocketBank app code</div>
+          <div class="layer teal">NPay app code</div>
           <div class="layer">SwiftUI / UIKit / Foundation</div>
           <div class="layer">iOS services &amp; facilities</div>
           <div class="layer">Darwin / XNU kernel</div>
@@ -446,11 +446,11 @@ struct PocketBankApp: App {
         <rect x="120" y="10" width="120" height="44" rx="10" fill="#f0fdfa" stroke="#0d9488" stroke-width="2"/>
         <text x="180" y="38" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#0d9488">App Code</text>
 
-        <rect x="10" y="120" width="120" height="44" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-        <text x="70" y="148" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#2563eb">SwiftUI</text>
+        <rect x="10" y="120" width="120" height="44" rx="10" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+        <text x="70" y="148" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#475569">SwiftUI</text>
 
-        <rect x="230" y="120" width="120" height="44" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-        <text x="290" y="148" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#2563eb">Foundation</text>
+        <rect x="230" y="120" width="120" height="44" rx="10" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+        <text x="290" y="148" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#475569">Foundation</text>
 
         <rect x="120" y="220" width="120" height="44" rx="10" fill="#1e293b" stroke="#0f172a" stroke-width="2"/>
         <text x="180" y="248" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="14" font-weight="700" fill="#e2e8f0">Kernel</text>
@@ -458,14 +458,14 @@ struct PocketBankApp: App {
         <!-- Animated connecting lines -->
         <path d="M180 54 L70 120"  stroke="#0d9488" stroke-width="2" class="draw-path" style="--path-len:140"/>
         <path d="M180 54 L290 120" stroke="#0d9488" stroke-width="2" class="draw-path draw-slow" style="--path-len:140"/>
-        <path d="M70 164 L180 220"  stroke="#2563eb" stroke-width="2" class="draw-path" style="--path-len:140"/>
-        <path d="M290 164 L180 220" stroke="#2563eb" stroke-width="2" class="draw-path draw-slow" style="--path-len:140"/>
+        <path d="M70 164 L180 220"  stroke="#475569" stroke-width="2" class="draw-path" style="--path-len:140"/>
+        <path d="M290 164 L180 220" stroke="#475569" stroke-width="2" class="draw-path draw-slow" style="--path-len:140"/>
 
         <!-- Animated data particles -->
         <circle r="5" fill="#0d9488" opacity=".8">
           <animateMotion dur="2s" repeatCount="indefinite" path="M180,54 L70,120"/>
         </circle>
-        <circle r="5" fill="#2563eb" opacity=".8">
+        <circle r="5" fill="#475569" opacity=".8">
           <animateMotion dur="2.5s" repeatCount="indefinite" path="M70,164 L180,220"/>
         </circle>
       </svg>
@@ -476,21 +476,21 @@ struct PocketBankApp: App {
 <!-- 17 · Hero image slide + image reveal -->
 <section class="slide">
   <p class="kicker">Images</p>
-  <h2>AI image integration</h2>
+  <h2>Screenshots &amp; photos</h2>
   <div class="body cols">
     <div>
-      <p>For each lesson, we generate <b>AI images</b> with consistent style:</p>
+      <p>Teaching diagrams are hand-built <b>svg.art</b>. Real images are only for things that must look real:</p>
       <ul class="small">
-        <li class="step anim-left">Isometric 3D illustrations</li>
-        <li class="step anim-left">Clean white backgrounds</li>
-        <li class="step anim-left">Teal &amp; navy color palette</li>
-        <li class="step anim-left">Technical but approachable</li>
+        <li class="step anim-left">Xcode and Simulator screenshots</li>
+        <li class="step anim-left">Instruments traces</li>
+        <li class="step anim-left">Device photos</li>
+        <li class="step anim-left">App Store pages</li>
       </ul>
       <div class="gap"></div>
       <p class="small muted step anim-up">Images stored in <code>decks/lesson/img/</code> and referenced with <code>.img-reveal</code> or <code>.img-wipe</code> classes for animated entry.</p>
     </div>
     <div>
-      <!-- Placeholder: in real decks, this would be an AI-generated image -->
+      <!-- Placeholder: in real decks, this would be a screenshot -->
       <div class="step anim-scale img-reveal">
         <svg viewBox="0 0 380 300" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:12px;border:1.5px solid #e2e8f0">
           <rect width="380" height="300" rx="12" fill="#f8fafc"/>
@@ -502,16 +502,16 @@ struct PocketBankApp: App {
             <!-- Screen glow -->
             <rect x="8" y="26" width="104" height="170" rx="4" fill="#f0fdfa"/>
             <rect x="14" y="36" width="92" height="24" rx="6" fill="#0d9488" opacity=".15"/>
-            <text x="60" y="52" text-anchor="middle" font-family="DM Sans" font-size="10" font-weight="700" fill="#0d9488">PocketBank</text>
+            <text x="60" y="52" text-anchor="middle" font-family="DM Sans" font-size="10" font-weight="700" fill="#0d9488">NPay</text>
             <rect x="14" y="68" width="92" height="40" rx="6" fill="#fff" stroke="#e2e8f0"/>
             <text x="22" y="82" font-family="monospace" font-size="7" fill="#64748b">BALANCE</text>
             <text x="22" y="98" font-family="DM Sans" font-size="14" font-weight="800" fill="#0f172a">$12,450</text>
           </g>
           <!-- Floating labels -->
           <text x="40" y="140" font-family="DM Sans" font-size="11" fill="#0d9488" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:0s">SwiftUI</text>
-          <text x="290" y="80" font-family="DM Sans" font-size="11" fill="#2563eb" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:.5s">MVVM</text>
-          <text x="300" y="220" font-family="DM Sans" font-size="11" fill="#d97706" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:1s">Async</text>
-          <text x="30" y="260" font-family="DM Sans" font-size="11" fill="#7c3aed" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:1.5s">Security</text>
+          <text x="290" y="80" font-family="DM Sans" font-size="11" fill="#475569" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:.5s">MVVM</text>
+          <text x="300" y="220" font-family="DM Sans" font-size="11" fill="#475569" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:1s">Async</text>
+          <text x="30" y="260" font-family="DM Sans" font-size="11" fill="#475569" font-weight="600" opacity=".7" class="anim-float" style="animation-delay:1.5s">Security</text>
         </svg>
       </div>
     </div>
@@ -575,6 +575,7 @@ struct PocketBankApp: App {
 </section>
 
 </div>
+<script src="../../shared/art.js"></script>
 <script src="../../shared/deck.js"></script>
 </body>
 </html>
