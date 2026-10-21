@@ -1,11 +1,11 @@
 """After gen02.py: add the Lesson 0.2 text's slides and regroup the deck into its Parts.
-Run:  python gen02.py decks/lesson-0.2/index.html && python post02.py"""
+Run:  python gen02.py decks/unit-0/lesson-0.2/index.html && python post02.py"""
 import re, sys
 sys.argv = ['x', '/dev/null']
 src = open(__import__('os').path.join(__import__('os').path.dirname(__import__('os').path.abspath(__file__)), 'gen02.py')).read()
 exec(src[:src.index('S = []')])   # helpers: row, tall, wire, head, svg, code, notes, points
 
-P_ = 'decks/lesson-0.2/index.html'
+P_ = 'decks/unit-0/lesson-0.2/index.html'
 s = open(P_).read()
 first = s.index('<section'); last = s.rindex('</section>') + len('</section>')
 head_, tail_ = s[:first], s[last:]

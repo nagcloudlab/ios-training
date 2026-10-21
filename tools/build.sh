@@ -5,9 +5,9 @@
 set -e
 cd "$(dirname "$0")/.."
 PY=${PY:-python3}
-$PY tools/gen02.py decks/lesson-0.2/index.html
-$PY tools/post02_text.py            # keeps only the lesson text's slides (reads/writes decks/lesson-0.2/index.html)
+$PY tools/gen02.py decks/unit-0/lesson-0.2/index.html
+$PY tools/post02_text.py            # keeps only the lesson text's slides (reads/writes decks/unit-0/lesson-0.2/index.html)
 for n in 3 4 5 6 7 8 9; do
-  $PY tools/gen0$n.py decks/lesson-0.$n/index.html
+  $PY tools/gen0$n.py decks/unit-0/lesson-0.$n/index.html
 done
-$PY tools/gen10.py decks/lesson-0.10/index.html
+$PY tools/gen10.py decks/unit-0/lesson-0.10/index.html

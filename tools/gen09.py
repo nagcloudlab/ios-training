@@ -1,4 +1,4 @@
-"""Generates decks/lesson-0.9/index.html from the Lesson 0.9 text only (PocketBank -> NPay)."""
+"""Generates decks/unit-0/lesson-0.9/index.html from the Lesson 0.9 text only (PocketBank -> NPay)."""
 import html, os, re, sys
 OUT09 = sys.argv[1]
 sys.argv = ['x', '/dev/null']
@@ -379,14 +379,14 @@ doc = f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lesson 0.9 — iOS Data Storage Architecture</title>
-<link rel="stylesheet" href="../../shared/deck.css">
+<link rel="stylesheet" href="../../../shared/deck.css">
 </head>
 <body data-deck="Unit 00 · Lesson 0.9 — iOS Data Storage Architecture">
 <div class="deck">
 
 {''.join(S)}</div>
-<script src="../../shared/art.js"></script>
-<script src="../../shared/deck.js"></script>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
 </body>
 </html>
 """

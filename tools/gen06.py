@@ -1,4 +1,4 @@
-"""Generates decks/lesson-0.6/index.html from the Lesson 0.6 text only."""
+"""Generates decks/unit-0/lesson-0.6/index.html from the Lesson 0.6 text only."""
 import html, re, sys
 OUT06 = sys.argv[1]
 sys.argv = ['x', '/dev/null']
@@ -596,14 +596,14 @@ doc = f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lesson 0.6 — iOS Memory Architecture &amp; ARC</title>
-<link rel="stylesheet" href="../../shared/deck.css">
+<link rel="stylesheet" href="../../../shared/deck.css">
 </head>
 <body data-deck="Unit 00 · Lesson 0.6 — iOS Memory Architecture &amp; ARC">
 <div class="deck">
 
 {''.join(S)}</div>
-<script src="../../shared/art.js"></script>
-<script src="../../shared/deck.js"></script>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
 </body>
 </html>
 """
