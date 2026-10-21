@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0.10 — The Complete iOS Architecture: End to End</title>
+<link rel="stylesheet" href="../../shared/deck.css">
+</head>
+<body data-deck="Unit 00 · Lesson 0.10 — The Complete iOS Architecture">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 00 &middot; Lesson 0.10 &middot; Foundation finale</p>
+    <h1 style="font-size:52px;line-height:1.05">The Complete iOS<br>Architecture: End to End</h1>
+    <p class="lead" style="max-width:680px">What happens, why it happens, who is responsible, and how it all fits together.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The final lesson of the iOS architecture foundation. In Lessons 0.1 to 0.9 we explored individual components; today we connect them into one system. The goal is not to memorize terms but to understand what happens, why, who is responsible, and how it fits together.</p>
+    <span class="notes-label">CONNECT</span><p>We follow one day with NPay.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">The story</p>
+  <h2>One day with NPay</h2>
+  <div class="body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:column;grid-template-rows:repeat(5,auto);gap:16px 48px">
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">1</span><span style="font-size:20px">Taps the NPay icon</span></div>
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">2</span><span style="font-size:20px">iOS launches the app</span></div>
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">3</span><span style="font-size:20px">SwiftUI shows the dashboard</span></div>
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">4</span><span style="font-size:20px">Taps Check Balance</span></div>
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">5</span><span style="font-size:20px">App contacts the bank securely</span></div>
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">6</span><span style="font-size:20px">Server returns &#8377;25,000</span></div>
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">7</span><span style="font-size:20px">Screen updates, data saved</span></div>
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">8</span><span style="font-size:20px">Switches to another app</span></div>
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">9</span><span style="font-size:20px">iOS suspends, may terminate</span></div>
+      <div class="step" style="display:flex;gap:12px;align-items:center"><span class="q-num" style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-family:var(--mono);font-weight:700;flex:none">10</span><span style="font-size:20px">Returns to NPay</span></div>
+    </div>
+    <div class="gap-lg"></div>
+    <p class="lead step" style="margin:0">Can you explain every major component involved? <b>By the end of this lesson, you will.</b></p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Ten moments, one per click: a user taps NPay; iOS launches it; SwiftUI shows the dashboard; the user taps Check Balance; the app contacts the bank securely; the server returns &#8377;25,000; the app updates the screen and saves appropriate data; the user switches apps; iOS suspends NPay and may terminate it; the user returns.</p>
+    <span class="notes-label">ASK</span><p>Which of these ten steps could you explain in detail right now?</p>
+    <span class="notes-label">EXPECT</span><p>Usually only a few. By the end, all ten.</p>
+    <span class="notes-label">CONNECT</span><p>First, the whole architecture in one picture.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The complete architecture</h2>
+    <p class="lead">Two perspectives in one picture</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One diagram that combines application design and platform architecture.</p>
+    <span class="notes-label">CONNECT</span><p>Build it up layer by layer.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Architecture &middot; conceptual</p>
+  <h2>NPay: the complete picture</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 488" style="max-height:480px" role="img" aria-labelledby="s4arch">
+        <title id="s4arch">The NPay app process holds the SwiftUI view, ViewModel, services, networking and storage, on top of Apple frameworks, the kernel and hardware; the bank backend is a separate system reached through system APIs</title>
+        <g class="nd ghost"><rect class="sh" x="0" y="0" width="760" height="300" rx="16"/></g><text class="mono" x="16" y="22">NPAY APP PROCESS</text>
+        <g class="nd" data-lit="1"><rect class="sh" x="20" y="36" width="720" height="52" rx="12"/><use href="#i-phone" x="34" y="49" width="26" height="26"/><text x="72" y="59">SwiftUI View</text><text class="sm" x="72" y="77">screens, navigation, user interaction</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="20" y="98" width="720" height="52" rx="12"/><use href="#i-layout" x="34" y="111" width="26" height="26"/><text x="72" y="121">ViewModel / presentation state</text><text class="sm" x="72" y="139">loading, balance, errors, user actions</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="20" y="160" width="720" height="52" rx="12"/><use href="#i-link" x="34" y="173" width="26" height="26"/><text x="72" y="183">Application services / repository</text><text class="sm" x="72" y="201">business coordination, data access</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="20" y="224" width="350" height="56" rx="12"/><use href="#i-globe" x="34" y="239" width="26" height="26"/><text x="72" y="249">Networking</text><text class="sm" x="72" y="267">URLSession</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="390" y="224" width="350" height="56" rx="12"/><use href="#i-db" x="404" y="239" width="26" height="26"/><text x="442" y="249">Storage</text><text class="sm" x="442" y="267">SwiftData, files, Keychain</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="316" width="760" height="50" rx="12"/><use href="#i-frameworks" x="14" y="328" width="26" height="26"/><text x="52" y="338">Apple frameworks &amp; iOS services</text><text class="sm" x="52" y="356">SwiftUI, Foundation, Security, lifecycle, graphics</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="376" width="760" height="50" rx="12"/><use href="#i-kernel" x="14" y="388" width="26" height="26"/><text x="52" y="398">Darwin / XNU kernel</text><text class="sm" x="52" y="416">processes, threads, virtual memory, scheduling</text></g>
+        <g class="nd solid" data-lit="5"><rect class="sh" x="0" y="436" width="760" height="50" rx="12"/><use class="on" href="#i-chip" x="14" y="448" width="26" height="26"/><text class="on" x="52" y="467">Apple hardware</text></g>
+        <path class="wire dash" data-lit="6" d="M760 251H858"/>
+        <text class="sm" x="809" y="240" text-anchor="middle">network</text>
+        <g class="nd" data-lit="6"><rect class="sh" x="864" y="196" width="272" height="112" rx="14"/><use href="#i-bank" x="986" y="210" width="28" height="28"/><text x="1000" y="272" text-anchor="middle">Bank backend</text><text class="sm" x="1000" y="292" text-anchor="middle">auth, accounts, transactions</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click by click. Inside the NPay process: the SwiftUI view, the ViewModel and presentation state, application services, then networking and storage. Below it: Apple frameworks and iOS services, the Darwin/XNU kernel and the hardware. Last, the bank backend, a separate system reached through network APIs, not part of the iPhone process.</p>
+    <span class="notes-label">SAY</span><p>This diagram mixes two perspectives. Application architecture is how we organize NPay’s code: view, ViewModel, services, networking, storage. Platform architecture is how iOS provides execution, security, frameworks and hardware access. Do not confuse the two.</p>
+    <span class="notes-label">CONNECT</span><p>Now walk the day, stage by stage, starting with the launch.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Stage one: launching NPay</h2>
+    <p class="lead">From the Home Screen to a running app</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 0.1 in seven steps.</p>
+    <span class="notes-label">CONNECT</span><p>Click through the startup.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Startup explorer &middot; conceptual</p>
+  <h2>Launch in seven steps</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 188" role="img" aria-labelledby="s6launch">
+        <title id="s6launch">Seven launch steps from SpringBoard to the first frame</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0.0" y="0" width="147" height="52" rx="12"/><text x="16.0" y="32">SpringBoard</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="164.8" y="0" width="147" height="52" rx="12"/><text x="180.8" y="32">Launch request</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="329.6" y="0" width="147" height="52" rx="12"/><text x="345.6" y="32">Process</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="494.40000000000003" y="0" width="147" height="52" rx="12"/><text x="510.40000000000003" y="32">dyld</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="659.2" y="0" width="147" height="52" rx="12"/><text x="675.2" y="32">@main</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="824.0" y="0" width="147" height="52" rx="12"/><text x="840.0" y="32">Scene</text></g>
+        <g class="nd" data-lit="6+"><rect class="sh" x="988.8000000000001" y="0" width="147" height="52" rx="12"/><text x="1004.8000000000001" y="32">First frame</text></g>
+        <g class="fade" data-lit="0"><text class="mono" x="0" y="104">STEP 1 OF 7</text><text x="0" y="140" style="font-size:26px;font-weight:700">User taps the app icon</text><text x="0" y="174" style="font-size:19px;font-weight:400">The Home Screen handles the interaction and requests a launch or activation.</text></g>
+        <g class="fade" data-lit="1"><text class="mono" x="0" y="104">STEP 2 OF 7</text><text x="0" y="140" style="font-size:26px;font-weight:700">Launch or activate?</text><text x="0" y="174" style="font-size:19px;font-weight:400">The system checks whether an NPay process already exists.</text></g>
+        <g class="fade" data-lit="2"><text class="mono" x="0" y="104">STEP 3 OF 7</text><text x="0" y="140" style="font-size:26px;font-weight:700">Process created</text><text x="0" y="174" style="font-size:19px;font-weight:400">On a cold launch, the OS creates the process and its address space.</text></g>
+        <g class="fade" data-lit="3"><text class="mono" x="0" y="104">STEP 4 OF 7</text><text x="0" y="140" style="font-size:26px;font-weight:700">Code loaded</text><text x="0" y="174" style="font-size:19px;font-weight:400">The dynamic loader prepares the executable and its libraries.</text></g>
+        <g class="fade" data-lit="4"><text class="mono" x="0" y="104">STEP 5 OF 7</text><text x="0" y="140" style="font-size:26px;font-weight:700">Swift entry point</text><text x="0" y="174" style="font-size:19px;font-weight:400">The runtime starts the NPay App type.</text></g>
+        <g class="fade" data-lit="5"><text class="mono" x="0" y="104">STEP 6 OF 7</text><text x="0" y="140" style="font-size:26px;font-weight:700">Scene created</text><text x="0" y="174" style="font-size:19px;font-weight:400">iOS creates a scene; WindowGroup supplies the root view.</text></g>
+        <g class="fade" data-lit="6+"><text class="mono" x="0" y="104">STEP 7 OF 7</text><text x="0" y="140" style="font-size:26px;font-weight:700">Dashboard on screen</text><text x="0" y="174" style="font-size:19px;font-weight:400">SwiftUI evaluates and lays out the views; the first frame appears.</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Checkpoint: who owns the process?">The <b>operating system</b> manages the process. SwiftUI provides app and scene abstractions <b>inside</b> it.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Step one: SpringBoard, the system UI, handles the tap and requests a launch or activation. Click through the rest: the launch decision, process creation, dyld loading, the Swift entry point, the scene, and the first frame. This is Lesson 0.1 compressed.</p>
+    <span class="notes-label">ASK</span><p>Who owns the process?</p>
+    <span class="notes-label">EXPECT</span><p>The operating system. SwiftUI provides application and scene abstractions within the running app.</p>
+    <span class="notes-label">CONNECT</span><p>Inside that process, SwiftUI builds the dashboard.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Stage two: SwiftUI builds the dashboard</h2>
+    <p class="lead">From @main to a view value</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lessons 0.1 and 0.4: the app entry point.</p>
+    <span class="notes-label">CONNECT</span><p>Here it is.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; App entry</p>
+  <h2>The NPay entry point</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="cw"><div class="ch"><span>NPayApp.swift</span></div><pre class="cb" style="font-size:17px">import SwiftUI
+
+@main
+struct NPayApp: App {
+    var body: some Scene {
+        WindowGroup {
+            DashboardView()
+        }
+    }
+}</pre></div>
+    <div>
+      <div class="points v stages"><div class="step"><span class="q-num">1</span><span><b><code>@main NPayApp</code></b><small>the entry-point type</small></span></div><div class="step"><span class="q-num">2</span><span><b>App protocol</b><small>SwiftUI application</small></span></div><div class="step"><span class="q-num">3</span><span><b>WindowGroup</b><small>system-managed windows</small></span></div><div class="step"><span class="q-num">4</span><span><b>DashboardView</b><small>the root view</small></span></div></div>
+      <div class="gap"></div>
+      <div class="rule step"><code>DashboardView()</code> creates a <b>view value</b>; it does not draw pixels. SwiftUI evaluates, lays out and updates.</div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The structure: @main NPayApp, conforming to App, whose body is a WindowGroup containing DashboardView.</p>
+    <span class="notes-label">SAY</span><p>Calling DashboardView() creates a SwiftUI view value. It does not issue drawing commands; SwiftUI manages evaluating the hierarchy, layout and updates.</p>
+    <span class="notes-label">CONNECT</span><p>Now the user does something.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Stage three: Check Balance</h2>
+    <p class="lead">One tap, seven internal steps</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user taps Check Balance. Lessons 0.2 and 0.5.</p>
+    <span class="notes-label">CONNECT</span><p>Watch the screen and what happens behind it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Tap simulation &middot; conceptual</p>
+  <h2>What happens when Check Balance is tapped</h2>
+  <div class="body cols middle" style="grid-template-columns:.55fr 1.45fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 200 400" style="max-height:430px" role="img" aria-labelledby="s10tap">
+        <title id="s10tap">NPay screen: the balance changes from a dash to loading to 25,000 rupees</title>
+        <use href="#d-iphone" x="0" y="0" width="200" height="400"/>
+        <text x="100" y="66" text-anchor="middle" style="font-size:20px;font-weight:800">NPay</text>
+        <g class="nd"><rect class="sh" x="24" y="84" width="152" height="80" rx="12"/><text class="sm" x="100" y="110" text-anchor="middle">Available balance</text></g>
+        <g class="fade" data-lit="0-4"><text x="100" y="148" text-anchor="middle" style="font-size:24px;font-weight:700">&#8212;</text></g>
+        <g class="fade" data-lit="5"><text x="100" y="148" text-anchor="middle" style="font-size:16px;font-weight:600">loading&#8230;</text></g>
+        <g class="fade" data-lit="6+"><text x="100" y="148" text-anchor="middle" style="font-size:22px;font-weight:700;fill:var(--teal-ink)">&#8377;25,000</text></g>
+        <g class="nd lit"><rect class="sh" x="24" y="180" width="152" height="40" rx="12"/><text class="sm" x="100" y="205" text-anchor="middle">Check Balance</text></g>
+      </svg>
+    </div>
+    <div>
+      <div class="points v stages"><div class="step"><span class="q-num">1</span><span><b>Touch event reaches the app</b><small></small></span></div><div class="step"><span class="q-num">2</span><span><b>Button action executes</b><small>SwiftUI</small></span></div><div class="step"><span class="q-num">3</span><span><b>ViewModel starts async work</b><small></small></span></div><div class="step"><span class="q-num">4</span><span><b>Service sends the request</b><small>networking</small></span></div><div class="step"><span class="q-num">5</span><span><b>Response decoded</b><small>into a Swift model</small></span></div><div class="step"><span class="q-num">6</span><span><b>Observable state changes</b><small></small></span></div><div class="step"><span class="q-num">7</span><span><b>SwiftUI updates the balance</b><small></small></span></div></div>
+      <p class="small muted" style="margin:10px 0 0">Illustrates state updates; no real network request.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through seven steps and watch the phone. The touch event reaches the app; the SwiftUI Button action runs; the ViewModel starts an asynchronous operation; the networking service sends the request (the screen shows loading); the response is decoded into a model; observable state changes; SwiftUI shows &#8377;25,000.</p>
+    <span class="notes-label">ASK</span><p>Does the main thread stay blocked while the bank server responds?</p>
+    <span class="notes-label">EXPECT</span><p>Not with properly asynchronous APIs like URLSession and await. The task suspends while the request is pending.</p>
+    <span class="notes-label">CONNECT</span><p>Zoom into the request itself.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Stage four: the API request</h2>
+    <p class="lead">From the view to the bank API</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 0.8: the networking architecture.</p>
+    <span class="notes-label">CONNECT</span><p>Six layers, then the code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Networking &middot; conceptual</p>
+  <h2>The request path and the service</h2>
+  <div class="body cols middle" style="grid-template-columns:.95fr 1.25fr">
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 470 370" style="max-height:430px" role="img" aria-labelledby="s12api">
+        <title id="s12api">DashboardView, BalanceViewModel, BalanceService, URLSession, HTTPS and the bank API</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="470" height="50" rx="12"/><use href="#i-phone" x="14" y="12" width="26" height="26"/><text x="52" y="22">DashboardView</text><text class="sm" x="52" y="40">user interaction</text></g>
+        <path class="wire" d="M235 50V60M228.0 53l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="64" width="470" height="50" rx="12"/><use href="#i-layout" x="14" y="76" width="26" height="26"/><text x="52" y="86">BalanceViewModel</text><text class="sm" x="52" y="104">loading and presentation state</text></g>
+        <path class="wire" d="M235 114V124M228.0 117l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="128" width="470" height="50" rx="12"/><use href="#i-link" x="14" y="140" width="26" height="26"/><text x="52" y="150">BalanceService</text><text class="sm" x="52" y="168">constructs and performs the request</text></g>
+        <path class="wire" d="M235 178V188M228.0 181l7 7 7-7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="192" width="470" height="50" rx="12"/><use href="#i-frameworks" x="14" y="204" width="26" height="26"/><text x="52" y="214">URLSession</text><text class="sm" x="52" y="232">networking API</text></g>
+        <path class="wire" d="M235 242V252M228.0 245l7 7 7-7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="256" width="470" height="50" rx="12"/><use href="#i-lock" x="14" y="268" width="26" height="26"/><text x="52" y="278">HTTPS / TLS</text><text class="sm" x="52" y="296">protected transport</text></g>
+        <path class="wire" d="M235 306V316M228.0 309l7 7 7-7"/>
+        <g class="nd" data-lit="6"><rect class="sh" x="0" y="320" width="470" height="50" rx="12"/><use href="#i-bank" x="14" y="332" width="26" height="26"/><text x="52" y="342">Bank API</text><text class="sm" x="52" y="360">authorization and account retrieval</text></g>
+      </svg>
+    </div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    </div>
+    <div>
+      <div class="cw"><div class="ch"><span>BalanceService.swift</span></div><pre class="cb" style="font-size:11.5px;line-height:1.3;padding:10px 18px">import Foundation
+
+struct BalanceResponse: Decodable {
+    let balanceMinor: Int64
+    let currency: String
+}
+
+struct BalanceService {
+    func fetchBalance() async throws -&gt; BalanceResponse {
+        let url = URL(
+            string: &quot;https://api.npay.example/balance&quot;
+        )!
+
+        let (data, response) =
+            try await URLSession.shared.data(from: url)
+
+        guard let http = response as? HTTPURLResponse,
+              http.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(
+            BalanceResponse.self,
+            from: data
+        )
+    }
+}</pre></div>
+      <p class="small muted" style="margin:6px 0 0">Fictional URL. Real banking code also needs authentication, authorization-aware error handling and secure token management.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click down the path: DashboardView, BalanceViewModel, BalanceService, URLSession, HTTPS and the bank API.</p>
+    <span class="notes-label">SAY</span><p>The service builds the URL, awaits URLSession, checks for a 200 status and decodes BalanceResponse. The URL is fictional, and real code needs authentication, authorization-aware error handling and secure token management.</p>
+    <span class="notes-label">CONNECT</span><p>Which security mechanisms protect this operation?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Stage five: security protects the operation</h2>
+    <p class="lead">Lesson 0.7 in one view</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Several security mechanisms are involved when NPay talks to the bank.</p>
+    <span class="notes-label">CONNECT</span><p>Six of them.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Security &middot; conceptual</p>
+  <h2>Six protections around one request</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 242" role="img" aria-labelledby="s14sec">
+        <title id="s14sec">Code signing, sandbox, Keychain, HTTPS and TLS, backend authorization, data protection</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="352" height="112" rx="14"/><use href="#i-file" x="162" y="14" width="28" height="28"/><text x="176" y="76" text-anchor="middle">Code signing</text><text class="sm" x="176" y="96" text-anchor="middle">code integrity, execution requirements</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="392" y="0" width="352" height="112" rx="14"/><use href="#i-lock" x="554" y="14" width="28" height="28"/><text x="568" y="76" text-anchor="middle">Sandbox</text><text class="sm" x="568" y="96" text-anchor="middle">restricts the app&rsquo;s resource access</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="784" y="0" width="352" height="112" rx="14"/><use href="#i-key" x="946" y="14" width="28" height="28"/><text x="960" y="76" text-anchor="middle">Keychain</text><text class="sm" x="960" y="96" text-anchor="middle">protects sensitive credentials</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="130" width="352" height="112" rx="14"/><use href="#i-globe" x="162" y="144" width="28" height="28"/><text x="176" y="206" text-anchor="middle">HTTPS / TLS</text><text class="sm" x="176" y="226" text-anchor="middle">protects network communication</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="392" y="130" width="352" height="112" rx="14"/><use href="#i-bank" x="554" y="144" width="28" height="28"/><text x="568" y="206" text-anchor="middle">Backend authorization</text><text class="sm" x="568" y="226" text-anchor="middle">decides which account data is accessible</text></g>
+        <g class="nd" data-lit="6"><rect class="sh" x="784" y="130" width="352" height="112" rx="14"/><use href="#i-shield" x="946" y="144" width="28" height="28"/><text x="960" y="206" text-anchor="middle">Data protection</text><text class="sm" x="960" y="226" text-anchor="middle">protects stored data under policy</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Critical lesson">Client-side security does <b>not</b> replace <b>server-side authorization</b>. The bank must verify the user may access the requested account.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through: code signing for integrity, the sandbox restricting access, the Keychain protecting credentials, HTTPS protecting the network, backend authorization deciding what data is accessible, and data protection for stored data.</p>
+    <span class="notes-label">SAY</span><p>Even if NPay stores tokens securely and uses HTTPS, the bank server must independently verify that the authenticated user is authorized for the requested account.</p>
+    <span class="notes-label">CONNECT</span><p>Now the data comes back.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Stage six: data returns, SwiftUI updates</h2>
+    <p class="lead">From bytes to pixels</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The server responds with JSON. How does it reach the screen?</p>
+    <span class="notes-label">CONNECT</span><p>Follow it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Response to screen &middot; conceptual</p>
+  <h2>UI = f(state)</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1.1fr">
+    <div>
+      <div class="cw"><div class="ch"><span>response.json</span></div><pre class="tree" style="font-size:18px;border-radius:0 0 12px 12px">{
+  &quot;balanceMinor&quot;: 2500000,
+  &quot;currency&quot;: &quot;INR&quot;
+}</pre></div>
+      <div class="gap"></div>
+      <div class="rule step" data-label="UI = f(state)">The interface describes what to show for the current state. It does <b>not</b> mean every change redraws the whole screen.</div>
+    </div>
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 520 346" style="max-height:400px" role="img" aria-labelledby="s16ret">
+        <title id="s16ret">Response data, JSONDecoder, BalanceResponse, ViewModel state, SwiftUI re-evaluation, updated balance</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="520" height="46" rx="12"/><use href="#i-file" x="14" y="10" width="26" height="26"/><text x="52" y="29">HTTP response data</text></g>
+        <path class="wire" d="M260 46V56M253.0 49l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="60" width="520" height="46" rx="12"/><use href="#i-code" x="14" y="70" width="26" height="26"/><text x="52" y="89">JSONDecoder</text></g>
+        <path class="wire" d="M260 106V116M253.0 109l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="120" width="520" height="46" rx="12"/><use href="#i-db" x="14" y="130" width="26" height="26"/><text x="52" y="149">BalanceResponse model</text></g>
+        <path class="wire" d="M260 166V176M253.0 169l7 7 7-7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="180" width="520" height="46" rx="12"/><use href="#i-layout" x="14" y="190" width="26" height="26"/><text x="52" y="209">ViewModel updates balance state</text></g>
+        <path class="wire" d="M260 226V236M253.0 229l7 7 7-7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="240" width="520" height="46" rx="12"/><use href="#i-eye" x="14" y="250" width="26" height="26"/><text x="52" y="269">SwiftUI re-evaluates relevant views</text></g>
+        <path class="wire" d="M260 286V296M253.0 289l7 7 7-7"/>
+        <g class="nd" data-lit="6"><rect class="sh" x="0" y="300" width="520" height="46" rx="12"/><use href="#i-frame" x="14" y="310" width="26" height="26"/><text x="52" y="329">Updated balance on screen</text></g>
+      </svg>
+    </div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The server returns balanceMinor 2,500,000 in INR. Click down: the data goes through JSONDecoder into a BalanceResponse; the ViewModel converts it into a display value and updates observable state; SwiftUI re-evaluates the relevant views; the updated balance appears.</p>
+    <span class="notes-label">SAY</span><p>UI equals f of state: a conceptual way to describe declarative UI. It does not imply every state change redraws the whole screen.</p>
+    <span class="notes-label">CONNECT</span><p>What should NPay store, and where?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Stage seven: what should we store?</h2>
+    <p class="lead">Lesson 0.9 applied</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Not all NPay data belongs in the same storage system.</p>
+    <span class="notes-label">CONNECT</span><p>Six pieces of data.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Storage map</p>
+  <h2>Where each piece of data belongs</h2>
+  <div class="body top">
+    <table class="tbl" style="font-size:20px">
+      <tr><th>Data</th><th>Appropriate storage</th></tr>
+      <tr><td>Dark mode preference</td><td>UserDefaults</td></tr>
+      <tr><td>Authentication token</td><td>Keychain</td></tr>
+      <tr><td>Downloaded statement PDF</td><td>Protected file storage</td></tr>
+      <tr><td>Locally saved transaction notes</td><td>SwiftData or another persistence store</td></tr>
+      <tr><td>Current screen loading flag</td><td>In-memory ViewModel state</td></tr>
+      <tr class="hl"><td>Authoritative account balance</td><td>Bank backend</td></tr>
+    </table>
+    <div class="gap"></div>
+    <p class="small step">For cached balances, show clearly <b>when</b> the data was last verified.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Six pieces of data, six homes. The preference in UserDefaults, the token in the Keychain, the PDF in protected file storage, notes in SwiftData or similar, the loading flag only in ViewModel memory, and the authoritative balance on the bank backend.</p>
+    <span class="notes-label">CONNECT</span><p>A developer proposes a shortcut. Spot the problem.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Design challenge</p>
+  <h2>&ldquo;Just put it all in UserDefaults&rdquo;</h2>
+  <div class="body">
+    <p style="margin:0 0 18px">A developer proposes saving the <b>token</b>, the <b>balance</b> and <b>all transactions</b> in UserDefaults. What is wrong?</p>
+    <div class="cols" style="row-gap:16px">
+      <div class="card accent step"><span class="label">Authentication token</span><p class="small" style="margin:0">Use appropriate <b>Keychain</b> protections, not ordinary preferences.</p></div>
+      <div class="card accent step"><span class="label">Account balance</span><p class="small" style="margin:0">The <b>backend</b> is authoritative; a local copy may be stale.</p></div>
+      <div class="card accent step"><span class="label">Transactions</span><p class="small" style="margin:0">A <b>structured persistence</b> mechanism, with data protection and retention.</p></div>
+      <div class="card accent step"><span class="label">Preferences</span><p class="small" style="margin:0"><b>UserDefaults</b> is right for small, non-secret settings.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Principle">Choose storage by <b>sensitivity</b>, <b>size</b>, <b>lifecycle</b> and <b>consistency</b> needs, not because an API is easy.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>A developer proposes saving the authentication token, account balance and all transactions into UserDefaults. What is wrong?</p>
+    <span class="notes-label">EXPECT</span><p>Different data has different security, persistence and performance requirements.</p>
+    <span class="notes-label">SAY</span><p>Click through: the token needs Keychain protection; the balance belongs to the backend and a local copy may be stale; transactions need structured persistence with data protection and retention; only preferences belong in UserDefaults. Choose storage by sensitivity, size, lifecycle and consistency, not convenience.</p>
+    <span class="notes-label">CONNECT</span><p>Now the user leaves NPay.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 9</p>
+    <h2>Stage eight: the user leaves</h2>
+    <p class="lead">Lesson 0.3 in motion</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user presses Home or switches apps. What happens to NPay?</p>
+    <span class="notes-label">CONNECT</span><p>Follow the transitions.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 9 &middot; Lifecycle journey &middot; conceptual</p>
+  <h2>From active to terminated</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 236" role="img" aria-labelledby="s21lc">
+        <title id="s21lc">Active, inactive, background, suspended, terminated, each with its scene phase and process execution state</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="0" width="212" height="52" rx="12"/><text x="16" y="32">Active</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="230" y="0" width="212" height="52" rx="12"/><text x="246" y="32">Inactive</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="460" y="0" width="212" height="52" rx="12"/><text x="476" y="32">Background</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="690" y="0" width="212" height="52" rx="12"/><text x="706" y="32">Suspended</text></g>
+        <g class="nd" data-lit="4+"><rect class="sh" x="920" y="0" width="212" height="52" rx="12"/><text x="936" y="32">Terminated</text></g>
+        <g class="fade" data-lit="0"><text x="0" y="110" style="font-size:26px;font-weight:700">Active</text><text x="0" y="142" style="font-size:19px;font-weight:400">NPay is visible and responding to the user.</text><g class="nd"><rect class="sh" x="0" y="168" width="556" height="66" rx="12"/><text x="16" y="198">Scene phase</text><text class="sm" x="16" y="216">Active</text></g><g class="nd"><rect class="sh" x="580" y="168" width="556" height="66" rx="12"/><text x="596" y="198">Process execution</text><text class="sm" x="596" y="216">Running</text></g></g>
+        <g class="fade" data-lit="1"><text x="0" y="110" style="font-size:26px;font-weight:700">Inactive</text><text x="0" y="142" style="font-size:19px;font-weight:400">Still in the foreground, but temporarily not receiving events.</text><g class="nd"><rect class="sh" x="0" y="168" width="556" height="66" rx="12"/><text x="16" y="198">Scene phase</text><text class="sm" x="16" y="216">Inactive</text></g><g class="nd"><rect class="sh" x="580" y="168" width="556" height="66" rx="12"/><text x="596" y="198">Process execution</text><text class="sm" x="596" y="216">Running</text></g></g>
+        <g class="fade" data-lit="2"><text x="0" y="110" style="font-size:26px;font-weight:700">Background</text><text x="0" y="142" style="font-size:19px;font-weight:400">No longer visible; execution may continue briefly.</text><g class="nd"><rect class="sh" x="0" y="168" width="556" height="66" rx="12"/><text x="16" y="198">Scene phase</text><text class="sm" x="16" y="216">Background</text></g><g class="nd"><rect class="sh" x="580" y="168" width="556" height="66" rx="12"/><text x="596" y="198">Process execution</text><text class="sm" x="596" y="216">Running briefly</text></g></g>
+        <g class="fade" data-lit="3"><text x="0" y="110" style="font-size:26px;font-weight:700">Suspended</text><text x="0" y="142" style="font-size:19px;font-weight:400">Kept in memory, but no code runs.</text><g class="nd"><rect class="sh" x="0" y="168" width="556" height="66" rx="12"/><text x="16" y="198">Scene phase</text><text class="sm" x="16" y="216">Background</text></g><g class="nd"><rect class="sh" x="580" y="168" width="556" height="66" rx="12"/><text x="596" y="198">Process execution</text><text class="sm" x="596" y="216">Suspended</text></g></g>
+        <g class="fade" data-lit="4+"><text x="0" y="110" style="font-size:26px;font-weight:700">Terminated</text><text x="0" y="142" style="font-size:19px;font-weight:400">iOS reclaimed the memory; the process is gone.</text><g class="nd"><rect class="sh" x="0" y="168" width="556" height="66" rx="12"/><text x="16" y="198">Scene phase</text><text class="sm" x="16" y="216">None</text></g><g class="nd alert"><rect class="sh" x="580" y="168" width="556" height="66" rx="12"/><text x="596" y="198">Process execution</text><text class="sm" x="596" y="216">Terminated</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Watch the words">SwiftUI scene phases are <code>.active</code>, <code>.inactive</code>, <code>.background</code>. <b>Suspended</b> is a process condition, not a scene phase.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Active: NPay is visible and responding; the scene phase is active, the process running. Click through: inactive, background with brief execution, suspended with no code running, and terminated. One possible progression; iOS does not guarantee every app passes through each state in order.</p>
+    <span class="notes-label">SAY</span><p>The three scene phases are active, inactive and background. Suspended describes the process. This matters when someone asks whether their background code keeps running.</p>
+    <span class="notes-label">CONNECT</span><p>While navigating, objects come and go too.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 10</p>
+    <h2>Stage nine: memory during navigation</h2>
+    <p class="lead">Lesson 0.6: who owns the ViewModel?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user opens transaction history; NPay creates a ViewModel holding transactions. When they navigate away, is it destroyed?</p>
+    <span class="notes-label">CONNECT</span><p>Look at the ownership.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 10 &middot; Ownership &middot; conceptual</p>
+  <h2>A ViewModel and its closure</h2>
+  <div class="body cols middle" style="grid-template-columns:.9fr 1.2fr">
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 420 216" role="img" aria-labelledby="s24own">
+        <title id="s24own">TransactionHistoryView owns TransactionViewModel, which uses TransactionService</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="420" height="54" rx="12"/><use href="#i-phone" x="14" y="14" width="26" height="26"/><text x="52" y="33">TransactionHistoryView</text></g>
+        <path class="wire" d="M210 54V74M203 67l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="80" width="420" height="54" rx="12"/><use href="#i-layout" x="14" y="94" width="26" height="26"/><text x="52" y="113">TransactionViewModel</text></g>
+        <path class="wire" d="M210 134V154M203 147l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="160" width="420" height="54" rx="12"/><use href="#i-link" x="14" y="174" width="26" height="26"/><text x="52" y="193">TransactionService</text></g>
+      </svg>
+    </div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <div class="gap"></div>
+      <p class="small">A stored closure that strongly captures the ViewModel creates a <b>retain cycle</b>. <code>[weak self]</code> avoids it.</p>
+    </div>
+    <div class="cw"><div class="ch"><span>TransactionViewModel.swift</span></div><pre class="cb" style="font-size:14px">class TransactionViewModel {
+    var onRefresh: (() -&gt; Void)?
+
+    func configure() {
+        onRefresh = { [weak self] in
+            self?.refresh()
+        }
+    }
+
+    func refresh() {
+        print(&quot;Refreshing transactions&quot;)
+    }
+
+    deinit {
+        print(&quot;ViewModel deinitialized&quot;)
+    }
+}</pre></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click down: the view owns the ViewModel, which uses the service. If the ViewModel stores a closure that strongly captures the ViewModel, a retain cycle can form; this code uses weak capture to avoid it.</p>
+    <span class="notes-label">ASK</span><p>Does navigating away from a screen guarantee its ViewModel’s deinit runs immediately?</p>
+    <span class="notes-label">EXPECT</span><p>No. It may still be legitimately retained elsewhere. Navigation and object lifetime are related but not identical.</p>
+    <span class="notes-label">CONNECT</span><p>Finally, the user comes back.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 11</p>
+    <h2>Stage ten: the user returns</h2>
+    <p class="lead">Two possible situations</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user returns to NPay after several minutes.</p>
+    <span class="notes-label">CONNECT</span><p>Survived, or terminated?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 11 &middot; Return scenarios</p>
+  <h2>Warm activation or cold launch</h2>
+  <div class="body">
+    <div class="cols stretch">
+      <div class="card accent step"><span class="label">Process survived: warm activation</span>
+        <ol class="small" style="margin:6px 0 0"><li>iOS resumes execution if the process was suspended.</li><li>The scene returns toward the foreground.</li><li>In-memory state may still exist.</li><li>The app refreshes data when appropriate.</li></ol></div>
+      <div class="card step"><span class="label">Process terminated: cold launch</span>
+        <ol class="small" style="margin:6px 0 0"><li>iOS starts a new process.</li><li>The launch runs again, as in Stage one.</li><li>In-memory state is gone.</li><li>The app restores persisted data and fetches fresh data.</li></ol></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Key lesson">Work correctly in <b>both</b>. Never assume the process stays alive, and never assume cached financial data is <b>current</b>.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Warm activation: iOS resumes the suspended process, the scene comes back to the foreground, in-memory state may still exist, and the app refreshes data when appropriate. Click: cold launch: a new process, the full launch again, in-memory state is gone, so the app restores what it persisted and fetches fresh data.</p>
+    <span class="notes-label">SAY</span><p>A robust app must work in both cases. Never assume the process stays alive, and never assume cached financial data is current.</p>
+    <span class="notes-label">CONNECT</span><p>Now put the whole day on one page.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 12</p>
+    <h2>The complete flow</h2>
+    <p class="lead">One user action, many systems</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Reconstruct the entire NPay journey.</p>
+    <span class="notes-label">CONNECT</span><p>Twelve steps.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 12 &middot; End to end &middot; conceptual</p>
+  <h2>The whole day in twelve steps</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 388" style="max-height:470px" role="img" aria-labelledby="s29flow">
+        <title id="s29flow">Twelve steps from tapping NPay through launch, the dashboard, the balance request, the server, state update, rendering, storage, leaving and returning</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="362" height="76" rx="12"/><text x="16" y="35">1. User taps NPay</text><text class="sm" x="16" y="53">SpringBoard, launch coordination</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="386" y="0" width="362" height="76" rx="12"/><text x="402" y="35">2. iOS starts or activates the app</text><text class="sm" x="402" y="53">process, dyld, Swift entry point</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="772" y="0" width="362" height="76" rx="12"/><text x="788" y="35">3. SwiftUI shows DashboardView</text><text class="sm" x="788" y="53">scene, state, evaluation, rendering</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="104" width="362" height="76" rx="12"/><text x="16" y="139">4. User taps Check Balance</text><text class="sm" x="16" y="157">touch event, main thread, action</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="386" y="104" width="362" height="76" rx="12"/><text x="402" y="139">5. ViewModel requests data</text><text class="sm" x="402" y="157">asynchronous app logic</text></g>
+        <g class="nd" data-lit="6"><rect class="sh" x="772" y="104" width="362" height="76" rx="12"/><text x="788" y="139">6. Service contacts the backend</text><text class="sm" x="788" y="157">URLSession, HTTPS, authentication</text></g>
+        <g class="nd" data-lit="7"><rect class="sh" x="0" y="208" width="362" height="76" rx="12"/><text x="16" y="243">7. Server returns authorized data</text><text class="sm" x="16" y="261">business rules, account data</text></g>
+        <g class="nd" data-lit="8"><rect class="sh" x="386" y="208" width="362" height="76" rx="12"/><text x="402" y="243">8. ViewModel updates state</text><text class="sm" x="402" y="261">decoding, formatting, errors</text></g>
+        <g class="nd" data-lit="9"><rect class="sh" x="772" y="208" width="362" height="76" rx="12"/><text x="788" y="243">9. SwiftUI updates the screen</text><text class="sm" x="788" y="261">reconciliation, layout, presentation</text></g>
+        <g class="nd" data-lit="10"><rect class="sh" x="0" y="312" width="362" height="76" rx="12"/><text x="16" y="347">10. App persists selected data</text><text class="sm" x="16" y="365">SwiftData, files, Keychain, preferences</text></g>
+        <g class="nd" data-lit="11"><rect class="sh" x="386" y="312" width="362" height="76" rx="12"/><text x="402" y="347">11. User leaves the app</text><text class="sm" x="402" y="365">scene lifecycle, background, suspension</text></g>
+        <g class="nd" data-lit="12"><rect class="sh" x="772" y="312" width="362" height="76" rx="12"/><text x="788" y="347">12. User returns</text><text class="sm" x="788" y="365">warm activation or cold launch, restoration</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through all twelve. Each step names the lesson behind it: launch coordination and process startup from 0.1; SwiftUI from 0.4 and 0.5; the request from 0.2 and 0.8; security from 0.7; persistence from 0.9; leaving and returning from 0.3; and object lifetimes from 0.6.</p>
+    <span class="notes-label">CONNECT</span><p>Now think like a senior engineer reviewing someone else’s design.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Architecture review: find the mistakes</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Five design decisions. For each, decide: good design, or a problem? Commit before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="A developer performs a synchronous five-second calculation directly inside a SwiftUI Button action.">
+  <div class="q-top">
+    <p class="kicker">Architecture review &middot; 1 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Good design or problem?</span>
+        <p class="q-text">A developer performs a synchronous five-second calculation directly inside a SwiftUI Button action.</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Problem</span>
+          <p class="q-why">It blocks the main actor: the UI cannot respond for five seconds. Move heavy work off the main actor.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming async UI frameworks protect you from blocking code.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Good design, or a problem? Quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most spot it; ask where the work should run.</p>
+    <span class="notes-label">SAY</span><p>Problem. It blocks the main actor: the UI cannot respond for five seconds. Move heavy work off the main actor.</p>
+    <span class="notes-label">CONNECT</span><p>Next design.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="The authentication token is saved in UserDefaults for convenience.">
+  <div class="q-top">
+    <p class="kicker">Architecture review &middot; 2 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Good design or problem?</span>
+        <p class="q-text">The authentication token is saved in UserDefaults for convenience.</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Problem</span>
+          <p class="q-why">Tokens are credentials. Store them with Keychain protections.</p>
+          <p class="q-trap"><b>Common trap:</b> Choosing storage by convenience.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Good design, or a problem? Quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most spot it.</p>
+    <span class="notes-label">SAY</span><p>Problem. Tokens are credentials. Store them with Keychain protections.</p>
+    <span class="notes-label">CONNECT</span><p>Next design.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Offline, the app shows yesterday’s cached balance as the current balance.">
+  <div class="q-top">
+    <p class="kicker">Architecture review &middot; 3 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></div>
+        <span class="label">Good design or problem?</span>
+        <p class="q-text">Offline, the app shows yesterday&rsquo;s cached balance as the current balance.</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Problem</span>
+          <p class="q-why">The backend is authoritative. Show cached data with its last-verified time.</p>
+          <p class="q-trap"><b>Common trap:</b> Presenting stale financial data as current.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Good design, or a problem? Quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some think showing something is always better.</p>
+    <span class="notes-label">SAY</span><p>Problem. The backend is authoritative. Show cached data with its last-verified time.</p>
+    <span class="notes-label">CONNECT</span><p>Next design.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="A failed money-transfer POST is retried automatically, with no idempotency protection.">
+  <div class="q-top">
+    <p class="kicker">Architecture review &middot; 4 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-send"/></svg></div>
+        <span class="label">Good design or problem?</span>
+        <p class="q-text">A failed money-transfer POST is retried automatically, with no idempotency protection.</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Problem</span>
+          <p class="q-why">If the first attempt actually succeeded, the retry can transfer the money twice.</p>
+          <p class="q-trap"><b>Common trap:</b> Retrying every failure by reflex.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Good design, or a problem? Quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many accept automatic retries.</p>
+    <span class="notes-label">SAY</span><p>Problem. If the first attempt actually succeeded, the retry can transfer the money twice.</p>
+    <span class="notes-label">CONNECT</span><p>Next design.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="The app relies on its in-memory state to still be there when the user returns.">
+  <div class="q-top">
+    <p class="kicker">Architecture review &middot; 5 of 5</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Good design or problem?</span>
+        <p class="q-text">The app relies on its in-memory state to still be there when the user returns.</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Problem</span>
+          <p class="q-why">iOS may have terminated the process. Persist what matters and handle a cold launch.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming the process stays alive.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Good design, or a problem? Quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some assume backgrounded apps keep running.</p>
+    <span class="notes-label">SAY</span><p>Problem. iOS may have terminated the process. Persist what matters and handle a cold launch.</p>
+    <span class="notes-label">CONNECT</span><p>Step back and see the whole module.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Foundation module</p>
+  <h2>Ten connected lessons</h2>
+  <div class="body top">
+    <table class="tbl" style="font-size:17.5px">
+      <tr><th>Lesson</th><th>Central question</th><th>Prepares you for</th></tr>
+      <tr><td>0.1 App startup</td><td>How does an app start?</td><td>Swift entry point and Xcode</td></tr>
+      <tr><td>0.2 Architecture</td><td>How do app components communicate?</td><td>MVVM and code organization</td></tr>
+      <tr><td>0.3 Lifecycle</td><td>What happens when users leave?</td><td>State restoration</td></tr>
+      <tr><td>0.4 SwiftUI vs UIKit</td><td>How does app code receive system events?</td><td>UI frameworks</td></tr>
+      <tr><td>0.5 Threads &amp; RunLoop</td><td>How does a tap become UI work?</td><td>Swift concurrency</td></tr>
+      <tr><td>0.6 Memory &amp; ARC</td><td>Who owns objects?</td><td>Structs, classes, closures</td></tr>
+      <tr><td>0.7 Security</td><td>How does iOS protect data?</td><td>Keychain and permissions</td></tr>
+      <tr><td>0.8 Networking</td><td>How does data reach the server?</td><td>URLSession and Codable</td></tr>
+      <tr><td>0.9 Storage</td><td>How does data survive termination?</td><td>SwiftData and persistence</td></tr>
+      <tr class="hl"><td>0.10 Integration</td><td>How does everything fit together?</td><td>Production app development</td></tr>
+    </table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The whole foundation module on one page: each lesson’s central question and what it prepares you for.</p>
+    <span class="notes-label">CONNECT</span><p>Now prove you can connect them.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Your challenge</p>
+  <h2>Explain the whole journey</h2>
+  <div class="body center">
+    <div style="max-width:900px;margin:0 auto">
+      <p class="lead" style="font-size:24px;line-height:1.6">&ldquo;I tap NPay, open my account balance, switch to another app, and return ten minutes later. Explain the entire journey, from the <b style="color:var(--teal)">operating system</b> to SwiftUI, networking, storage, security and lifecycle.&rdquo;</p>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="step anim-up">
+      <div class="cols c3" style="text-align:left;grid-template-columns:repeat(4,1fr)">
+        <div class="card accent"><span class="label">Operating system</span><p class="small" style="margin:0">Process, lifecycle, sandbox, scheduling</p></div>
+        <div class="card accent"><span class="label">Frameworks</span><p class="small" style="margin:0">SwiftUI, URLSession, Security, SwiftData</p></div>
+        <div class="card accent"><span class="label">Application code</span><p class="small" style="margin:0">Views, ViewModels, services</p></div>
+        <div class="card accent"><span class="label">Backend</span><p class="small" style="margin:0">Authorization, accounts, truth</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Answer without looking at the architecture diagram. A strong answer separates the responsibility of the operating system, the frameworks, the application code and the backend.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the foundation.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Foundation module complete</p>
+    <h2>iOS Architecture<br>Foundation</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Unit 1, Swift Language Mastery</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Ten connected lessons: app startup, system architecture, lifecycle, UIKit and SwiftUI, threads, concurrency fundamentals, ARC, security, networking, persistence and complete application flow. This is the conceptual foundation; practical mastery comes from implementing, debugging and measuring these mechanisms in Xcode.</p>
+    <span class="notes-label">SAY</span><p>Next, Unit 1: Swift Language Mastery, in the same deep style but with executable code, progressively building the NPay domain model. Swift design and compilation; variables and the type system; optionals; functions and closures; structs, classes and value semantics; enums, protocols and extensions; generics and errors; ARC in practice; async/await, actors and structured concurrency; and the NPay domain model.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../shared/art.js"></script>
+<script src="../../shared/deck.js"></script>
+</body>
+</html>

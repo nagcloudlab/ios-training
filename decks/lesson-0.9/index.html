@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0.9 — iOS Data Storage Architecture</title>
+<link rel="stylesheet" href="../../shared/deck.css">
+</head>
+<body data-deck="Unit 00 · Lesson 0.9 — iOS Data Storage Architecture">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 00 &middot; Lesson 0.9</p>
+    <h1 style="font-size:54px;line-height:1.05">iOS Data Storage<br>Architecture</h1>
+    <p class="lead" style="max-width:680px">The user closes NPay, switches apps or restarts the iPhone. <b>What happens to the data?</b></p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In Lesson 0.8, NPay fetched a balance from the server. Now the user closes the app, switches to another app or restarts the iPhone. Does the balance disappear? Does iOS save everything automatically? Where should we store login tokens, preferences, transaction records and downloaded images? Today: how iOS stores data and how to choose the right mechanism.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 0.9 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><p><b>RAM</b> versus <b>persistent storage</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Why UserDefaults, SwiftData, files and Keychain <b>differ</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></span><p>How the <b>sandbox</b> affects file access</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></span><p>Why important data must survive <b>termination</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Why cached financial data is <b>not authoritative</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>How storage choices shape <b>security</b> and architecture</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Six things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>Start with a simple story.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Start with a simple story</h2>
+    <p class="lead">Showing data is not saving data</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay receives a balance from the server and displays it. Two different things are happening.</p>
+    <span class="notes-label">CONNECT</span><p>Look at the response.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Memory vs storage</p>
+  <h2>Two different operations</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1.1fr">
+    <div>
+      <div class="cw"><div class="ch"><span>response.json</span></div><pre class="tree" style="font-size:18px;border-radius:0 0 12px 12px">{
+  &quot;accountId&quot;: &quot;A1001&quot;,
+  &quot;balance&quot;: 25000,
+  &quot;currency&quot;: &quot;INR&quot;
+}</pre></div>
+      <div class="gap"></div>
+      <p class="small">NPay displays <b>&#8377;25,000</b>. It holds the data <b>in memory</b> to draw the screen, and <b>may</b> persist selected data for later.</p>
+    </div>
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 580 140" role="img" aria-labelledby="s4mem">
+        <title id="s4mem">RAM holds temporary runtime state; persistent storage holds durable files, databases and preferences</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="270" height="100" rx="12"/><use href="#i-memory" x="14" y="37" width="26" height="26"/><text x="52" y="47">RAM</text><text class="sm" x="52" y="65">runtime state and objects</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="310" y="0" width="270" height="100" rx="12"/><use href="#i-db" x="324" y="37" width="26" height="26"/><text x="362" y="47">Persistent storage</text><text class="sm" x="362" y="65">files, databases, preferences</text></g>
+        <g class="fade" data-lit="1+"><text class="mono" x="20" y="130">TEMPORARY</text></g>
+        <g class="fade" data-lit="2+"><text class="mono" x="330" y="130">DURABLE</text></g>
+      </svg>
+    </div>
+      <i class="step cue"></i><i class="step cue"></i>
+      <div class="gap"></div>
+      <div class="analogy step"><div class="icon"><svg viewBox="0 0 24 24"><use href="#i-book"/></svg></div>
+        <p><b>RAM</b> is a classroom <b>whiteboard</b>; <b>storage</b> is a <b>notebook</b>. Don&rsquo;t assume the whiteboard survives the session.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay receives this response and shows &#8377;25,000. Two different things happen: the app holds data in memory to display the screen, and it may persist selected data to storage for later. These are not the same operation.</p>
+    <span class="notes-label">SAY</span><p>RAM is like a classroom whiteboard: convenient for current work, but you cannot assume it survives after the session ends. Persistent storage is a notebook. An app should not rely on process memory for anything that must survive termination.</p>
+    <span class="notes-label">CONNECT</span><p>iOS offers several kinds of notebook.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>The major storage choices</h2>
+    <p class="lead">Different needs, different mechanisms</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>iOS provides several storage mechanisms, each designed for different needs.</p>
+    <span class="notes-label">CONNECT</span><p>Here are the four main ones.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Storage architecture &middot; conceptual</p>
+  <h2>iOS storage choices</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 208" role="img" aria-labelledby="s6choices">
+        <title id="s6choices">NPay uses UserDefaults for preferences, SwiftData for structured data, FileManager for files and Keychain for secrets</title>
+        <g class="nd"><rect class="sh" x="368" y="0" width="400" height="56" rx="12"/><use href="#i-bank" x="382" y="15" width="26" height="26"/><text x="420" y="34">NPay application</text></g>
+        <path class="wire" d="M568 56V78M143 78H993M143 78V96M425 78V96M711 78V96M993 78V96"/>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="102" width="266" height="104" rx="14"/><use href="#i-gear" x="119" y="116" width="28" height="28"/><text x="133" y="170" text-anchor="middle">UserDefaults</text><text class="sm" x="133" y="190" text-anchor="middle">preferences</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="286" y="102" width="266" height="104" rx="14"/><use href="#i-db" x="405" y="116" width="28" height="28"/><text x="419" y="170" text-anchor="middle">SwiftData</text><text class="sm" x="419" y="190" text-anchor="middle">structured app data</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="572" y="102" width="266" height="104" rx="14"/><use href="#i-folder" x="691" y="116" width="28" height="28"/><text x="705" y="170" text-anchor="middle">FileManager</text><text class="sm" x="705" y="190" text-anchor="middle">documents and files</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="858" y="102" width="266" height="104" rx="14"/><use href="#i-key" x="977" y="116" width="28" height="28"/><text x="991" y="170" text-anchor="middle">Keychain</text><text class="sm" x="991" y="190" text-anchor="middle">credentials and secrets</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <p class="small muted">Also: Core Data, SQLite, caches, cloud synchronization and other specialized mechanisms.</p>
+    <div class="rule step" data-label="The real question">Not &ldquo;which storage API is best?&rdquo; but <b>&ldquo;what kind of data is this, and what guarantees does it need?&rdquo;</b></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through: UserDefaults for preferences, SwiftData for structured app data, FileManager for documents and files, Keychain for credentials and secrets. There are more, including Core Data, SQLite, caches and cloud sync.</p>
+    <span class="notes-label">SAY</span><p>The important question is not which storage API is best. It is: what kind of data am I storing, and what guarantees does it need?</p>
+    <span class="notes-label">CONNECT</span><p>Start with the simplest: UserDefaults.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>UserDefaults</h2>
+    <p class="lead">Lightweight preferences</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay lets the user choose dark mode. The selected appearance is a small preference.</p>
+    <span class="notes-label">CONNECT</span><p>Here is how to store it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; UserDefaults</p>
+  <h2>Saving a preference</h2>
+  <div class="body cols middle" style="grid-template-columns:1.1fr 1fr">
+    <div class="cw"><div class="ch"><span>Settings.swift</span></div><pre class="cb" style="font-size:16px">import Foundation
+
+// Save a preference
+UserDefaults.standard.set(
+    true,
+    forKey: &quot;darkModeEnabled&quot;
+)
+
+// Read a preference
+let darkMode = UserDefaults.standard.bool(
+    forKey: &quot;darkModeEnabled&quot;
+)
+
+print(darkMode)</pre></div>
+    <div>
+      <div class="card accent step"><span class="label">Good for</span><p class="small" style="margin:0">Selected theme, onboarding completion, preferred language, simple app settings.</p></div>
+      <div class="gap"></div>
+      <div class="card step"><span class="label">Avoid for</span><p class="small" style="margin:0">Large structured datasets, or as a <b>secure credential store</b>.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Saving and reading a boolean preference is one line each. UserDefaults suits small settings: theme, onboarding completion, preferred language, simple app settings.</p>
+    <span class="notes-label">SAY</span><p>Avoid it as a database for large structured data, and never as a store for credentials.</p>
+    <span class="notes-label">CONNECT</span><p>What about many structured records?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>SwiftData</h2>
+    <p class="lead">Structured application data</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay wants to store locally saved transaction notes: create, read, update and delete records. That suits a persistence framework such as SwiftData.</p>
+    <span class="notes-label">CONNECT</span><p>See how it fits.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; SwiftData</p>
+  <h2>A persistent model</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1.1fr">
+    <div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 400 208" role="img" aria-labelledby="s10sd">
+        <title id="s10sd">SwiftUI screen, SwiftData ModelContext, persistent model storage</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="400" height="56" rx="12"/><use href="#i-phone" x="14" y="15" width="26" height="26"/><text x="52" y="34">SwiftUI screen</text></g>
+        <path class="wire" d="M200 56V70M193 63l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="76" width="400" height="56" rx="12"/><use href="#i-layers" x="14" y="91" width="26" height="26"/><text x="52" y="110">SwiftData ModelContext</text></g>
+        <path class="wire" d="M200 132V146M193 139l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="152" width="400" height="56" rx="12"/><use href="#i-db" x="14" y="167" width="26" height="26"/><text x="52" y="186">Persistent model storage</text></g>
+      </svg>
+    </div>
+      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+      <div class="gap"></div>
+      <div class="rule step" data-label="Not magic">SwiftData is not an in-memory array that saves itself. Learn <b>containers</b>, <b>contexts</b>, relationships, schema evolution and save behavior.</div>
+    </div>
+    <div class="cw"><div class="ch"><span>TransactionNote.swift</span></div><pre class="cb" style="font-size:16px">import Foundation
+import SwiftData
+
+@Model
+final class TransactionNote {
+    var title: String
+    var amount: Decimal
+
+    init(title: String, amount: Decimal) {
+        self.title = title
+        self.amount = amount
+    }
+}</pre></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The SwiftUI screen works through a SwiftData ModelContext, which persists to model storage. @Model marks TransactionNote as a persistent model; SwiftData manages persistence through its model container and context.</p>
+    <span class="notes-label">SAY</span><p>SwiftData is not simply an in-memory array that automatically saves every variable. Developers still need to understand model containers, contexts, relationships, schema evolution and save behavior.</p>
+    <span class="notes-label">CONNECT</span><p>Some data is naturally a file, not a record.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Files</h2>
+    <p class="lead">Documents, images and downloaded content</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay may download a PDF account statement. Some data is naturally a file rather than a database record.</p>
+    <span class="notes-label">CONNECT</span><p>Where do files go?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Sandbox directories</p>
+  <h2>Where an app keeps its files</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1.05fr">
+    <div>
+      <table class="tbl" style="font-size:19px">
+        <tr><th>Directory</th><th>Typical purpose</th></tr>
+        <tr><td>Documents</td><td>User documents, persistent app files</td></tr>
+        <tr><td>Application Support</td><td>App-managed support files</td></tr>
+        <tr class="hl"><td>Caches</td><td>Re-creatable cached content</td></tr>
+        <tr class="hl"><td>Temporary</td><td>Short-lived temporary files</td></tr>
+      </table>
+      <div class="gap"></div>
+      <div class="rule step">The system can remove cached and temporary content. Don&rsquo;t treat those directories as <b>permanent</b>.</div>
+    </div>
+    <div>
+      <div class="cw"><div class="ch"><span>Statement.swift</span></div><pre class="cb" style="font-size:15px">import Foundation
+
+let documents = FileManager.default.urls(
+    for: .documentDirectory,
+    in: .userDomainMask
+).first!
+
+let statementURL = documents.appendingPathComponent(
+    &quot;statement.pdf&quot;
+)</pre></div>
+      <p class="small muted" style="margin:8px 0 0">This builds a destination URL; it does not download or write the PDF.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Apps have directories inside their sandbox. Documents for user documents and persistent files; Application Support for app-managed support files; Caches for content that can be re-created; Temporary for short-lived files. The system can remove cached and temporary content.</p>
+    <span class="notes-label">SAY</span><p>The code asks FileManager for the Documents directory and builds a URL for statement.pdf. It only builds the location; it does not download or write the file.</p>
+    <span class="notes-label">CONNECT</span><p>And the most sensitive data: credentials.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Keychain</h2>
+    <p class="lead">Sensitive data</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We met the Keychain in Lesson 0.7. Now connect it to storage choices.</p>
+    <span class="notes-label">CONNECT</span><p>Choose the right home for four pieces of data.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Choose the storage</p>
+  <h2>Which storage for which data?</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 186" role="img" aria-labelledby="s16pick">
+        <title id="s16pick">Dark mode goes in UserDefaults, the authentication token in the Keychain, the PDF statement in files, transaction notes in SwiftData</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0.0" y="0" width="270" height="52" rx="12"/><text x="16.0" y="32">Dark mode</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="288.7" y="0" width="270" height="52" rx="12"/><text x="304.7" y="32">Auth token</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="577.4" y="0" width="270" height="52" rx="12"/><text x="593.4" y="32">PDF statement</text></g>
+        <g class="nd" data-lit="3+"><rect class="sh" x="866.0999999999999" y="0" width="270" height="52" rx="12"/><text x="882.0999999999999" y="32">Transaction notes</text></g>
+        <g class="fade" data-lit="0"><text class="mono" x="0" y="104">BEST FIT</text><g class="nd lit"><rect class="sh" x="0" y="118" width="1136" height="66" rx="12"/><text x="16" y="148">UserDefaults</text><text class="sm" x="16" y="166">A lightweight, non-secret preference.</text></g></g>
+        <g class="fade" data-lit="1"><text class="mono" x="0" y="104">BEST FIT</text><g class="nd lit"><rect class="sh" x="0" y="118" width="1136" height="66" rx="12"/><text x="16" y="148">Keychain</text><text class="sm" x="16" y="166">A sensitive credential that needs security controls.</text></g></g>
+        <g class="fade" data-lit="2"><text class="mono" x="0" y="104">BEST FIT</text><g class="nd lit"><rect class="sh" x="0" y="118" width="1136" height="66" rx="12"/><text x="16" y="148">Files (FileManager)</text><text class="sm" x="16" y="166">A document; may also need file protection and retention policies.</text></g></g>
+        <g class="fade" data-lit="3+"><text class="mono" x="0" y="104">BEST FIT</text><g class="nd lit"><rect class="sh" x="0" y="118" width="1136" height="66" rx="12"/><text x="16" y="148">SwiftData</text><text class="sm" x="16" y="166">Structured records to create, read, update and delete.</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Directory is not security">Sensitive financial documents may also need <b>file protection</b>, encryption and retention policies.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Dark mode: UserDefaults, a lightweight non-secret preference. Click: the authentication token is not a preference, it is a sensitive credential, so Keychain. Click: a downloaded PDF statement is a file. Click: locally saved transaction notes are structured records, so SwiftData.</p>
+    <span class="notes-label">ASK</span><p>Before each click: where would you put it?</p>
+    <span class="notes-label">EXPECT</span><p>Most get dark mode and the token. The PDF and notes show why "file" and "record" are different shapes of data.</p>
+    <span class="notes-label">SAY</span><p>Choosing a directory alone is not sufficient security for sensitive documents: file protection, encryption and retention policies matter too.</p>
+    <span class="notes-label">CONNECT</span><p>What happens to unsaved data when iOS ends the app?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>When the app is terminated</h2>
+    <p class="lead">Revisiting Lesson 0.3</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user has typed a transaction note but not pressed Save. Then iOS terminates the process.</p>
+    <span class="notes-label">CONNECT</span><p>Two versions of the same story.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Termination &middot; conceptual</p>
+  <h2>A draft that may not survive</h2>
+  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 580 228" role="img" aria-labelledby="s19draft">
+        <title id="s19draft">A transfer note draft: with no save it is lost on termination; with a saved draft it survives relaunch</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="0" width="280" height="52" rx="12"/><text x="16" y="32">No save</text></g>
+        <g class="nd" data-lit="1+"><rect class="sh" x="300" y="0" width="280" height="52" rx="12"/><text x="316" y="32">Saved draft</text></g>
+        <g class="nd"><rect class="sh" x="0" y="80" width="580" height="60" rx="12"/><text class="mono" x="20" y="104">TRANSFER NOTE</text><text x="20" y="128">Rent payment</text></g>
+        <g class="fade" data-lit="0"><g class="nd alert"><rect class="sh" x="0" y="160" width="580" height="66" rx="12"/><text x="16" y="190">Draft only in memory</text><text class="sm" x="16" y="208">Terminate, relaunch: the note is gone.</text></g></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="0" y="160" width="580" height="66" rx="12"/><text x="16" y="190">Draft persisted</text><text class="sm" x="16" y="208">Terminate, relaunch: the note comes back.</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i>
+    <div>
+      <div class="rule" data-label="Principle">Persist important data <b>before</b> the app can lose its memory. Do not depend on a final termination callback.</div>
+      <div class="gap"></div>
+      <p class="small step">For drafts, save <b>periodically</b> or on meaningful changes, minding performance, security and consistency.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user types "Rent payment" as a transfer note. In the first version it exists only in memory: when iOS terminates the process and the user relaunches, it is gone. Click: in the second version the draft was saved, so it comes back.</p>
+    <span class="notes-label">SAY</span><p>Important data should be persisted before the app can lose its in-memory state. Do not rely on a termination callback; save periodically or when meaningful changes happen.</p>
+    <span class="notes-label">CONNECT</span><p>Saved data raises a different question for a bank: is it still true?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Cache versus source of truth</h2>
+    <p class="lead">Especially important for banking</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay previously showed &#8377;25,000. The user reopens it while offline. Can it show the old balance?</p>
+    <span class="notes-label">CONNECT</span><p>Possibly, but carefully.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Freshness &middot; conceptual</p>
+  <h2>Cached is not current</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 112" role="img" aria-labelledby="s22cache">
+        <title id="s22cache">A cached balance of 25,000 rupees last updated earlier, next to a current verified balance that is unavailable offline</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="540" height="110" rx="12"/><use href="#i-clock" x="14" y="42" width="26" height="26"/><text x="52" y="52">Cached balance: &#8377;25,000</text><text class="sm" x="52" y="70">last updated earlier</text></g>
+        <g class="fade" data-lit="1+"><g class="nd alert"><rect class="sh" x="596" y="0" width="540" height="110" rx="12"/><use href="#i-cross" x="610" y="42" width="26" height="26"/><text x="648" y="52">Current verified balance: unavailable</text><text class="sm" x="648" y="70">offline</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i>
+    <div class="gap-lg"></div>
+    <div class="rule step" data-label="Communicate freshness">Never present <b>stale</b> financial data as current. The <b>backend</b> stays authoritative; local storage improves usability but does not replace server validation.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The app can show the cached &#8377;25,000, but it must say it was last updated earlier. Click: the current verified balance is unavailable while offline.</p>
+    <span class="notes-label">SAY</span><p>Communicate data freshness clearly. The backend remains authoritative for balances and transactions; local storage helps usability but does not replace server-side validation.</p>
+    <span class="notes-label">CONNECT</span><p>Finally, the persistence technologies you will hear about.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 9</p>
+    <h2>SwiftData vs Core Data vs SQLite</h2>
+    <p class="lead">Different abstraction levels</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>These technologies are related but work at different levels.</p>
+    <span class="notes-label">CONNECT</span><p>Compare them.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 9 &middot; Comparison</p>
+  <h2>Four persistence technologies</h2>
+  <div class="body top">
+    <table class="tbl" style="font-size:20px">
+      <tr><th>Technology</th><th>What it provides</th></tr>
+      <tr><td><b>SwiftData</b></td><td>Swift-native persistence framework with model-oriented APIs</td></tr>
+      <tr><td><b>Core Data</b></td><td>Mature object graph management and persistence framework</td></tr>
+      <tr><td><b>SQLite</b></td><td>Embedded relational database engine</td></tr>
+      <tr><td><b>FileManager</b></td><td>Filesystem operations, not database object management</td></tr>
+    </table>
+    <div class="gap"></div>
+    <div class="cols">
+      <div class="card accent step"><span class="label">New SwiftUI app</span><p class="small" style="margin:0"><b>SwiftData</b> is often a good start, when its capabilities and deployment targets fit.</p></div>
+      <div class="card accent step"><span class="label">Existing or advanced</span><p class="small" style="margin:0"><b>Core Data</b> remains important for existing apps and advanced requirements.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftData is a Swift-native framework with model-oriented APIs. Core Data is a mature object-graph and persistence framework. SQLite is an embedded relational database engine. FileManager does filesystem operations, not database object management.</p>
+    <span class="notes-label">SAY</span><p>SwiftData and Core Data can use SQLite-backed stores, but their programming models are not the same as writing SQL. For a new SwiftUI app, SwiftData is often a good start; Core Data remains important for existing apps and advanced needs.</p>
+    <span class="notes-label">CONNECT</span><p>Let's check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Four questions. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does @State automatically guarantee data survives app termination?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>@State</code> automatically guarantee data survives app termination?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">@State lives with the running app. Data that must survive termination needs persistent storage.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing view state with saved data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. @State lives with the running app. Data that must survive termination needs persistent storage.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should authentication tokens normally be stored in UserDefaults?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should authentication tokens normally be stored in UserDefaults?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Tokens are credentials: they belong in the Keychain, with its security controls.</p>
+          <p class="q-trap"><b>Common trap:</b> Storing secrets where preferences go.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no; ask why.</p>
+    <span class="notes-label">SAY</span><p>No. Tokens are credentials: they belong in the Keychain, with its security controls.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can iOS remove files stored in a cache directory?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-folder"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can iOS remove files stored in a cache directory?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Cached and temporary content can be removed by the system. Keep only re-creatable data there.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating Caches as permanent storage.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say no.</p>
+    <span class="notes-label">SAY</span><p>Yes. Cached and temporary content can be removed by the system. Keep only re-creatable data there.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should a banking app present stale cached balances as verified live balances?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 4</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should a banking app present stale cached balances as verified live balances?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Show freshness clearly. The backend is authoritative; a cache only improves usability.</p>
+          <p class="q-trap"><b>Common trap:</b> Showing old numbers as if current.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no; discuss how to show freshness.</p>
+    <span class="notes-label">SAY</span><p>No. Show freshness clearly. The backend is authoritative; a cache only improves usability.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 0.9 complete</p>
+    <h2>iOS Data Storage<br>Architecture</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: complete iOS architecture, end to end</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain RAM versus persistent storage, why UserDefaults, SwiftData, files and Keychain serve different purposes, how sandboxing affects file access, why important data must survive termination, why cached financial data is not authoritative, and how storage choices shape security and architecture.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 0.10, our final foundation lesson: we follow NPay through a complete journey, from the tap and process launch through the SwiftUI screen, a button event, an API request, secure authentication, data storage, backgrounding, suspension and relaunch, and build one complete architecture diagram.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../shared/art.js"></script>
+<script src="../../shared/deck.js"></script>
+</body>
+</html>
