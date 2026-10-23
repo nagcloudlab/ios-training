@@ -1,5 +1,5 @@
 #!/bin/sh
-# Regenerate Lessons 0.2–0.10 from their generators (Lesson 0.1 is hand-edited HTML).
+# Regenerate Lessons 0.2–0.10 and 1.1–1.10 from their generators (Lesson 0.1 is hand-edited HTML).
 # Run from the repo root:  sh tools/build.sh
 # Then check:  python3 tools/structure.py decks/*/index.html
 set -e
@@ -11,3 +11,13 @@ for n in 3 4 5 6 7 8 9; do
   $PY tools/gen0$n.py decks/unit-0/lesson-0.$n/index.html
 done
 $PY tools/gen10.py decks/unit-0/lesson-0.10/index.html
+$PY tools/gen1_1.py decks/unit-1/lesson-1.1/index.html
+$PY tools/gen1_2.py decks/unit-1/lesson-1.2/index.html
+$PY tools/gen1_3.py decks/unit-1/lesson-1.3/index.html
+$PY tools/gen1_4.py decks/unit-1/lesson-1.4/index.html
+$PY tools/gen1_5.py decks/unit-1/lesson-1.5/index.html
+$PY tools/gen1_6.py decks/unit-1/lesson-1.6/index.html
+$PY tools/gen1_7.py decks/unit-1/lesson-1.7/index.html
+$PY tools/gen1_8.py decks/unit-1/lesson-1.8/index.html
+$PY tools/gen1_9.py decks/unit-1/lesson-1.9/index.html
+$PY tools/gen1_10.py decks/unit-1/lesson-1.10/index.html

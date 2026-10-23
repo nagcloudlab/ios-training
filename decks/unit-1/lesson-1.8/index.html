@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1.8 — ARC, Ownership &amp; Memory</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 01 · Lesson 1.8 — ARC, Ownership &amp; Memory">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 01 &middot; Lesson 1.8</p>
+    <h1 style="font-size:54px;line-height:1.05">ARC, Ownership<br>&amp; Memory Management</h1>
+    <p class="lead" style="max-width:760px">Why does an object sometimes <b>stay alive</b> after the screen that created it has gone?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 0.6 introduced iOS memory. Today we go deeper into how Swift actually manages object lifetimes, with runnable examples and the ownership decisions you make every day. The question: why does an object sometimes stay alive after the screen that created it has disappeared? We investigate it in NPay.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.8 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><p>What <b>ARC</b> does, and what it doesn&rsquo;t</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p><b>Strong</b> references and <b>cycles</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p><b>weak</b> versus <b>unowned</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Closures, <b>timers</b> and <b>tasks</b> that keep objects alive</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>ARC versus <b>garbage collection</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>How to <b>investigate</b> a leak</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.8 &middot; Where we are</p>
+  <h2>Today: who keeps an object alive</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 01 &middot; Swift Language Mastery</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 01 progress: lesson 1.8 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">1.1</text><text x="12" y="50" style="font-size:14px">Swift &amp;</text><text x="12" y="68" style="font-size:14px">compiler</text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">1.2</text><text x="126.667" y="50" style="font-size:14px">Variables</text><text x="126.667" y="68" style="font-size:14px">&amp; types</text></g>
+        <g class="nd"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">1.3</text><text x="241.333" y="50" style="font-size:14px">Optionals</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">1.4</text><text x="356" y="50" style="font-size:14px">Functions</text><text x="356" y="68" style="font-size:14px">&amp; closures</text></g>
+        <g class="nd"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">1.5</text><text x="470.667" y="50" style="font-size:14px">Structs</text><text x="470.667" y="68" style="font-size:14px">&amp; classes</text></g>
+        <g class="nd"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">1.6</text><text x="585.333" y="50" style="font-size:14px">Protocols</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">1.7</text><text x="700" y="50" style="font-size:14px">Generics</text><text x="700" y="68" style="font-size:14px">&amp; errors</text></g>
+        <g class="nd lit"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">1.8</text><text x="814.667" y="50" style="font-size:14px">ARC &amp;</text><text x="814.667" y="68" style="font-size:14px">ownership</text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">1.9</text><text x="929.333" y="50" style="font-size:14px">Concurrency</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">1.10</text><text x="1044" y="50" style="font-size:14px">NPay</text><text x="1044" y="68" style="font-size:14px">model</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>Lesson 1.7: generics keep types; errors are typed values handled by the right layer.</span><span><b>Today</b>ARC and ownership in depth, with leaks you can reproduce and fix.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 0.6 showed memory from the platform side, and 1.4 and 1.5 showed closures and classes. Today we put them together: who owns what, why an NPay screen can refuse to die, and how to prove a fix works.</p>
+    <span class="notes-label">CONNECT</span><p>Start with a screen that refuses to die.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>A screen that refuses to die</h2>
+    <p class="lead">And what ARC really does</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Every visit to NPay&rsquo;s transaction history creates a TransactionViewModel. What happens when you leave?</p>
+    <span class="notes-label">CONNECT</span><p>We counted.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The story (section 1)</p>
+  <h2>Open and close the screen three times</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1.1fr .9fr;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>TransactionViewModel.swift</span></div><pre class="cb" style="font-size:13px">@MainActor
+final class TransactionViewModel {
+    static var live = 0                    // instances alive now
+    var onRefresh: (() -&gt; Void)?
+
+    init() {
+        Self.live += 1
+        onRefresh = { self.load() }        // strong capture
+    }
+    func load() {}
+    deinit { MainActor.assumeIsolated { Self.live -= 1 } }
+}</pre></div>
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 544 160" style="max-height:200px" role="img" aria-labelledby="leak">
+        <title id="leak">After three visits with a strong capture, three ViewModels are still alive; with weak self, zero</title>
+        <text class="mono" x="0" y="14">ALIVE AFTER 3 VISITS (REAL COUNT)</text>
+        <g class="fade" data-lit="1+"><g class="nd"><rect class="sh" x="0" y="30" width="172" height="56" rx="12"/><use href="#i-layout" x="14" y="45" width="26" height="26"/><text x="52" y="55">ViewModel 1</text><text class="sm" x="52" y="73">still alive</text></g></g>
+        <g class="fade" data-lit="1+"><g class="nd"><rect class="sh" x="186" y="30" width="172" height="56" rx="12"/><use href="#i-layout" x="200" y="45" width="26" height="26"/><text x="238" y="55">ViewModel 2</text><text class="sm" x="238" y="73">still alive</text></g></g>
+        <g class="fade" data-lit="1+"><g class="nd"><rect class="sh" x="372" y="30" width="172" height="56" rx="12"/><use href="#i-layout" x="386" y="45" width="26" height="26"/><text x="424" y="55">ViewModel 3</text><text class="sm" x="424" y="73">still alive</text></g></g>
+        <g class="fade" data-lit="1+"><text x="0" y="118" style="font-size:20px">Strong capture: <tspan style="font-weight:800">3</tspan></text></g>
+        <g class="fade" data-lit="2+"><text x="0" y="156" style="font-size:20px">[weak self]: <tspan style="font-weight:800">0</tspan></text></g>
+      </svg>
+    </div>
+        <i class="step cue"></i><i class="step cue"></i>
+        <div class="gap"></div>
+        <div class="tip step" data-label="Why"><ul style="margin:6px 0 0"><li>Each ViewModel owns a closure that owns the ViewModel</li><li>Nothing outside holds it, yet it never goes away</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Every visit to the transaction-history screen creates a TransactionViewModel. When the user leaves, we expect it to be released. The code counts live instances: init adds one, deinit subtracts one. Notice the closure captures self.</p>
+    <span class="notes-label">SAY</span><p>Click: we simulated three visits in a real program and read the count. With the strong capture: 3. Every visit leaves a ViewModel behind. Click: change the capture to weak self and the count is 0.</p>
+    <span class="notes-label">SAY</span><p>Click: each ViewModel owns a closure, and the closure owns the ViewModel. Nothing outside holds them, yet ARC never frees them. To see why, revisit ARC.</p>
+    <span class="notes-label">CONNECT</span><p>What ARC actually does.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; ARC (section 2)</p>
+  <h2>Automatic Reference Counting</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:.8fr 1.2fr;gap:28px;align-items:center">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 340 228" style="max-height:300px" role="img" aria-labelledby="arc">
+        <title id="arc">Instance created; strong references keep it alive; last strong reference released, then deinit</title>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="0" width="340" height="56" rx="12"/><use href="#i-memory" x="14" y="15" width="26" height="26"/><text x="52" y="34">Instance created</text></g>
+        <path class="wire" d="M170 60V80M163 73l7 7 7-7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="0" y="86" width="340" height="56" rx="12"/><use href="#i-link" x="14" y="101" width="26" height="26"/><text x="52" y="120">Strong references keep it alive</text></g>
+        <path class="wire" d="M170 146V166M163 159l7 7 7-7"/>
+        <g class="nd" data-lit="3+"><rect class="sh" x="0" y="172" width="340" height="56" rx="12"/><use href="#i-cross" x="14" y="187" width="26" height="26"/><text x="52" y="197">Last strong reference released</text><text class="sm" x="52" y="215">then deinit</text></g>
+      </svg>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Automatic</span><ul style="margin:6px 0 0"><li>The <b>compiler</b> inserts and optimizes retain/release</li><li>For <b>class</b> instances (and closures, actors)</li></ul></div>
+        <div class="rule step" data-label="Not effortless"><ul style="margin:6px 0 0"><li><b>You</b> design ownership: which references keep things alive</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>ARC, Automatic Reference Counting, manages the lifetimes of class instances, and also closures and actors. Click through: an instance is created; strong references keep it alive; when the last strong reference is released, it is deinitialized.</p>
+    <span class="notes-label">SAY</span><p>The compiler inserts and optimizes the reference-management operations for you. Do not picture a fixed sequence of literal increments: the optimizer removes many of them.</p>
+    <span class="notes-label">SAY</span><p>Click: automatic does not mean you can ignore ownership. The language decides when to retain and release; you decide which references own something. That is the rest of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>Watch lifetimes happen.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Lifetimes and strong references</h2>
+    <p class="lead">Watch objects come and go</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>deinit tells us exactly when an instance dies.</p>
+    <span class="notes-label">CONNECT</span><p>Two experiments.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Lifetimes (sections 3&ndash;4)</p>
+  <h2>deinit runs when the last owner lets go</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Lifetime.swift</span></div><pre class="cb" style="font-size:13px">final class Customer {
+    let name: String
+    init(name: String) {
+        self.name = name; print(&quot;\(name) created&quot;)
+    }
+    deinit { print(&quot;\(name) destroyed&quot;) }
+}
+func testCustomer() {
+    let customer = Customer(name: &quot;Ravi&quot;)
+    print(customer.name)
+}
+testCustomer()</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Prints</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">Ravi created<br>Ravi<br>Ravi destroyed</p></div></div></div>
+      <div><div class="cw"><div class="ch"><span>Strong.swift</span></div><pre class="cb" style="font-size:13px">var customerA: Customer? = Customer(name: &quot;Meena&quot;)
+var customerB = customerA
+
+customerA = nil;  print(&quot;a = nil&quot;)
+customerB = nil;  print(&quot;b = nil&quot;)</pre></div>
+        <div class="gap"></div>
+        <div class="diagram">
+      <svg class="art" viewBox="0 0 552 124" style="max-height:140px" role="img" aria-labelledby="strong">
+        <title id="strong">Two variables reference one Customer; setting the first to nil keeps it alive; setting the second to nil destroys it</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="200" height="50" rx="12"/><use href="#i-link" x="14" y="12" width="26" height="26"/><text x="52" y="31">customerA</text></g>
+        <g class="nd"><rect class="sh" x="0" y="74" width="200" height="50" rx="12"/><use href="#i-link" x="14" y="86" width="26" height="26"/><text x="52" y="105">customerB</text></g>
+        <g class="fade" data-lit="0"><path class="wire" d="M204 25L276 55M269 48l7 7-7 7"/></g>
+        <g class="fade" data-lit="0-1"><path class="wire" d="M204 99L276 75M269 68l7 7-7 7"/></g>
+        <g class="fade" data-lit="0-1"><g class="nd lit"><rect class="sh" x="282" y="37" width="270" height="50" rx="12"/><use href="#i-memory" x="296" y="49" width="26" height="26"/><text x="334" y="59">Customer "Meena"</text><text class="sm" x="334" y="77">alive</text></g></g>
+        <g class="fade" data-lit="2+"><g class="nd ghost"><rect class="sh" x="282" y="37" width="270" height="50" rx="12"/><use href="#i-cross" x="296" y="49" width="26" height="26"/><text x="334" y="59">destroyed</text><text class="sm" x="334" y="77">no strong references left</text></g></g>
+      </svg>
+    </div>
+        <i class="step cue"></i><i class="step cue"></i>
+        <div style="margin-top:10px"><div class="card accent"><span class="label">Prints</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">Meena created<br>a = nil<br>Meena destroyed<br>b = nil</p></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Left: Customer prints when it is created and destroyed. Inside testCustomer it lives only while the function needs it; real output: created, Ravi, destroyed. Nothing escaped, so it is freed at the end of its use. The optimizer may even end lifetimes earlier than the closing brace.</p>
+    <span class="notes-label">SAY</span><p>Right: two variables refer to one Customer. Click: customerA = nil releases one reference, and nothing is destroyed; customerB still owns it. Click: customerB = nil releases the last one, and only now does it print Meena destroyed.</p>
+    <span class="notes-label">SAY</span><p>The takeaway: setting a variable to nil releases that reference; it does not necessarily destroy the object.</p>
+    <span class="notes-label">CONNECT</span><p>So what if two objects own each other?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Cycles and weak references</h2>
+    <p class="lead">Two owners that never let go</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A customer owns an account. The account points back to the customer.</p>
+    <span class="notes-label">CONNECT</span><p>Strongly, at first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Cycles and weak (sections 5&ndash;6)</p>
+  <h2>A cycle, and the one-word fix</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Cycle.swift</span></div><pre class="cb" style="font-size:13px">final class Customer {
+    var account: Account?
+    deinit { print(&quot;Customer destroyed&quot;) }
+}
+final class Account {
+    var owner: Customer?            // strong: cycle
+    deinit { print(&quot;Account destroyed&quot;) }
+}
+
+var customer: Customer? = Customer()
+var account: Account? = Account()
+customer?.account = account
+account?.owner = customer
+customer = nil;  account = nil      // prints nothing</pre></div>
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 552 76" style="max-height:90px" role="img" aria-labelledby="cyc">
+        <title id="cyc">Customer owns Account; Account owns Customer back, a cycle; with weak, the back reference does not own</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="230" height="56" rx="12"/><use href="#i-user" x="14" y="15" width="26" height="26"/><text x="52" y="34">Customer</text></g>
+        <g class="nd"><rect class="sh" x="322" y="0" width="230" height="56" rx="12"/><use href="#i-bank" x="336" y="15" width="26" height="26"/><text x="374" y="34">Account</text></g>
+        <path class="wire" d="M234 18H318M311 11l7 7-7 7"/>
+        <text class="sm" x="276" y="12" text-anchor="middle">owns</text>
+        <g class="fade" data-lit="0"><path class="wire lit" d="M318 40H234M241 33l-7 7 7 7"/><text class="sm" x="276" y="70" text-anchor="middle">owns back: cycle</text></g>
+        <g class="fade" data-lit="1+"><path class="wire dash" d="M318 40H234M241 33l-7 7 7 7"/><text class="sm" x="276" y="70" text-anchor="middle">weak: not owned</text></g>
+      </svg>
+    </div>
+        <i class="step cue"></i>
+        <div class="gap"></div>
+        <div class="step"><div class="cw"><div class="ch"><span>WeakOwner.swift</span></div><pre class="cb" style="font-size:13px">final class Account {
+    weak var owner: Customer?       // does not own
+}
+// customer = nil  →  &quot;Customer destroyed&quot;
+// account.owner   →  nil</pre></div></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="ARC won't find it"><ul style="margin:6px 0 0"><li>ARC does <b>not</b> detect cycles</li><li>You decide who owns whom</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A customer owns an account; the account also strongly references its owner. Set both variables to nil and nothing prints: neither deinit runs. Each instance still holds the other. That is a strong-reference cycle.</p>
+    <span class="notes-label">SAY</span><p>Click: the customer owns the account, but the account only needs to know who owns it. Make the back-reference weak.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran it. Now setting customer to nil prints Customer destroyed, and the account&rsquo;s owner is automatically nil. A weak reference never keeps its target alive.</p>
+    <span class="notes-label">SAY</span><p>Click: ARC does not detect and break arbitrary cycles. Designing the ownership is your job.</p>
+    <span class="notes-label">CONNECT</span><p>weak has a sibling: unowned.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>weak versus unowned</h2>
+    <p class="lead">Two ways not to own</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Both avoid keeping the target alive. They fail very differently.</p>
+    <span class="notes-label">CONNECT</span><p>Compare them.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; weak vs unowned (section 7)</p>
+  <h2>nil, or a crash</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><table class="tbl"><thead><tr><th></th><th>weak</th><th>unowned</th></tr></thead><tbody><tr><td>Keeps target alive</td><td>No</td><td>No</td></tr><tr><td>Type</td><td>Optional (<code>var</code>)</td><td>Usually non-optional</td></tr><tr><td>Target destroyed</td><td>Becomes <code>nil</code></td><td>Stays; access <b>traps</b></td></tr><tr><td>Use when</td><td>Target <b>may</b> go first</td><td>Target <b>always</b> outlives the reference</td></tr></tbody></table></div>
+      <div><div class="cw"><div class="ch"><span>CreditCard.swift</span></div><pre class="cb" style="font-size:14px">final class CreditCard {
+    unowned let customer: Customer
+    init(customer: Customer) { self.customer = customer }
+}</pre></div>
+        <div class="step" style="margin-top:12px"><div class="card accent"><span class="label">Read it after the customer is gone</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">Fatal error: Attempted to read an unowned<br>reference but object 0x&hellip; was already destroyed</p></div></div>
+        <div class="gap"></div>
+        <div class="tip step" data-label="unowned(unsafe)"><ul style="margin:6px 0 0"><li>No check at all: <b>undefined behaviour</b>. Avoid in app code.</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Neither weak nor unowned keeps its target alive. weak is an optional var that automatically becomes nil when the target goes. unowned is usually non-optional and does not become nil.</p>
+    <span class="notes-label">SAY</span><p>A CreditCard cannot exist without its customer, so it holds the customer unowned. Click: if the customer is destroyed first and the card reads it anyway, the app traps. Real message: attempted to read an unowned reference but the object was already destroyed.</p>
+    <span class="notes-label">SAY</span><p>So use unowned only when the lifetime relationship guarantees the target outlives every access; otherwise use weak. Click: and unowned(unsafe) removes even that check: reading it after deallocation is undefined behaviour. Avoid it in app code. This answers the question left open in Lesson 0.6.</p>
+    <span class="notes-label">CONNECT</span><p>Swift&rsquo;s ownership story is not only about classes.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Ownership for values (authored)</p>
+  <h2>Non-copyable types: one owner, by law</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1.15fr .85fr;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>ExportToken.swift</span></div><pre class="cb" style="font-size:14px">struct ExportToken: ~Copyable {
+    let id: Int
+    deinit { print(&quot;token \(id) released&quot;) }
+}
+func upload(_ token: consuming ExportToken) {
+    print(&quot;uploading with token \(token.id)&quot;)
+}
+
+let token = ExportToken(id: 1)
+upload(token)          // ownership moves in
+// upload(token)       // error: consumed more than once</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Prints</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">uploading with token 1<br>token 1 released</p></div>
+        <div class="card accent step"><span class="label">~Copyable</span><ul style="margin:6px 0 0"><li>A struct that <b>cannot be copied</b></li><li>Can have a <code>deinit</code> (Lesson 1.5)</li><li><code>consuming</code>: ownership <b>moves</b></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Use it twice</span><p style="margin:4px 0 0"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;&lsquo;token&rsquo; consumed more than once</span></p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This slide is beyond the lesson text; Lesson 1.5 promised it. Swift 5.9 added non-copyable types. ExportToken is a struct marked tilde Copyable: it cannot be copied, so it always has exactly one owner, and it can have a deinit.</p>
+    <span class="notes-label">SAY</span><p>upload takes the token as consuming: ownership moves into the function. Real output: uploading with token 1, then token 1 released, when upload finishes with it.</p>
+    <span class="notes-label">SAY</span><p>Click: that is the point: a value with exactly one owner, enforced by the compiler. Click: use it a second time and the build fails: token consumed more than once. Good for one-time resources like an export token or a file handle. You will see it rarely in app code, but it shows where Swift ownership is heading.</p>
+    <span class="notes-label">CONNECT</span><p>Back to classes: the most common cycles involve closures.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Closures and timers</h2>
+    <p class="lead">Who owns the closure?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 1.4 met this cycle. Now ask the deeper question.</p>
+    <span class="notes-label">CONNECT</span><p>And add a timer.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Closures (section 8)</p>
+  <h2>Ask three questions</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DashboardViewModel.swift</span></div><pre class="cb" style="font-size:14px">@MainActor
+final class DashboardViewModel {
+    var onRefresh: (() -&gt; Void)?
+
+    func configure() {
+        onRefresh = { [weak self] in   // the fix
+            self?.refresh()
+        }
+    }
+    func refresh() { print(&quot;Refreshing dashboard&quot;) }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">The cycle (Lesson 1.4)</span><ul style="margin:6px 0 0"><li>The ViewModel owns <code>onRefresh</code></li><li><code>onRefresh</code> captured <code>self</code> strongly</li></ul></div>
+        <div class="rule step" data-label="Before you add [weak self]"><ul style="margin:6px 0 0"><li><b>Who owns</b> the closure?</li><li><b>How long</b> does it live?</li><li><b>What</b> does it capture?</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">No cycle</span><ul style="margin:6px 0 0"><li>Non-escaping closures run now: <code>map</code>, <code>filter</code></li><li>Owned by something that ends soon</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The cycle from Lesson 1.4: the ViewModel owns onRefresh, and the closure captured self strongly. The fix: capture self weakly, so the closure no longer retains the ViewModel.</p>
+    <span class="notes-label">SAY</span><p>Click: but weak capture is not required for every closure. Before adding it, ask three questions: who owns the closure, how long does it live, and what does it capture?</p>
+    <span class="notes-label">SAY</span><p>Click: a non-escaping closure that runs immediately, like map or filter, cannot form this cycle, and neither can a closure owned by something short-lived. Reflexive [weak self] everywhere adds noise and can hide real design problems.</p>
+    <span class="notes-label">CONNECT</span><p>Timers are a classic long-lived owner.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Timers (section 9)</p>
+  <h2>Weak capture and invalidate: two different jobs</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DashboardController.swift</span></div><pre class="cb" style="font-size:13px">@MainActor
+final class DashboardController {
+    var timer: Timer?
+
+    func start() {
+        timer = Timer.scheduledTimer(
+            withTimeInterval: 1, repeats: true
+        ) { [weak self] _ in
+            self?.refresh()
+        }
+    }
+    func refresh() { print(&quot;Refresh&quot;) }
+    func stop() { timer?.invalidate(); timer = nil }
+}</pre></div>
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 552 148" style="max-height:170px" role="img" aria-labelledby="timer">
+        <title id="timer">The run loop keeps the timer; the timer owns its closure; the closure captures the controller weakly</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="250" height="56" rx="12"/><use href="#i-clock" x="14" y="15" width="26" height="26"/><text x="52" y="25">Run loop</text><text class="sm" x="52" y="43">keeps scheduled timers</text></g>
+        <path class="wire" d="M254 28H296M289 21l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="302" y="0" width="250" height="56" rx="12"/><use href="#i-clock" x="316" y="15" width="26" height="26"/><text x="354" y="25">Timer</text><text class="sm" x="354" y="43">owns the closure</text></g>
+        <path class="wire" d="M427 60V86M420 79l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="302" y="92" width="250" height="56" rx="12"/><use href="#i-code" x="316" y="107" width="26" height="26"/><text x="354" y="117">Callback closure</text><text class="sm" x="354" y="135">weak self</text></g>
+        <path class="wire dash" d="M298 120H260M267 113l-7 7 7 7"/>
+        <g class="nd lit"><rect class="sh" x="0" y="92" width="250" height="56" rx="12"/><use href="#i-layout" x="14" y="107" width="26" height="26"/><text x="52" y="117">DashboardController</text><text class="sm" x="52" y="135">not kept alive</text></g>
+      </svg>
+    </div>
+        <div class="gap"></div>
+        <div class="cols step" style="gap:14px"><div class="card accent"><span class="label">[weak self]</span><ul style="margin:6px 0 0"><li>Callback doesn&rsquo;t keep the <b>controller</b> alive</li></ul></div><div class="card accent"><span class="label">invalidate()</span><ul style="margin:6px 0 0"><li><b>Stops the timer</b>; the run loop lets go</li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A repeating timer owns its callback closure, and the run loop keeps a scheduled timer alive, as Lesson 0.6 showed. If the callback captured the controller strongly, the controller would live as long as the timer.</p>
+    <span class="notes-label">SAY</span><p>This version does two things. Click: weak self, so the callback does not keep the controller alive. And invalidate in stop, so the timer actually stops and the run loop releases it.</p>
+    <span class="notes-label">SAY</span><p>They address different concerns. Weak capture alone leaves a timer firing every second into a nil self; invalidate alone, with a strong capture, depends on stop being called. Do both.</p>
+    <span class="notes-label">CONNECT</span><p>How does this compare with garbage collection?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>ARC versus GC, and finding leaks</h2>
+    <p class="lead">What Java developers expect, and how to check</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Java&rsquo;s collector would have freed our cycle. Swift&rsquo;s ARC does not.</p>
+    <span class="notes-label">CONNECT</span><p>Compare, then investigate.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; ARC vs GC (section 10)</p>
+  <h2>Prompt and predictable, but cycles stay</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th></th><th>ARC</th><th>Tracing garbage collection</th></tr></thead><tbody><tr><td>How</td><td>Counts ownership; frees when it ends</td><td>Traces what is reachable</td></tr><tr><td>When</td><td><b>Promptly</b>, when ownership ends</td><td>When the collector runs</td></tr><tr><td>Strong cycles</td><td><b>Stay alive</b></td><td>Usually reclaimed if unreachable</td></tr><tr><td>Used by</td><td>Swift class instances</td><td>Java and many runtimes</td></tr></tbody></table>
+    <p class="small muted" style="margin:8px 0 0">Simplified; real systems add many optimizations.</p>
+    <div class="gap"></div>
+    <div class="warn step" data-label="Can Swift apps leak?"><ul style="margin:6px 0 0"><li><b>Yes</b>: strong cycles and unintended long-lived references</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>ARC manages lifetimes through ownership and can free an object promptly, the moment ownership ends. A tracing collector, as in Java, periodically finds what is still reachable, and its timing depends on the collector. The big practical difference: a strong cycle stays alive under ARC, while many tracing collectors reclaim unreachable cycles. ARC is used for Swift class instances.</p>
+    <span class="notes-label">SAY</span><p>This is simplified; both kinds of system use many optimizations.</p>
+    <span class="notes-label">SAY</span><p>Click: so, can a Swift app leak memory? Yes: strong-reference cycles and unintended long-lived references, like our screen that refused to die.</p>
+    <span class="notes-label">CONNECT</span><p>How do you find one?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Investigating (section 11)</p>
+  <h2>Seven steps from suspicion to proof</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1.1fr .9fr;gap:28px;align-items:start">
+      <ol class="lab"><li>Reproduce the suspected leak</li><li>Navigate away from the screen</li><li>Check whether expected objects deinitialize</li><li>Inspect the <b>Memory Graph</b> (Xcode)</li><li>Find unexpected strong-reference chains</li><li>Correct the ownership</li><li>Repeat and <b>verify</b></li></ol>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Tools</span><ul style="margin:6px 0 0"><li><b>Memory Graph Debugger</b>: who holds this object?</li><li><b>Instruments</b>: Allocations, Leaks over time</li></ul></div>
+        <div class="rule step" data-label="Careful"><ul style="margin:6px 0 0"><li>A missing <code>deinit</code> is <b>not</b> proof of a leak</li><li>Something may legitimately still own it</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A reliable process. Reproduce the suspected leak. Navigate away from the screen. Check whether the objects you expect to disappear actually deinitialize, our deinit prints and live counter. Inspect Xcode&rsquo;s Memory Graph to see who still holds them. Find the unexpected strong-reference chain. Correct the ownership. Then repeat the experiment and verify.</p>
+    <span class="notes-label">SAY</span><p>The Memory Graph Debugger answers who holds this object; Instruments shows allocations and leaks over time. Lesson 8.9 goes deep on Instruments.</p>
+    <span class="notes-label">SAY</span><p>Click: a missing deinit message alone does not prove a leak. The object may still be legitimately retained, by a cache, a navigation stack, or a task that has not finished, which is our last part.</p>
+    <span class="notes-label">CONNECT</span><p>The senior-engineer challenge.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Async tasks and lifetimes</h2>
+    <p class="lead">When [weak self] is not enough</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A ViewModel starts a long-running task. Does [weak self] solve the lifetime problem?</p>
+    <span class="notes-label">CONNECT</span><p>Not necessarily.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Tasks (section 12)</p>
+  <h2>guard let self keeps it alive until the work ends</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:1.15fr .85fr;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>StatementViewModel.swift</span></div><pre class="cb" style="font-size:13px">@MainActor
+final class StatementViewModel {
+    func startExport() {
+        Task { [weak self] in
+            guard let self else { return }           // strong from here on
+            try? await Task.sleep(for: .seconds(2))  // long work
+            self.finish()
+        }
+    }
+    func finish() { print(&quot;export finished&quot;) }
+    deinit { print(&quot;StatementViewModel deinit&quot;) }
+}</pre></div>
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 552 162" style="max-height:200px" role="img" aria-labelledby="task">
+        <title id="task">The screen closes; the task still holds self strongly for two more seconds; then export finishes and deinit runs</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="552" height="46" rx="12"/><use href="#i-phone" x="14" y="10" width="26" height="26"/><text x="52" y="20">Screen closes: vm = nil</text><text class="sm" x="52" y="38">the screen is gone</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="58" width="552" height="46" rx="12"/><use href="#i-clock" x="14" y="68" width="26" height="26"/><text x="52" y="78">Task still holds self (guard let)</text><text class="sm" x="52" y="96">two more seconds of work</text></g>
+        <g class="nd" data-lit="3+"><rect class="sh" x="0" y="116" width="552" height="46" rx="12"/><use href="#i-cross" x="14" y="126" width="26" height="26"/><text x="52" y="136">export finished, then deinit</text><text class="sm" x="52" y="154">only now is it freed</text></g>
+      </svg>
+    </div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Real output</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">screen closed, vm = nil<br>export finished<br>StatementViewModel deinit</p></div></div></div>
+    </div>
+    <div class="gap"></div>
+    <div class="takeaway step">The real fix is <b>cancellation</b> and lifecycle design: Lesson 1.9.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A statement export runs as a long task. It captures self weakly, which looks safe, then immediately promotes it: guard let self. From that line on, the task holds a strong reference for the whole long operation.</p>
+    <span class="notes-label">SAY</span><p>Click: the user closes the screen and the view model variable is set to nil. Click: but the task still holds self, so nothing is freed. Click: we ran it: export finished prints after the screen closed, and only then does deinit run.</p>
+    <span class="notes-label">SAY</span><p>So weak self alone does not always solve the lifetime problem. Click: the real fix is cancelling the task when the screen goes away, and designing the lifecycle; Lesson 1.9 covers tasks and cancellation, and Lesson 8.3 goes deeper.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.8 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:23px"><b>Owners keep things alive</b><br><span class="muted" style="font-size:19px">nil releases a reference, not the object</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p style="font-size:23px"><b>weak or unowned</b><br><span class="muted" style="font-size:19px">nil safely, or trap</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p style="font-size:23px"><b>Prove it</b><br><span class="muted" style="font-size:19px">deinit, Memory Graph, verify the fix</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Strong references own: setting one to nil releases that reference, not necessarily the object, and ARC never breaks a cycle for you. weak becomes nil safely; unowned traps if its target is gone; ask who owns a closure before adding weak self, and remember a promoted self in a task lives until the task ends. And prove it: reproduce, check deinit, inspect the Memory Graph, fix ownership, verify.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>8 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does ARC automatically collect every strong-reference cycle?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does ARC automatically collect every strong-reference cycle?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">ARC does not detect cycles. Customer and Account held each other: neither <code>deinit</code> ran.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming ARC behaves like a tracing GC.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Java developers often say yes.</p>
+    <span class="notes-label">SAY</span><p>No. ARC does not detect cycles. Customer and Account held each other: neither <code>deinit</code> ran.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does weak ownership keep an object alive?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does a <code>weak</code> reference keep its target alive?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It never owns; when the target is destroyed, the weak reference becomes <code>nil</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking weak delays deallocation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. It never owns; when the target is destroyed, the weak reference becomes <code>nil</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should every closure capture self weakly?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should every closure capture <code>self</code> weakly?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Only when a cycle or unwanted long life is possible. Ask: who owns it, how long does it live, what does it capture?</p>
+          <p class="q-trap"><b>Common trap:</b> Reflexive [weak self] everywhere.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Only when a cycle or unwanted long life is possible. Ask: who owns it, how long does it live, what does it capture?</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can a timer retain its callback closure?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can a repeating timer retain its callback closure?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">The timer owns its closure, and the run loop keeps the scheduled timer. Capture weakly and invalidate.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking timers are fire-and-forget.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. The timer owns its closure, and the run loop keeps the scheduled timer. Capture weakly and invalidate.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does a missing deinit always prove a leak?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does a missing <code>deinit</code> message always prove a leak?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Something may legitimately still own it: a cache, a navigation stack, an unfinished task.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating every missing deinit as a bug.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Something may legitimately still own it: a cache, a navigation stack, an unfinished task.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What prints when customerA is set to nil?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text"><code>var customerA: Customer? = Customer(name: "Meena")</code></p><pre class="q-code">var customerB = customerA
+customerA = nil</pre><p class="q-text q-tail">Does <code>deinit</code> print?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why"><code>customerB</code> still owns it. Only <code>customerB = nil</code> prints &ldquo;Meena destroyed&rdquo;.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking nil destroys the object.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes.</p>
+    <span class="notes-label">SAY</span><p>No. <code>customerB</code> still owns it. Only <code>customerB = nil</code> prints &ldquo;Meena destroyed&rdquo;.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What happens reading an unowned reference after its target is destroyed?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">An <code>unowned</code> reference is read after its target is destroyed. What happens?</p><ol class="q-opts"><li>It returns nil</li><li>It returns an empty object</li><li>The app traps</li><li>The compiler prevents it</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">&ldquo;Attempted to read an unowned reference but object &hellip; was already destroyed.&rdquo; Use <code>weak</code> if the target may go first.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting unowned to behave like weak.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>C. &ldquo;Attempted to read an unowned reference but object &hellip; was already destroyed.&rdquo; Use <code>weak</code> if the target may go first.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Is a struct value managed by ARC like a class instance?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Which of these is managed by ARC as an instance?</p><ol class="q-opts"><li>A struct value</li><li>A class instance</li><li>An Int</li><li>A tuple</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">ARC manages class instances (and closures, actors). Structs are values; class references inside them are still counted.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking everything is reference counted.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 1.5.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. ARC manages class instances (and closures, actors). Structs are values; class references inside them are still counted.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.8 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">1.9</td><td><b>Swift concurrency: tasks, actors &amp; Sendable</b></td><td>tasks, cancellation and lifetimes</td></tr><tr><td class="mono">8.3</td><td><b>Task lifetimes &amp; cancellation</b></td><td>the export task, done right</td></tr><tr><td class="mono">8.8</td><td><b>Memory, ARC &amp; energy optimization</b></td><td>reducing NPay&rsquo;s footprint</td></tr><tr><td class="mono">8.9</td><td><b>Instruments &amp; measurement</b></td><td>Allocations and Leaks in practice</td></tr><tr><td class="mono">9.7</td><td><b>Xcode debugger, LLDB &amp; crash analysis</b></td><td>the Memory Graph and crash logs</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Ownership runs into the next lessons. 1.9 introduces tasks and cancellation, which is the real fix for the export task; 8.3 goes deep on task lifetimes; 8.8 and 8.9 optimize and measure memory with Instruments; and 9.7 covers the debugger, the Memory Graph and crash analysis.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.8 &middot; Lab</p>
+  <h2>Make it leak, then prove the fix</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Reproduce each problem from today, then fix it and verify with output.</p><ol class="lab"><li>Run three visits; print the live count. Fix the capture; run again.</li><li>Build the Customer/Account cycle; make <code>owner</code> weak; confirm both <code>deinit</code>s.</li><li>Read an <code>unowned</code> reference after its target dies; read the trap.</li><li>Run the export task; add cancellation so <code>deinit</code> comes first.</li></ol></div>
+    <div><div><div class="cw"><div class="ch"><span>lab.swift</span></div><pre class="cb" style="font-size:12px">@MainActor
+final class TransactionViewModel {
+    static var live = 0
+    var onRefresh: (() -&gt; Void)?
+    init() { Self.live += 1; onRefresh = { self.load() } }
+    func load() {}
+    deinit { MainActor.assumeIsolated { Self.live -= 1 } }
+}
+// TODO: visit the screen 3 times; print TransactionViewModel.live</pre></div><div class="gap"></div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Before and after output for each step</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift only: swiftc lab.swift -o lab && ./lab. Call MainActor-isolated code from top level with MainActor.assumeIsolated { … }. Expected: strong capture → live = 3 after three visits; [weak self] → 0. Cycle: nothing prints; with weak var owner → "Customer destroyed" and the account&rsquo;s owner is nil. unowned → "Fatal error: Attempted to read an unowned reference but object … was already destroyed". Export task: keep a reference to the Task (var exportTask: Task&lt;Void, Never&gt;?), cancel it in a close() method, and check Task.isCancelled (or use try await Task.sleep, which throws on cancellation) so the view model is freed immediately. Full cancellation patterns come in Lesson 1.9.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 1.8 complete</p>
+    <h2>ARC, Ownership<br>&amp; Memory Management</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 1.9 &mdash; Swift Concurrency: Tasks, Actors &amp; Sendable</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain what ARC does and does not do, how strong references and cycles keep objects alive, when to use weak or unowned, how closures, timers and tasks extend lifetimes, how ARC differs from garbage collection, and how to investigate a suspected leak.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 1.9: Swift concurrency, with tasks, actors and Sendable, including the cancellation that properly fixes our export task.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1.3 — Swift Optionals</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 01 · Lesson 1.3 — Swift Optionals">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 01 &middot; Lesson 1.3</p>
+    <h1 style="font-size:54px;line-height:1.05">Swift Optionals:<br>nil, ?, ! and Safe Unwrapping</h1>
+    <p class="lead" style="max-width:760px">&ldquo;An optional is just another way to handle null.&rdquo; <b>Partly.</b> Swift makes a missing value part of the <b>type</b>.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Today: one of Swift&rsquo;s most important language features, optionals. With your background you might think an optional is just another way to handle null. That is partly correct, but Swift goes further: the possibility of a missing value becomes part of the type system, and the compiler holds you to it. Our NPay story continues.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.3 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></span><p>What <code>String?</code> means, and why it is a <b>type</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Unwrap safely with <code>if let</code> and <code>guard let</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Fall back with <code>??</code>, and when <b>not</b> to</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>Follow optional chains with <code>?.</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></span><p>Why <code>!</code> traps, and when it is acceptable</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></span><p>Optionals in <b>API models</b> and <code>try?</code></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.3 &middot; Where we are</p>
+  <h2>Today: modelling absence</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 01 &middot; Swift Language Mastery</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 01 progress: lesson 1.3 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">1.1</text><text x="12" y="50" style="font-size:14px">Swift &amp;</text><text x="12" y="68" style="font-size:14px">compiler</text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">1.2</text><text x="126.667" y="50" style="font-size:14px">Variables</text><text x="126.667" y="68" style="font-size:14px">&amp; types</text></g>
+        <g class="nd lit"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">1.3</text><text x="241.333" y="50" style="font-size:14px">Optionals</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">1.4</text><text x="356" y="50" style="font-size:14px">Functions</text><text x="356" y="68" style="font-size:14px">&amp; closures</text></g>
+        <g class="nd ghost"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">1.5</text><text x="470.667" y="50" style="font-size:14px">Structs</text><text x="470.667" y="68" style="font-size:14px">&amp; classes</text></g>
+        <g class="nd ghost"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">1.6</text><text x="585.333" y="50" style="font-size:14px">Protocols</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">1.7</text><text x="700" y="50" style="font-size:14px">Generics</text><text x="700" y="68" style="font-size:14px">&amp; errors</text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">1.8</text><text x="814.667" y="50" style="font-size:14px">ARC &amp;</text><text x="814.667" y="68" style="font-size:14px">ownership</text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">1.9</text><text x="929.333" y="50" style="font-size:14px">Concurrency</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">1.10</text><text x="1044" y="50" style="font-size:14px">NPay</text><text x="1044" y="68" style="font-size:14px">model</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>Lesson 1.2: types are fixed at build time, and a dictionary lookup handed us an optional.</span><span><b>Today</b>What that optional is, and every safe way to get the value out.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson ended with <code>balances["Asha"]</code> returning nil, typed as an optional Int. Today we open that box: what an optional is, why the compiler will not let you use one directly, and the tools Swift gives you to unwrap it safely.</p>
+    <span class="notes-label">CONNECT</span><p>Start with a real NPay record.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>What if the data doesn&rsquo;t exist?</h2>
+    <p class="lead">Required versus optional</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay stores customer details. Some fields are always there; one is often missing.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the record.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The problem</p>
+  <h2>A field that may be missing</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start">
+      <div><table class="tbl"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Customer name</td><td>Ravi</td></tr><tr><td>Account number</td><td>NP1001</td></tr><tr><td>Email</td><td>ravi@example.com</td></tr><tr class="hl"><td>Middle name</td><td><i>not provided</i></td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Other languages</span><ul style="margin:6px 0 0"><li>Java <code>null</code> &middot; Python <code>None</code></li><li>JavaScript <code>null</code> or <code>undefined</code></li><li>Swift <code>nil</code>, <b>only where the type allows it</b></li></ul></div></div>
+      <div><div class="cw"><div class="ch"><span>MiddleName.swift</span></div><pre class="cb" style="font-size:17px">let customerName: String = &quot;Ravi&quot;
+
+let middleName: String = nil     // error
+let middleName2: String? = nil   // valid</pre></div>
+        <p class="step" style="margin:12px 0 0"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;&lsquo;nil&rsquo; cannot initialize specified type &lsquo;String&rsquo;</span></p>
+        <div class="gap"></div>
+        <div class="cols step" style="gap:16px"><div class="card accent"><span class="label">String</span><ul style="margin:6px 0 0"><li>A value is <b>required</b></li></ul></div><div class="card accent"><span class="label">String?</span><ul style="margin:6px 0 0"><li>A value <b>may be absent</b></li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Ravi&rsquo;s record: name, account number NP1001, email, and no middle name. How should Swift represent the missing middle name? Java would use null, Python None, JavaScript null or undefined. Swift uses nil, but only where the type allows absence.</p>
+    <span class="notes-label">SAY</span><p>Click: a plain String cannot hold nil. The real error: nil cannot initialize specified type String. Add a question mark and it is valid.</p>
+    <span class="notes-label">SAY</span><p>Click: String means a value is required. String? means a value may exist, or may be absent. One character changes the contract.</p>
+    <span class="notes-label">CONNECT</span><p>So what is a String? really?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>An Optional is a box</h2>
+    <p class="lead">Two cases, one type</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Picture a sealed box: it either holds a value, or it is empty.</p>
+    <span class="notes-label">CONNECT</span><p>Open it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; The box</p>
+  <h2>Optional is an enum with two cases</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 552 180" style="max-height:230px" role="img" aria-labelledby="box">
+        <title id="box">String optional: case some holding Ravi, or case none</title>
+        <text class="mono" x="276" y="16" text-anchor="middle">String?  =  Optional&lt;String&gt;</text>
+        <path class="wire faint" d="M0 30V24H552V30"/>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="40" width="266" height="140" rx="14"/><use href="#i-check" x="119" y="54" width="28" height="28"/><text x="133" y="144" text-anchor="middle">.some("Ravi")</text><text class="sm" x="133" y="164" text-anchor="middle">the box holds a String</text></g>
+        <g class="nd" data-lit="1+"><rect class="sh" x="286" y="40" width="266" height="140" rx="14"/><use href="#i-cross" x="405" y="54" width="28" height="28"/><text x="419" y="144" text-anchor="middle">.none</text><text class="sm" x="419" y="164" text-anchor="middle">the box is empty: nil</text></g>
+      </svg>
+    </div>
+      <div class="cw"><div class="ch"><span>Optional.swift</span></div><pre class="cb" style="font-size:17px">enum Optional&lt;Wrapped&gt; {
+    case none
+    case some(Wrapped)
+}
+
+// String?  is shorthand for  Optional&lt;String&gt;</pre></div>
+    </div>
+    <i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Not a null pointer"><ul style="margin:6px 0 0"><li>A <b>type</b> for presence or absence of a wrapped value</li><li>Works for <b>any</b> type: <code>Int?</code>, <code>Balance?</code>, <code>[String]?</code></li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Conceptually an optional has two cases: none, or some with a wrapped value. This is a simplified version of the standard library&rsquo;s Optional enum. String? is just shorthand for Optional of String.</p>
+    <span class="notes-label">SAY</span><p>Right now the box holds some("Ravi"). Click: set it to nil and the box is empty, the none case.</p>
+    <span class="notes-label">SAY</span><p>Click: an optional is not a special pointer that might be null. It is an ordinary enum type that represents presence or absence, and it works for any wrapped type, including structs like Balance and collections.</p>
+    <span class="notes-label">CONNECT</span><p>If it is a box, you cannot use the contents without opening it.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Why not use it directly?</h2>
+    <p class="lead">The compiler insists on a check</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We have a middle name. Why can&rsquo;t we just ask for its length?</p>
+    <span class="notes-label">CONNECT</span><p>Try it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Unwrapping</p>
+  <h2>A String? is not a String</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:.9fr 1.1fr;gap:28px;align-items:start">
+      <div class="cw"><div class="ch"><span>Count.swift</span></div><pre class="cb" style="font-size:17px">let middleName: String? = &quot;Kumar&quot;
+
+print(middleName.count)   // error</pre></div>
+      <p style="margin:0"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;value of optional type &lsquo;String?&rsquo; must be unwrapped to refer to member &lsquo;count&rsquo; of wrapped base type &lsquo;String&rsquo;</span></p>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="step"><div class="diagram">
+      <svg class="art" viewBox="-2 -46 1140 154" style="max-height:170px" role="img" aria-labelledby="unwrap">
+        <title id="unwrap">An optional is checked: some means use the String, none means handle the missing value</title>
+        <g class="nd lit"><rect class="sh" x="0" y="0" width="300" height="60" rx="12"/><use href="#i-decision" x="14" y="17" width="26" height="26"/><text x="52" y="27">middleName</text><text class="sm" x="52" y="45">String?</text></g>
+        <path class="wire" d="M300 30H350M343 23l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="356" y="0" width="280" height="60" rx="12"/><use href="#i-eye" x="370" y="17" width="26" height="26"/><text x="408" y="27">Does a value exist?</text><text class="sm" x="408" y="45">unwrapping</text></g>
+        <path class="wire" d="M636 30H680V-14H720M713 -21l7 7-7 7"/>
+        <path class="wire" d="M680 30V74H720M713 67l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="726" y="-44" width="410" height="60" rx="12"/><use href="#i-check" x="740" y="-27" width="26" height="26"/><text x="778" y="-8">.some: use the String</text></g>
+        <g class="nd"><rect class="sh" x="726" y="44" width="410" height="60" rx="12"/><use href="#i-cross" x="740" y="61" width="26" height="26"/><text x="778" y="80">.none: handle the missing value</text></g>
+      </svg>
+    </div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>middleName holds "Kumar", but its type is String?, not String. So .count is rejected, with a precise message: the optional must be unwrapped to reach count on the wrapped String.</p>
+    <span class="notes-label">SAY</span><p>Click: the compiler requires you to handle both possibilities. Check whether a value exists: if some, use the String; if none, handle the missing value. That check is called unwrapping, and the next four parts are four ways to do it.</p>
+    <span class="notes-label">CONNECT</span><p>The safest common way first.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Optional binding: if let</h2>
+    <p class="lead">The safest common way</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Bind the value to a new name only if it exists.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; if let</p>
+  <h2>Bind it if it is there</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center">
+      <div class="cw"><div class="ch"><span>IfLet.swift</span></div><pre class="cb" style="font-size:16px">let middleName: String? = &quot;Kumar&quot;
+
+if let name = middleName {
+    print(&quot;Middle name: \(name)&quot;)
+} else {
+    print(&quot;No middle name&quot;)
+}</pre></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 286" style="max-height:320px" role="img" aria-labelledby="iflet">
+        <title id="iflet">if let: Kumar takes the if branch, nil takes the else branch</title>
+        <g class="nd" data-lit="0-1"><rect class="sh" x="0" y="0" width="260" height="56" rx="12"/><use href="#i-check" x="14" y="15" width="26" height="26"/><text x="52" y="25">"Kumar"</text><text class="sm" x="52" y="43">case 1: .some</text></g>
+        <g class="nd" data-lit="2+"><rect class="sh" x="300" y="0" width="260" height="56" rx="12"/><use href="#i-cross" x="314" y="15" width="26" height="26"/><text x="352" y="25">nil</text><text class="sm" x="352" y="43">case 2: .none</text></g>
+        <path class="wire" data-lit="0-1" d="M130 60L240 106M233 99l7 7 7-7"/>
+        <path class="wire" data-lit="2+" d="M430 60L320 106M313 99l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="130" y="112" width="300" height="56" rx="12"/><use href="#i-decision" x="144" y="127" width="26" height="26"/><text x="182" y="146">if let name = middleName</text></g>
+        <path class="wire" data-lit="1" d="M230 172L140 216M133 209l7 7 7-7"/>
+        <path class="wire" data-lit="2+" d="M330 172L420 216M413 209l7 7 7-7"/>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="222" width="260" height="64" rx="12"/><use href="#i-check" x="14" y="241" width="26" height="26"/><text x="52" y="251">if branch</text><text class="sm" x="52" y="269">Middle name: Kumar</text></g>
+        <g class="nd" data-lit="2+"><rect class="sh" x="300" y="222" width="260" height="64" rx="12"/><use href="#i-cross" x="314" y="241" width="26" height="26"/><text x="352" y="251">else branch</text><text class="sm" x="352" y="269">No middle name</text></g>
+      </svg>
+    </div>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="tip step" data-label="Swift 5.7 shorthand"><ul style="margin:6px 0 0"><li><code>if let middleName { &hellip; }</code> unwraps under the <b>same name</b></li><li>Same for <code>guard let</code></li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Optional binding with if let. The middle name is "Kumar".</p>
+    <span class="notes-label">SAY</span><p>Click: the optional contains some("Kumar"), so Swift binds the unwrapped value to name, and inside the if branch name is a plain String: Middle name: Kumar. Click: if it is nil, the none case, nothing is bound and the else branch runs.</p>
+    <span class="notes-label">SAY</span><p>This is why you cannot accidentally use a missing value as if it existed: the unwrapped name only exists where the value does.</p>
+    <span class="notes-label">SAY</span><p>Click: since Swift 5.7 you can write if let middleName, without repeating the name, and the same for guard let. You will see both styles in real code.</p>
+    <span class="notes-label">CONNECT</span><p>Sometimes a missing value means: stop here.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>guard let: early exit</h2>
+    <p class="lead">Stop when data is missing</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay sends a notification. Without an email there is nothing to do.</p>
+    <span class="notes-label">CONNECT</span><p>Exit early.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; guard let</p>
+  <h2>Exit early, keep the happy path flat</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Notify.swift</span></div><pre class="cb" style="font-size:16px">func sendNotification(email: String?) {
+    guard let email = email else {
+        print(&quot;Email unavailable&quot;)
+        return
+    }
+    print(&quot;Sending notification to \(email)&quot;)
+}</pre></div>
+        <div class="warn step" data-label="else must exit" style="margin-top:14px"><ul style="margin:6px 0 0"><li><code>return</code>, <code>throw</code>, <code>break</code> or <code>continue</code></li><li>Otherwise: &lsquo;guard&rsquo; body must not <b>fall through</b></li></ul></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">if let</span><ul style="margin:6px 0 0"><li>Run code <b>only if</b> the value exists</li><li>Binding lives <b>inside</b> the branch</li></ul></div>
+        <div class="card accent"><span class="label">guard let</span><ul style="margin:6px 0 0"><li>Missing data means <b>exit early</b></li><li>Binding lives <b>after</b> the guard</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>guard let unwraps or leaves. If the email is missing we print Email unavailable and return; otherwise the function continues, and email is now a plain String for the rest of the function. The successful path stays flat instead of nested inside an if.</p>
+    <span class="notes-label">SAY</span><p>Compare the two: if let when some logic should run only if a value exists, with the binding scoped to that branch; guard let when missing data should cause an early exit, with the binding available after the guard.</p>
+    <span class="notes-label">SAY</span><p>Click: the else branch must leave the scope: return, throw, break or continue. If it falls through, a full build fails with: guard body must not fall through. That check happens in SIL, the stage from Lesson 1.1, so a type-check-only run does not show it.</p>
+    <span class="notes-label">CONNECT</span><p>What if you just want a sensible default?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Nil coalescing: ??</h2>
+    <p class="lead">A fallback value</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay shows a nickname, or &ldquo;Customer&rdquo; if there is none.</p>
+    <span class="notes-label">CONNECT</span><p>Two question marks.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; ??</p>
+  <h2>Use the value, or a fallback</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>DisplayName.swift</span></div><pre class="cb" style="font-size:17px">let nickname: String? = nil
+
+let displayName = nickname ?? &quot;Customer&quot;
+print(displayName)</pre></div>
+        <table class="tbl" style="margin-top:14px"><thead><tr><th><code>nickname</code></th><th><code>nickname ?? "Customer"</code></th></tr></thead><tbody><tr><td><code>"Ravi"</code></td><td><b>Ravi</b></td></tr><tr><td><code>nil</code></td><td><b>Customer</b></td></tr></tbody></table></div>
+      <div class="step"><div class="cw"><div class="ch"><span>Balance.swift</span></div><pre class="cb" style="font-size:16px">let balanceMinor: Int64? = nil      // not loaded
+let shown = balanceMinor ?? 0        // shows ₹0</pre></div>
+        <div class="warn" data-label="Hidden absence" style="margin-top:14px"><ul style="margin:6px 0 0"><li>A missing balance is <b>not</b> &#8377;0</li><li>Show &ldquo;Balance unavailable&rdquo; instead</li></ul></div></div>
+    </div>
+    <div class="gap"></div>
+    <div class="tip" data-label="Good for"><ul style="margin:6px 0 0"><li>Default labels, optional settings, fallback text</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two question marks: use the wrapped value if present, otherwise the fallback. With a nickname of "Ravi" we show Ravi; with nil we show Customer.</p>
+    <span class="notes-label">SAY</span><p>That is great for default labels, optional configuration values and fallback text.</p>
+    <span class="notes-label">SAY</span><p>Click: but be careful. A silent default can hide missing data when absence should be treated as an error. If NPay has not loaded the balance, balance ?? 0 shows ₹0, which is simply wrong and alarming. Show that the balance is unavailable instead; Unit 04 builds proper loading and error states.</p>
+    <span class="notes-label">CONNECT</span><p>Optionals can also sit inside other types.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Optional chaining: ?.</h2>
+    <p class="lead">Absence flows through</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A customer may have no address. How do we ask for the city?</p>
+    <span class="notes-label">CONNECT</span><p>Chain it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Chaining</p>
+  <h2>The result is always optional</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center">
+      <div class="cw"><div class="ch"><span>Chain.swift</span></div><pre class="cb" style="font-size:16px">struct Address { let city: String }
+struct Customer {
+    let name: String
+    let address: Address?
+}
+
+let customer = Customer(name: &quot;Ravi&quot;,
+                        address: nil)
+let city = customer.address?.city   // String?</pre></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 270" style="max-height:300px" role="img" aria-labelledby="chain">
+        <title id="chain">customer.address?.city: if address is nil the chain stops and returns nil; otherwise it returns the city</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="560" height="56" rx="12"/><use href="#i-user" x="14" y="15" width="26" height="26"/><text x="52" y="25">customer</text><text class="sm" x="52" y="43">Customer</text></g>
+        <path class="wire" d="M280 60V86M273 79l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="92" width="560" height="56" rx="12"/><use href="#i-decision" x="14" y="107" width="26" height="26"/><text x="52" y="117">.address?</text><text class="sm" x="52" y="135">Address?: may be nil</text></g>
+        <path class="wire" data-lit="1" d="M200 152L135 194M128 187l7 7 7-7"/>
+        <path class="wire" data-lit="2+" d="M360 152L425 194M418 187l7 7 7-7"/>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="200" width="270" height="70" rx="12"/><use href="#i-cross" x="14" y="222" width="26" height="26"/><text x="52" y="232">address is nil</text><text class="sm" x="52" y="250">chain stops: city = nil</text></g>
+        <g class="nd" data-lit="2+"><rect class="sh" x="290" y="200" width="270" height="70" rx="12"/><use href="#i-check" x="304" y="222" width="26" height="26"/><text x="342" y="232">address in Pune</text><text class="sm" x="342" y="250">city = Optional("Pune")</text></g>
+      </svg>
+    </div>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Type of city"><ul style="margin:6px 0 0"><li><code>String?</code>, because any link may be missing</li><li>A nil link <b>propagates</b> absence; nothing throws or crashes</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Customer has an optional Address, and Address has a city. Ravi has no address. customer.address?.city asks: if there is an address, give me its city.</p>
+    <span class="notes-label">SAY</span><p>Click: address is nil, so the chain stops and city is nil. Click: with an address in Pune, Swift reaches the city: Optional("Pune").</p>
+    <span class="notes-label">SAY</span><p>Click: so the type of city is String?, not String, because any link may be missing. Optional chaining does not throw an error when an intermediate value is nil; it propagates absence through the chain.</p>
+    <span class="notes-label">CONNECT</span><p>Now the dangerous one.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Force unwrapping: !</h2>
+    <p class="lead">A promise the compiler cannot check</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The exclamation mark says: trust me, there is a value.</p>
+    <span class="notes-label">CONNECT</span><p>What if there is not?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Force unwrap</p>
+  <h2>! traps when the box is empty</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Force.swift</span></div><pre class="cb" style="font-size:18px">let nickname: String? = nil
+
+print(nickname!)</pre></div>
+        <div class="card accent step" style="margin-top:14px;padding:16px 22px"><span class="label">Running it</span><p style="font-family:var(--mono);margin:4px 0 0;font-size:15px;line-height:1.5">Fatal error: Unexpectedly found nil while unwrapping an Optional value</p></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Acceptable only when</span><ul style="margin:6px 0 0"><li>A <b>reliable invariant</b> guarantees a value</li><li>Test fixtures, tightly controlled setup</li></ul></div></div>
+        <div class="rule step" data-label="Default"><ul style="margin:6px 0 0"><li>Prefer <code>if let</code>, <code>guard let</code>, <code>??</code></li><li>Never reach for <code>!</code> as the easy way</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The exclamation mark tells Swift: assume this optional contains a value and extract it. With "Ravi" inside, print(nickname!) prints Ravi.</p>
+    <span class="notes-label">SAY</span><p>Click: with nil inside, the program stops. This is the real message from running it: Fatal error, unexpectedly found nil while unwrapping an Optional value. In an app, that is a crash in the customer&rsquo;s hand.</p>
+    <span class="notes-label">SAY</span><p>Click: when is it acceptable? Only when you can establish a reliable invariant that the value cannot be missing at that point: certain test fixtures, or tightly controlled initialization paths.</p>
+    <span class="notes-label">SAY</span><p>Click: in ordinary application logic, prefer safe unwrapping. The exclamation mark is never the easy default.</p>
+    <span class="notes-label">CONNECT</span><p>You will also meet a cousin of !, mostly in UIKit.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 9</p>
+    <h2>Implicitly unwrapped optionals</h2>
+    <p class="lead">String! in older code</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A type ending in an exclamation mark. Where does it come from?</p>
+    <span class="notes-label">CONNECT</span><p>Interface Builder.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 9 &middot; IUO</p>
+  <h2>Optional underneath, unwrapped on use</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>BalanceViewController.swift</span></div><pre class="cb" style="font-size:16px">import UIKit
+
+final class BalanceViewController: UIViewController {
+    @IBOutlet weak var titleLabel: UILabel!
+}</pre></div>
+        <div class="tip step" data-label="In new code" style="margin-top:14px"><ul style="margin:6px 0 0"><li>Prefer ordinary optionals and <b>explicit initialization</b></li></ul></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">What it is</span><ul style="margin:6px 0 0"><li>An optional that is <b>unwrapped automatically</b> when used</li><li>Absent at first, expected <b>later</b></li></ul></div>
+        <div class="card accent step"><span class="label">Why outlets use it</span><ul style="margin:6px 0 0"><li>Connected while the interface <b>loads</b></li></ul></div>
+        <div class="warn step" data-label="Risk"><ul style="margin:6px 0 0"><li>Used <b>before</b> it is connected: trap</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You will meet this in UIKit code: an IBOutlet declared as UILabel with an exclamation mark. That is an implicitly unwrapped optional. Underneath it is an ordinary optional, but Swift unwraps it automatically wherever you use it as a non-optional.</p>
+    <span class="notes-label">SAY</span><p>Click: Interface Builder outlets historically use this because they are absent when the object is created and connected while the interface loads.</p>
+    <span class="notes-label">SAY</span><p>Click: the risk is the same as force unwrapping: touch the outlet before it is connected and the app traps.</p>
+    <span class="notes-label">SAY</span><p>Click: in modern Swift code, prefer ordinary optionals and explicit initialization when practical. Unit 10 covers UIKit in depth.</p>
+    <span class="notes-label">CONNECT</span><p>Optionals matter most where data comes from outside: the network.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 10</p>
+    <h2>Optionals in API responses</h2>
+    <p class="lead">Allowed to be absent is not the same as broken</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay&rsquo;s backend returns a customer. Which fields may be missing?</p>
+    <span class="notes-label">CONNECT</span><p>Model only what the API allows.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 10 &middot; API models</p>
+  <h2>Optional means allowed to be absent</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:.7fr 1.3fr;gap:28px;align-items:start">
+      <div class="cw"><div class="ch"><span>response.json</span></div><pre class="cb" style="font-size:16px">{
+  &quot;customerId&quot;: &quot;C1001&quot;,
+  &quot;name&quot;: &quot;Ravi&quot;,
+  &quot;email&quot;: null
+}</pre></div>
+      <div class="cw"><div class="ch"><span>CustomerResponse.swift</span></div><pre class="cb" style="font-size:16px">struct CustomerResponse: Decodable {
+    let customerId: String     // required
+    let name: String           // required
+    let email: String?         // may be null or absent
+}</pre></div>
+    </div>
+    <div class="gap"></div>
+    <div class="step"><table class="tbl"><thead><tr><th>Response</th><th>Result</th><th>Decoding</th></tr></thead><tbody><tr><td><code>"email": null</code></td><td><code>email == nil</code></td><td>decodes</td></tr><tr><td>no <code>"email"</code> key</td><td><code>email == nil</code></td><td>decodes</td></tr><tr><td>no <code>"customerId"</code> key</td><td><code>DecodingError.keyNotFound</code></td><td><b>fails</b></td></tr></tbody></table></div>
+    <div class="gap"></div>
+    <div class="takeaway step">An optional does <b>not</b> mean &ldquo;ignore data errors&rdquo;. It means <b>this</b> value may be absent.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The backend returns a customer with an id, a name, and an email that may be null. The model makes email optional, because the API allows it to be null or absent. customerId and name are required.</p>
+    <span class="notes-label">SAY</span><p>Click: we decoded three responses. Email null: decodes, email is nil. Email key missing: also decodes, email is nil. customerId missing: decoding fails with DecodingError.keyNotFound, because the model says the id is required. Same if it had the wrong type.</p>
+    <span class="notes-label">SAY</span><p>Click: an optional does not mean ignore all data errors. It means a particular value is allowed to be absent. Lesson 5.3 goes deeper into Codable and custom decoding.</p>
+    <span class="notes-label">CONNECT</span><p>There is a shortcut that turns any error into nil.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 11</p>
+    <h2>try?: errors into optionals</h2>
+    <p class="lead">Convenient, and lossy</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A throwing call can be turned into an optional result.</p>
+    <span class="notes-label">CONNECT</span><p>Compare it with do/catch.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 11 &middot; try?</p>
+  <h2>try? keeps the result, drops the reason</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>TryOptional.swift</span></div><pre class="cb" style="font-size:16px">let customer = try? JSONDecoder().decode(
+    CustomerResponse.self, from: data)
+
+// success → CustomerResponse?   failure → nil</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">try?</span><ul style="margin:6px 0 0"><li>Success: the value</li><li>Failure: <code>nil</code>, <b>no reason</b></li><li>Fine when any failure means &ldquo;skip it&rdquo;</li></ul></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>DoCatch.swift</span></div><pre class="cb" style="font-size:16px">do {
+    let customer = try JSONDecoder().decode(
+        CustomerResponse.self, from: data)
+    print(customer.name)
+} catch {
+    print(error)   // keyNotFound &quot;customerId&quot;
+}</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">do / catch</span><ul style="margin:6px 0 0"><li>Keeps the <b>error</b>: malformed data vs other failures</li><li>What NPay&rsquo;s networking needs</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>try? converts a throwing operation into an optional. If decoding succeeds, customer holds the value; if it throws, the expression is simply nil.</p>
+    <span class="notes-label">SAY</span><p>That is convenient, but it discards the error details. You know it failed, not why.</p>
+    <span class="notes-label">SAY</span><p>Click: with do/catch you keep the error. For the response without a customerId we get keyNotFound for customerId, so NPay can tell malformed data from a network failure and react differently. In production networking that distinction usually matters. Lesson 1.7 covers error handling properly.</p>
+    <span class="notes-label">CONNECT</span><p>Five mistakes to avoid.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 12</p>
+    <h2>Common optional mistakes</h2>
+    <p class="lead">And the better approach</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Most optional bugs come from five habits.</p>
+    <span class="notes-label">CONNECT</span><p>Here they are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 12 &middot; Mistakes</p>
+  <h2>Five habits to break</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Mistake</th><th>Better approach</th></tr></thead><tbody><tr><td>Force unwrap every optional</td><td>Use <code>if let</code> or <code>guard let</code></td></tr><tr><td>Replace a missing balance with zero</td><td>Represent unavailable data <b>explicitly</b></td></tr><tr><td>Make every property <code>String?</code></td><td>Model the <b>actual</b> domain requirements</td></tr><tr><td>Ignore decoding failures with <code>try?</code></td><td>Handle errors when <b>details matter</b></td></tr><tr><td>Assume <code>?.</code> returns a non-optional</td><td>The chain&rsquo;s result is <b>optional</b></td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Five common mistakes. Force unwrapping every optional: use if let or guard let. Replacing a missing balance with zero: represent unavailable data explicitly. Making every property optional: model what the domain actually requires, as we did with customerId. Ignoring decoding failures with try?: handle the error when the details matter. And assuming optional chaining returns a non-optional: its result is always optional.</p>
+    <span class="notes-label">CONNECT</span><p>Now combine everything in one NPay example.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 13</p>
+    <h2>NPay practical example</h2>
+    <p class="lead">Required and optional, side by side</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One model, one function, three unwrapping tools.</p>
+    <span class="notes-label">CONNECT</span><p>Here it is.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 13 &middot; Example</p>
+  <h2>A model that says what is required</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1.25fr .75fr;gap:28px;align-items:start">
+      <div class="cw"><div class="ch"><span>Customer.swift</span></div><pre class="cb" style="font-size:15px">struct Customer {
+    let id: String
+    let name: String
+    let email: String?
+    let nickname: String?
+}
+
+func displayCustomer(_ customer: Customer) {
+    let displayName = customer.nickname ?? customer.name
+    print(&quot;Welcome, \(displayName)&quot;)
+    if let email = customer.email { print(&quot;Email: \(email)&quot;) }
+    else { print(&quot;Email not provided&quot;) }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Called with</span><p style="font-family:var(--mono);margin:4px 0 0;font-size:14px;line-height:1.5">Customer(id: "C1001",<br>&nbsp;name: "Ravi Kumar",<br>&nbsp;email: nil,<br>&nbsp;nickname: "Ravi")</p></div>
+        <div class="step"><div class="card accent"><span class="label">Prints</span><p style="font-family:var(--mono);margin:4px 0 0;font-size:15px;line-height:1.6">Welcome, Ravi<br>Email not provided</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>id and name are required; email and nickname are optional. displayCustomer uses the nickname if there is one, otherwise the name, with nil coalescing; then if let for the email.</p>
+    <span class="notes-label">ASK</span><p>Before the click: what does it print for Ravi Kumar with nickname Ravi and no email?</p>
+    <span class="notes-label">SAY</span><p>Click: Welcome, Ravi, then Email not provided. The model states clearly which data is required and which is optional, and that is the foundation of reliable Swift application design.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.3 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></span><p style="font-size:23px"><b>Absence is in the type</b><br><span class="muted" style="font-size:19px">String? is Optional&lt;String&gt;</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p style="font-size:23px"><b>Unwrap safely</b><br><span class="muted" style="font-size:19px">if let, guard let, ??, ?.</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></span><p style="font-size:23px"><b>! is a promise</b><br><span class="muted" style="font-size:19px">break it and the app traps</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Absence is part of the type: String? is Optional of String, an enum with some and none, and the compiler will not let you use it as a plain String. Unwrap safely with if let, guard let, nil coalescing and optional chaining, and do not let a default hide data that should be there. And the exclamation mark is a promise: break it and the app traps.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>8 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does String? represent?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>String?</code> represent?</p><ol class="q-opts"><li>A String that may be empty</li><li>A String value, or no value</li><li>A pointer to a String</li><li>A String loaded lazily</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>String?</code> is <code>Optional&lt;String&gt;</code>: either <code>.some(String)</code> or <code>.none</code>. An empty string is still a value.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing nil with the empty string &ldquo;&rdquo;.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. <code>String?</code> is <code>Optional&lt;String&gt;</code>: either <code>.some(String)</code> or <code>.none</code>. An empty string is still a value.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What happens when force unwrapping nil?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What happens at run time when you force unwrap <code>nil</code>?</p><ol class="q-opts"><li>It returns an empty value</li><li>It returns nil</li><li>The program traps with a fatal error</li><li>Nothing; the compiler prevents it</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">&ldquo;Fatal error: Unexpectedly found nil while unwrapping an Optional value.&rdquo; The compiler cannot check it for you.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the compiler catches it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick D.</p>
+    <span class="notes-label">SAY</span><p>C. &ldquo;Fatal error: Unexpectedly found nil while unwrapping an Optional value.&rdquo; The compiler cannot check it for you.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does nickname ?? Customer print when nickname is Ravi?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text">What does this print?</p><pre class="q-code">let nickname: String? = "Ravi"
+print(nickname ?? "Customer")</pre>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Ravi</span>
+          <p class="q-why"><code>??</code> uses the wrapped value when it exists; the fallback is only for <code>nil</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting Optional("Ravi").</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>A few say Optional("Ravi").</p>
+    <span class="notes-label">SAY</span><p>Ravi. <code>??</code> uses the wrapped value when it exists; the fallback is only for <code>nil</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does optional chaining return when an intermediate value is nil?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text"><code>customer.address?.city</code> when <code>address</code> is <code>nil</code>:</p><ol class="q-opts"><li>An empty String</li><li><code>nil</code>, typed <code>String?</code></li><li>A runtime trap</li><li>A thrown error</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The chain stops at the first nil and the whole expression is <code>nil</code>. Its type is always optional.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting a crash, like force unwrapping.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick C.</p>
+    <span class="notes-label">SAY</span><p>B. The chain stops at the first nil and the whole expression is <code>nil</code>. Its type is always optional.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should every property in an API model be optional?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should every property in an API model be optional, just to be safe?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Make optional only what the API allows to be absent. A required field that is missing should <b>fail</b> decoding, not become nil.</p>
+          <p class="q-trap"><b>Common trap:</b> Hiding broken data behind optionals.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes, for safety.</p>
+    <span class="notes-label">SAY</span><p>No. Make optional only what the API allows to be absent. A required field that is missing should <b>fail</b> decoding, not become nil.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can a guard else branch simply continue execution?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can the <code>else</code> branch of a <code>guard</code> simply continue to the next line?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It must leave the scope with <code>return</code>, <code>throw</code>, <code>break</code> or <code>continue</code>. Otherwise the build fails.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating guard like an if without a body.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many are unsure.</p>
+    <span class="notes-label">SAY</span><p>No. It must leave the scope with <code>return</code>, <code>throw</code>, <code>break</code> or <code>continue</code>. Otherwise the build fails.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does try? return when customerId is missing?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text">The JSON has no <code>customerId</code>. What is <code>customer</code>?</p><pre class="q-code">let customer = try? JSONDecoder()
+&nbsp;&nbsp;.decode(CustomerResponse.self, from: data)</pre>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">nil</span>
+          <p class="q-why">Decoding throws <code>keyNotFound</code>, and <code>try?</code> turns that into <code>nil</code>. The reason is lost.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting a customer with a nil id.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some expect a partial customer.</p>
+    <span class="notes-label">SAY</span><p>nil. Decoding throws <code>keyNotFound</code>, and <code>try?</code> turns that into <code>nil</code>. The reason is lost.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What type is balances[&quot;Asha&quot;]?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Predict the type</span>
+        <p class="q-text"><code>let balances = ["Ravi": 25000]</code></p><p class="q-text q-tail">What is the type of <code>balances["Asha"]</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Int?</span>
+          <p class="q-why">A dictionary lookup returns an optional, <code>Optional&lt;Int&gt;</code>, because the key may not exist. Here it is <code>nil</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting Int, or a crash.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 1.2.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say Int.</p>
+    <span class="notes-label">SAY</span><p>Int?. A dictionary lookup returns an optional, <code>Optional&lt;Int&gt;</code>, because the key may not exist. Here it is <code>nil</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.3 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">1.6</td><td><b>Protocols, extensions &amp; protocol-oriented design</b></td><td>optional protocol requirements, <code>Optional</code> extensions</td></tr><tr><td class="mono">1.7</td><td><b>Generics &amp; error handling</b></td><td><code>throws</code>, <code>do/catch</code> beyond <code>try?</code></td></tr><tr><td class="mono">4.6</td><td><b>Loading/error/success UI state</b></td><td>&ldquo;balance unavailable&rdquo;, not &#8377;0</td></tr><tr><td class="mono">5.3</td><td><b>Codable, dates &amp; custom decoding</b></td><td>optional and required API fields</td></tr><tr><td class="mono">10.1</td><td><b>UIKit lifecycle &amp; responder chain</b></td><td>outlets and <code>UILabel!</code></td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Optionals run through the whole course. Lesson 1.7 handles errors properly instead of try?. Unit 04 builds loading, error and success states so a missing balance never shows as zero. Lesson 5.3 decodes real API responses with optional and required fields. And Unit 10 returns to UIKit outlets.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.3 &middot; Lab</p>
+  <h2>Decode NPay customers</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Decode a small customer list, then break it on purpose.</p><ol class="lab"><li>Decode the two-customer JSON; print each display name and email.</li><li>Use <code>??</code> for the name, <code>if let</code> or <code>guard let</code> for the email.</li><li>Remove <code>customerId</code> from one customer.</li><li>Decode with <code>try?</code>, then with <code>do/catch</code>; compare what you learn.</li><li>Replace any <code>!</code> you used with safe unwrapping.</li></ol></div>
+    <div><div><div class="cw"><div class="ch"><span>lab.swift</span></div><pre class="cb" style="font-size:15px">struct CustomerResponse: Decodable {
+    let customerId: String
+    let name: String
+    let email: String?
+    let nickname: String?
+}
+// decode [CustomerResponse] from the JSON in the notes
+// for each: print nickname ?? name, and the email or &quot;no email&quot;</pre></div><div class="gap"></div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your output for both customers</li><li>What <code>try?</code> told you vs <code>do/catch</code></li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift only: swiftc lab.swift -o lab && ./lab. JSON: [{"customerId": "C1001", "name": "Ravi Kumar", "email": null, "nickname": "Ravi"}, {"customerId": "C1002", "name": "Meena", "email": "meena@example.com"}]. Decode with try JSONDecoder().decode([CustomerResponse].self, from: Data(json.utf8)) (import Foundation). Expected: "Ravi no email" and "Meena meena@example.com" (the second customer has no nickname key, which is fine because nickname is optional). With customerId removed: try? gives nil and no reason; do/catch with catch DecodingError.keyNotFound(let key, _) prints the missing key, customerId. Note that one bad element fails the whole array.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 1.3 complete</p>
+    <h2>Swift Optionals:<br>nil, ?, ! and Safe Unwrapping</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 1.4 &mdash; Functions, Parameters &amp; Closures</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain what String? represents, unwrap with if let and guard let, fall back with nil coalescing and know when not to, follow optional chains, explain why force unwrapping traps, and model API data so that only truly optional values are optional.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 1.4: functions, parameters and closures, including the closures you will pass to almost every iOS API.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

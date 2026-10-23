@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1.5 — Structs vs Classes</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 01 · Lesson 1.5 — Structs vs Classes">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 01 &middot; Lesson 1.5</p>
+    <h1 style="font-size:54px;line-height:1.05">Structs vs Classes:<br>Value &amp; Reference Semantics</h1>
+    <p class="lead" style="max-width:760px">When should a type be a <b>struct</b>, and when a <b>class</b>?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson: functions and closures. Today, one of Swift&rsquo;s most important design decisions: when to create a struct and when to create a class. It comes up in almost every serious iOS app: models, SwiftUI state, ViewModels and shared services. We learn it through one NPay story.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.5 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p><b>Value</b> versus <b>reference</b> semantics</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>The full <b>struct vs class</b> comparison</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></span><p><code>mutating</code> and <b>initializers</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p><b>Identity</b> (<code>===</code>) versus <b>equality</b> (<code>==</code>)</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><p><b>Copy-on-write</b>, ARC and SwiftUI views</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Choose struct or class for NPay&rsquo;s <b>model</b></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.5 &middot; Where we are</p>
+  <h2>Today: values or shared objects</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 01 &middot; Swift Language Mastery</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 01 progress: lesson 1.5 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">1.1</text><text x="12" y="50" style="font-size:14px">Swift &amp;</text><text x="12" y="68" style="font-size:14px">compiler</text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">1.2</text><text x="126.667" y="50" style="font-size:14px">Variables</text><text x="126.667" y="68" style="font-size:14px">&amp; types</text></g>
+        <g class="nd"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">1.3</text><text x="241.333" y="50" style="font-size:14px">Optionals</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">1.4</text><text x="356" y="50" style="font-size:14px">Functions</text><text x="356" y="68" style="font-size:14px">&amp; closures</text></g>
+        <g class="nd lit"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">1.5</text><text x="470.667" y="50" style="font-size:14px">Structs</text><text x="470.667" y="68" style="font-size:14px">&amp; classes</text></g>
+        <g class="nd ghost"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">1.6</text><text x="585.333" y="50" style="font-size:14px">Protocols</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">1.7</text><text x="700" y="50" style="font-size:14px">Generics</text><text x="700" y="68" style="font-size:14px">&amp; errors</text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">1.8</text><text x="814.667" y="50" style="font-size:14px">ARC &amp;</text><text x="814.667" y="68" style="font-size:14px">ownership</text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">1.9</text><text x="929.333" y="50" style="font-size:14px">Concurrency</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">1.10</text><text x="1044" y="50" style="font-size:14px">NPay</text><text x="1044" y="68" style="font-size:14px">model</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>Lesson 1.4: closures are values that capture what they use; a strong capture can keep an object alive.</span><span><b>Today</b>Struct or class: what assignment means, and how to choose for each NPay type.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson we saw closures capture their surroundings, and that capturing a class instance strongly can keep it alive. That only happens with reference types. Today we look at that difference head on: value types and reference types, and how to choose between them.</p>
+    <span class="notes-label">CONNECT</span><p>Start with two NPay screens.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Two screens, one account</h2>
+    <p class="lead">Should a change show up everywhere?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay shows the same account on the dashboard and on the transfer screen. The transfer screen changes its balance. What happens on the dashboard?</p>
+    <span class="notes-label">CONNECT</span><p>It depends on the type.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The problem (section 1)</p>
+  <h2>Change the transfer screen. What does the dashboard show?</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 234" style="max-height:270px" role="img" aria-labelledby="screens">
+        <title id="screens">With a struct each screen has its own balance; with a class both screens show the shared instance</title>
+        <text class="mono" x="255" y="14" text-anchor="middle">STRUCT &middot; EACH SCREEN HOLDS A VALUE</text>
+        <g class="nd"><rect class="sh" x="0" y="30" width="250" height="70" rx="12"/><use href="#i-phone" x="14" y="52" width="26" height="26"/><text x="52" y="62">Dashboard</text><text class="sm" x="52" y="80">&#8377;25,000</text></g>
+        <g class="nd"><rect class="sh" x="280" y="30" width="250" height="70" rx="12"/><use href="#i-phone" x="294" y="52" width="26" height="26"/><text x="332" y="62">Transfer screen</text><text class="sm" x="332" y="80">&#8377;25,000</text></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="280" y="30" width="250" height="70" rx="12"/><use href="#i-phone" x="294" y="52" width="26" height="26"/><text x="332" y="62">Transfer screen</text><text class="sm" x="332" y="80">&#8377;20,000</text></g></g>
+        <text class="mono" x="866" y="14" text-anchor="middle">CLASS &middot; BOTH SCREENS SHARE ONE OBJECT</text>
+        <g class="nd"><rect class="sh" x="606" y="30" width="250" height="70" rx="12"/><use href="#i-phone" x="620" y="52" width="26" height="26"/><text x="658" y="62">Dashboard</text><text class="sm" x="658" y="80">&#8377;25,000</text></g>
+        <g class="nd"><rect class="sh" x="886" y="30" width="250" height="70" rx="12"/><use href="#i-phone" x="900" y="52" width="26" height="26"/><text x="938" y="62">Transfer screen</text><text class="sm" x="938" y="80">&#8377;25,000</text></g>
+        <g class="nd"><rect class="sh" x="686" y="170" width="360" height="64" rx="12"/><use href="#i-memory" x="700" y="189" width="26" height="26"/><text x="738" y="199">One Account instance</text><text class="sm" x="738" y="217">&#8377;25,000</text></g>
+        <path class="wire" d="M731 104L800 164M793 157l7 7 7-7"/>
+        <path class="wire" d="M1011 104L942 164M935 157l7 7 7-7"/>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="606" y="30" width="250" height="70" rx="12"/><use href="#i-phone" x="620" y="52" width="26" height="26"/><text x="658" y="62">Dashboard</text><text class="sm" x="658" y="80">&#8377;20,000</text></g><g class="nd lit"><rect class="sh" x="886" y="30" width="250" height="70" rx="12"/><use href="#i-phone" x="900" y="52" width="26" height="26"/><text x="938" y="62">Transfer screen</text><text class="sm" x="938" y="80">&#8377;20,000</text></g><g class="nd lit"><rect class="sh" x="686" y="170" width="360" height="64" rx="12"/><use href="#i-memory" x="700" y="189" width="26" height="26"/><text x="738" y="199">One Account instance</text><text class="sm" x="738" y="217">&#8377;20,000</text></g></g>
+      </svg>
+    </div>
+    <i class="step cue"></i>
+    <div class="gap-lg"></div>
+    <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">Value semantics</span><ul style="margin:6px 0 0"><li>Independent <b>logical values</b></li><li>Change one, the other stays</li></ul></div>
+      <div class="card accent"><span class="label">Reference semantics</span><ul style="margin:6px 0 0"><li>Shared <b>object identity</b></li><li>Change it once, everyone sees it</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay shows the account in two places: the dashboard and the transfer screen. Both start at ₹25,000. The transfer screen changes its balance to ₹20,000. Should the dashboard change too?</p>
+    <span class="notes-label">SAY</span><p>Click: with a struct, each screen holds its own value, so only the transfer screen shows ₹20,000. With a class, both screens refer to one Account instance, so both now show ₹20,000. This is a conceptual picture, not real SwiftUI synchronization or a banking transaction.</p>
+    <span class="notes-label">SAY</span><p>Click: two fundamental ideas. Value semantics: independent logical values. Reference semantics: shared object identity.</p>
+    <span class="notes-label">CONNECT</span><p>Now in code.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Value and reference in code</h2>
+    <p class="lead">Same lines, one keyword different</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>struct versus class, with the same assignment and the same change.</p>
+    <span class="notes-label">CONNECT</span><p>Side by side.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Struct and class (sections 2&ndash;3)</p>
+  <h2>A copy, or a second name</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>StructAccount.swift</span></div><pre class="cb" style="font-size:14px;min-height:268px">struct Account {
+    var balanceMinor: Int64       // paise
+}
+
+var accountA = Account(balanceMinor: 2_500_000)
+var accountB = accountA
+accountB.balanceMinor = 2_000_000
+print(accountA.balanceMinor)      // 2500000
+print(accountB.balanceMinor)      // 2000000</pre></div>
+        <div class="step" style="margin-top:12px"><div class="diagram">
+      <svg class="art" viewBox="0 0 552 126" role="img" aria-labelledby="vv">
+        <title id="vv">Struct: accountA keeps 25,000; accountB, an independent copy, holds 20,000</title>
+        <g class="nd"><rect class="sh" x="0" y="32" width="236" height="62" rx="12"/><use href="#i-file" x="14" y="50" width="26" height="26"/><text x="52" y="60">accountA</text><text class="sm" x="52" y="78">&#8377;25,000</text></g>
+        <path class="wire dash" d="M244 63H308M301 56l7 7-7 7"/>
+        <text class="sm" x="276" y="52" text-anchor="middle">copy</text>
+        <g class="nd lit"><rect class="sh" x="316" y="32" width="236" height="62" rx="12"/><use href="#i-file" x="330" y="50" width="26" height="26"/><text x="368" y="60">accountB</text><text class="sm" x="368" y="78">&#8377;20,000</text></g>
+      </svg>
+    </div>
+          <p class="" style="margin:10px 0 0;font-size:19px"><b>Two values.</b> Changing B left A alone.</p></div></div>
+      <div><div class="cw"><div class="ch"><span>ClassAccount.swift</span></div><pre class="cb" style="font-size:14px;min-height:268px">final class Account {
+    var balanceMinor: Int64
+    init(balanceMinor: Int64) {
+        self.balanceMinor = balanceMinor
+    }
+}
+let accountA = Account(balanceMinor: 2_500_000)
+let accountB = accountA
+accountB.balanceMinor = 2_000_000
+print(accountA.balanceMinor)      // 2000000</pre></div>
+        <div class="step" style="margin-top:12px"><div class="diagram">
+      <svg class="art" viewBox="0 0 552 126" role="img" aria-labelledby="rr">
+        <title id="rr">Class: accountA and accountB refer to one instance holding 20,000</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="190" height="54" rx="12"/><use href="#i-link" x="14" y="14" width="26" height="26"/><text x="52" y="24">accountA</text><text class="sm" x="52" y="42">reference</text></g>
+        <g class="nd"><rect class="sh" x="0" y="72" width="190" height="54" rx="12"/><use href="#i-link" x="14" y="86" width="26" height="26"/><text x="52" y="96">accountB</text><text class="sm" x="52" y="114">reference</text></g>
+        <path class="wire" d="M194 27L258 55M251 48l7 7-7 7"/>
+        <path class="wire" d="M194 99L258 71M251 64l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="266" y="28" width="286" height="70" rx="12"/><use href="#i-memory" x="280" y="50" width="26" height="26"/><text x="318" y="60">One Account instance</text><text class="sm" x="318" y="78">&#8377;20,000</text></g>
+      </svg>
+    </div>
+          <p class="" style="margin:10px 0 0;font-size:19px"><b>One instance.</b> Both names see &#8377;20,000.</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Both start at ₹25,000, 2,500,000 paise. accountB is assigned from accountA and changed to ₹20,000.</p>
+    <span class="notes-label">ASK</span><p>Before the clicks: what does accountA print in each version?</p>
+    <span class="notes-label">SAY</span><p>Click: the struct. Assignment produced an independent logical value: accountA still prints 2,500,000. Value semantics does not mean Swift duplicates every byte immediately; it can share storage and copy only when needed, as we will see in Part 6. The guarantee is that changing one value never changes another.</p>
+    <span class="notes-label">SAY</span><p>Click: the class. accountA and accountB are two references to the same object, so accountA prints 2,000,000. And notice accountB is a let: let stops you pointing it at a different object, not changing the object, exactly as in Lesson 1.2.</p>
+    <span class="notes-label">CONNECT</span><p>The full comparison in one table.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Struct versus class</h2>
+    <p class="lead">The complete comparison</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Eight differences you will meet in practice.</p>
+    <span class="notes-label">CONNECT</span><p>One table.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Comparison (section 4)</p>
+  <h2>Eight differences</h2>
+  <div class="body">
+    <table class="tbl compact" style="font-size:18px"><thead><tr><th>Feature</th><th>Struct</th><th>Class</th></tr></thead><tbody><tr><td><b>Semantics</b></td><td>Value</td><td>Reference</td></tr><tr><td><b>Identity</b></td><td>No object identity</td><td>Object identity (<code>===</code>)</td></tr><tr><td><b>Inheritance</b></td><td>No class inheritance</td><td>Supports inheritance</td></tr><tr><td><b>ARC</b></td><td>Not ARC-managed as an instance</td><td>Instances managed by ARC</td></tr><tr><td><b>Deinitializer</b></td><td>No <code>deinit</code>*</td><td>Supports <code>deinit</code></td></tr><tr><td><b>Mutating methods</b></td><td>Need <code>mutating</code></td><td>No <code>mutating</code> keyword</td></tr><tr><td><b>Memberwise init</b></td><td>Synthesized</td><td>Write <code>init</code> yourself</td></tr><tr><td><b>Typical use</b></td><td>Data models and values</td><td>Shared identity, services</td></tr></tbody></table>
+    <p class="small muted" style="margin:8px 0 0">* Non-copyable structs (<code>~Copyable</code>) can have a <code>deinit</code>; Lesson 1.8.</p>
+    <div class="gap"></div>
+    <div class="misconception step">&ldquo;Struct = stack, class = heap&rdquo; is not the rule. The distinction is <b>semantics</b>.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Row by row. Structs have value semantics, classes reference semantics. Classes have object identity, checked with three equals signs. Only classes support inheritance. ARC manages class instances; a struct is not ARC-managed as an instance, though any class references inside it are. Classes support deinit. A struct method that changes stored properties needs mutating; classes have no such keyword. Structs get a synthesized memberwise initializer; classes need you to write init. And typically: structs for data models and values, classes for shared identity and reference-based services.</p>
+    <span class="notes-label">SAY</span><p>One refinement: since Swift 5.9, non-copyable structs, marked tilde Copyable, can have a deinit. Ordinary structs cannot. Lesson 1.8 covers ownership.</p>
+    <span class="notes-label">SAY</span><p>Click: do not teach struct equals stack and class equals heap as a rule. Where values are stored is an implementation detail; the language guarantee is about semantics.</p>
+    <span class="notes-label">CONNECT</span><p>Two rows deserve a closer look: mutating and initializers.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Mutation and initializers</h2>
+    <p class="lead">mutating, and who writes init</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A struct method that changes the value must say so; a class must set up its own state.</p>
+    <span class="notes-label">CONNECT</span><p>Both, with real compiler errors.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; mutating and init (sections 5&ndash;6)</p>
+  <h2>Say when you change it; say how it starts</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Deposit.swift</span></div><pre class="cb" style="font-size:14px;min-height:262px">struct Account {
+    var balanceMinor: Int64
+
+    mutating func deposit(_ amountMinor: Int64) {
+        balanceMinor += amountMinor
+    }
+}
+
+var account = Account(balanceMinor: 2_500_000)
+account.deposit(500_000)
+print(account.balanceMinor)       // 3000000</pre></div>
+        <div class="step" style="margin-top:12px"><div class="card accent"><span class="label">Without mutating</span><p style="margin:4px 0 0"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;left side of mutating operator isn&rsquo;t mutable: &lsquo;self&rsquo; is immutable</span></p></div></div></div>
+      <div><div class="cw"><div class="ch"><span>Init.swift</span></div><pre class="cb" style="font-size:14px;min-height:262px">struct Customer {                 // memberwise init: free
+    let id: String
+    var name: String
+}
+let customer = Customer(id: &quot;C1001&quot;, name: &quot;Ravi&quot;)
+
+class CustomerRecord {            // no init written
+    let id: String
+    var name: String
+}</pre></div>
+        <div class="step" style="margin-top:12px"><div class="card accent"><span class="label">Class without init</span><p style="margin:4px 0 0"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;class &lsquo;CustomerRecord&rsquo; has no initializers</span></p></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>deposit changes the struct&rsquo;s stored balance, so it is marked mutating. Depositing ₹5,000 to ₹25,000 gives 3,000,000 paise. The method is changing the value represented by the instance, and mutating makes that intent explicit.</p>
+    <span class="notes-label">SAY</span><p>Click: remove mutating and the compiler says: left side of mutating operator isn&rsquo;t mutable, self is immutable.</p>
+    <span class="notes-label">SAY</span><p>Right side: a struct gets a synthesized memberwise initializer for free, so Customer(id:name:) just works. A class with stored properties that have no default values must write its own init. Click: without it, class CustomerRecord has no initializers. Designated and convenience initializers and two-phase class initialization come in a later lesson.</p>
+    <span class="notes-label">CONNECT</span><p>Classes have identity. What does that mean?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Identity versus equality</h2>
+    <p class="lead">The same object, or the same data?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two customers both named Ravi. Are they the same?</p>
+    <span class="notes-label">CONNECT</span><p>It depends what you ask.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; === and == (section 7)</p>
+  <h2>Same object versus same value</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Identity.swift</span></div><pre class="cb" style="font-size:14px">final class Customer {
+    let name: String
+    init(name: String) { self.name = name }
+}
+
+let a = Customer(name: &quot;Ravi&quot;)
+let b = Customer(name: &quot;Ravi&quot;)
+let c = a
+
+print(a === b)   // false
+print(a === c)   // true</pre></div>
+        <div class="gap"></div>
+        <div class="diagram">
+      <svg class="art" viewBox="0 0 552 208" style="max-height:200px" role="img" aria-labelledby="idn">
+        <title id="idn">a and c refer to instance 1; b refers to instance 2; both hold Ravi</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="140" height="50" rx="12"/><use href="#i-link" x="14" y="12" width="26" height="26"/><text x="52" y="31">a</text></g>
+        <g class="nd"><rect class="sh" x="0" y="70" width="140" height="50" rx="12"/><use href="#i-link" x="14" y="82" width="26" height="26"/><text x="52" y="101">c</text></g>
+        <g class="nd"><rect class="sh" x="0" y="150" width="140" height="50" rx="12"/><use href="#i-link" x="14" y="162" width="26" height="26"/><text x="52" y="181">b</text></g>
+        <path class="wire" d="M144 25L226 50M219 43l7 7-7 7"/>
+        <path class="wire" d="M144 95L226 70M219 63l7 7-7 7"/>
+        <path class="wire" d="M144 175H226M219 168l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="232" y="26" width="320" height="66" rx="12"/><use href="#i-memory" x="246" y="46" width="26" height="26"/><text x="284" y="56">Instance 1</text><text class="sm" x="284" y="74">name: Ravi</text></g>
+        <g class="nd"><rect class="sh" x="232" y="142" width="320" height="66" rx="12"/><use href="#i-memory" x="246" y="162" width="26" height="26"/><text x="284" y="172">Instance 2</text><text class="sm" x="284" y="190">name: Ravi</text></g>
+      </svg>
+    </div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>Equality.swift</span></div><pre class="cb" style="font-size:14px">struct CustomerValue: Equatable {
+    let name: String
+}
+
+print(CustomerValue(name: &quot;Ravi&quot;) ==
+      CustomerValue(name: &quot;Ravi&quot;))   // true</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">===</span><ul style="margin:6px 0 0"><li>Same <b>instance</b>? Classes only</li><li>Ignores the data</li></ul></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">==</span><ul style="margin:6px 0 0"><li>Same <b>value</b>? Needs <code>Equatable</code></li><li>Compares the data</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>a and b are two Customer objects that both hold Ravi. c is just another name for a. Three equals signs asks: do these two references identify the same instance? a === b is false: same data, different objects. a === c is true. The picture shows it: a and c point to instance 1, b to instance 2.</p>
+    <span class="notes-label">SAY</span><p>Click: for equality of values, types conform to Equatable. Two CustomerValue structs with the same name are equal, ==, true. Structs have no identity to compare; they are their data.</p>
+    <span class="notes-label">CONNECT</span><p>If structs are copied on assignment, isn&rsquo;t that expensive?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Copy-on-write</h2>
+    <p class="lead">Copy only when you change it</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Arrays have value semantics. Does that mean every assignment copies every element?</p>
+    <span class="notes-label">CONNECT</span><p>Measure it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Copy-on-write (section 8)</p>
+  <h2>Share until someone writes</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center">
+      <div class="cw"><div class="ch"><span>CopyOnWrite.swift</span></div><pre class="cb" style="font-size:16px">var a = [10, 20, 30]
+var b = a          // shares a&#x27;s buffer
+
+b.append(40)       // b gets its own buffer
+
+print(a)   // [10, 20, 30]
+print(b)   // [10, 20, 30, 40]</pre></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 552 176" style="max-height:200px" role="img" aria-labelledby="cow">
+        <title id="cow">a and b share one buffer until b appends; then b gets its own copy</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="150" height="50" rx="12"/><use href="#i-link" x="14" y="12" width="26" height="26"/><text x="52" y="31">a</text></g>
+        <g class="nd"><rect class="sh" x="0" y="120" width="150" height="50" rx="12"/><use href="#i-link" x="14" y="132" width="26" height="26"/><text x="52" y="151">b</text></g>
+        <g class="nd"><rect class="sh" x="250" y="0" width="300" height="56" rx="12"/><use href="#i-memory" x="264" y="15" width="26" height="26"/><text x="302" y="25">[10, 20, 30]</text><text class="sm" x="302" y="43">buffer 1</text></g>
+        <path class="wire" d="M154 25H246M239 18l7 7-7 7"/>
+        <g class="fade" data-lit="0"><path class="wire lit" d="M154 145L246 40M239 33l7 7-7 7"/><text class="sm" x="210" y="80" text-anchor="middle">shared</text></g>
+        <g class="fade" data-lit="1+"><path class="wire lit" d="M154 145H246M239 138l7 7-7 7"/><g class="nd lit"><rect class="sh" x="250" y="120" width="300" height="56" rx="12"/><use href="#i-memory" x="264" y="135" width="26" height="26"/><text x="302" y="145">[10, 20, 30, 40]</text><text class="sm" x="302" y="163">buffer 2: copied on append</text></g></g>
+      </svg>
+    </div>
+    </div>
+    <i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="step"><p class="small muted" style="margin:0 0 4px">Measured: do <code>a</code> and <code>b</code> use the same buffer address?</p>
+        <table class="tbl"><tbody><tr><td>Before <code>b.append(40)</code></td><td><b>true</b>: one shared buffer</td></tr><tr><td>After</td><td><b>false</b>: separate buffers</td></tr></tbody></table></div>
+      <div class="step"><div class="card accent"><span class="label">Why it matters</span><ul style="margin:6px 0 0"><li>Value semantics, <b>without</b> copying on every assignment</li><li>One reason Swift favours structs for models</li><li>Built into <code>Array</code>, <code>Dictionary</code>, <code>Set</code>, <code>String</code></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>a and b are arrays, so they have value semantics: after b.append(40), a is still [10, 20, 30]. But Swift does not copy the elements on var b = a. Both arrays start out sharing one underlying buffer.</p>
+    <span class="notes-label">SAY</span><p>Click: when b is mutated and the buffer is shared, b first gets its own copy. That is copy-on-write: copy only when someone writes.</p>
+    <span class="notes-label">SAY</span><p>Click: we measured it, using withUnsafeBufferPointer to read each array&rsquo;s buffer address. Before the append: the same address, true. After: different, false. Exact storage behaviour is an implementation detail; the semantics are the guarantee.</p>
+    <span class="notes-label">SAY</span><p>Click: copy-on-write gives you the simplicity of value semantics with efficient storage reuse. It is built into the standard collections, Array, Dictionary, Set and String; your own structs get it only if you implement it. That is one reason Swift encourages value types for data models.</p>
+    <span class="notes-label">CONNECT</span><p>Reference types bring something structs never need: lifetime management.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>ARC and SwiftUI</h2>
+    <p class="lead">Lifetimes for classes, descriptions for views</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Classes need ARC. SwiftUI views are structs. How do these fit?</p>
+    <span class="notes-label">CONNECT</span><p>One at a time.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; ARC and SwiftUI (sections 9&ndash;10)</p>
+  <h2>Classes live and die; views describe</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Lifetime.swift</span></div><pre class="cb" style="font-size:14px;min-height:232px">final class Customer {
+    let name: String
+    init(name: String) {
+        self.name = name; print(&quot;Created&quot;)
+    }
+    deinit { print(&quot;Destroyed&quot;) }
+}
+var customer: Customer? = Customer(name: &quot;Ravi&quot;)
+customer = nil</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Prints</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">Created<br>Destroyed</p><ul style="margin:6px 0 0"><li>Last strong reference gone: <b>deinit</b></li><li>A cycle prevents it (0.6, 1.4)</li></ul></div></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>BalanceView.swift</span></div><pre class="cb" style="font-size:14px;min-height:232px">import SwiftUI
+
+struct BalanceView: View {
+    let balanceText: String   // from the ViewModel
+
+    var body: some View {
+        Text(balanceText)
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">SwiftUI views are structs</span><ul style="margin:6px 0 0"><li>A <b>description</b> of the UI, recreated often</li><li>Lasting state is kept by SwiftUI (Unit 03)</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Classes introduce reference ownership. Create a Customer and it prints Created; set the only reference to nil and ARC deinitializes it: Destroyed. Strong reference cycles would prevent that, as in Lesson 0.6 and the closure cycle in Lesson 1.4. Now you can see why cycles are a reference-type problem.</p>
+    <span class="notes-label">SAY</span><p>Click: SwiftUI views are usually structs. BalanceView takes ready-formatted text from the ViewModel, as in Lesson 0.2, and describes a Text. That does not mean SwiftUI redraws the whole screen whenever a struct changes: view values are descriptions of the desired interface, and SwiftUI manages identity, state and rendering itself.</p>
+    <span class="notes-label">SAY</span><p>A view struct can be recreated very often, so lasting view state is kept separately by SwiftUI. That is why view identity and property wrappers matter so much in Unit 03.</p>
+    <span class="notes-label">CONNECT</span><p>So how do you choose?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Choosing for NPay</h2>
+    <p class="lead">Struct by default; class when identity matters</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Five NPay types. Struct or class?</p>
+    <span class="notes-label">CONNECT</span><p>Decide, then check.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Decision (section 11)</p>
+  <h2>Struct or class?</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>NPay type</th><th>Choose</th><th>Because</th></tr></thead><tbody><tr><td>Transaction record</td><td><b>struct</b></td><td>a value representing data</td></tr><tr><td>Currency amount</td><td><b>struct</b></td><td>a value; equal amounts are interchangeable</td></tr><tr><td>SwiftUI screen description</td><td><b>struct</b></td><td>a cheap description SwiftUI recreates</td></tr><tr><td>Observable ViewModel</td><td><b>class</b></td><td>one shared, observed instance (<code>@Observable</code> is for classes)</td></tr><tr><td>Shared session manager</td><td><b>class</b></td><td>identity and shared mutable session state</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Practical rule"><ul style="margin:6px 0 0"><li>Start with a <b>struct</b> for independent values</li><li>Choose a <b>class</b> when identity or shared ownership is <b>part of the design</b></li><li>A guideline, not a law</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Before the table: struct or class for each of the five?</p>
+    <span class="notes-label">SAY</span><p>A transaction record is naturally a value representing data: struct. A currency amount: struct; two equal amounts are interchangeable. A SwiftUI screen description: struct, recreated cheaply. An observable ViewModel: class; the screen observes one shared instance, and the @Observable macro works on classes. A shared session manager: class, because identity and shared mutable session state are the point.</p>
+    <span class="notes-label">SAY</span><p>Click: start with a struct when you need independent values; choose a class when reference identity or shared ownership is genuinely part of the design. A guideline, not an absolute law.</p>
+    <span class="notes-label">CONNECT</span><p>Here is that decision in NPay&rsquo;s model.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; NPay model (section 12)</p>
+  <h2>Values for data, a class for the session</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1.2fr .8fr;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Model.swift</span></div><pre class="cb" style="font-size:14px">struct Money: Equatable {
+    let amountMinor: Int64       // paise
+    let currency: String         // &quot;INR&quot;
+}
+
+struct Transaction: Equatable {
+    let id: String
+    let amount: Money
+    let description: String
+}
+
+final class SessionManager {
+    private(set) var isLoggedIn = false
+    func login() { isLoggedIn = true }
+    func logout() { isLoggedIn = false }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Money, Transaction</span><ul style="margin:6px 0 0"><li><b>Domain values</b>: structs</li><li>Equatable: compare by value</li></ul></div>
+        <div class="card accent step"><span class="label">SessionManager</span><ul style="margin:6px 0 0"><li>A <b>service</b> with identity</li><li>Shared, mutable session state</li><li><code>final</code>: no subclassing</li></ul></div>
+        <div class="tip step" data-label="Real banking"><ul style="margin:6px 0 0"><li>Stronger validation, secure sessions (Unit 07)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Money and Transaction are domain values, so they are structs, and Equatable so they compare by value. Money stores whole paise in Int64 plus a currency code, as in Lesson 1.2; Lesson 1.10 makes it a richer type.</p>
+    <span class="notes-label">SAY</span><p>Click: SessionManager is a service with identity and shared mutable state, so it is a class, final because nothing should subclass it. private(set) lets everyone read isLoggedIn but only the manager change it.</p>
+    <span class="notes-label">SAY</span><p>Click: a real banking implementation needs stronger domain validation and secure session handling; Unit 07 covers that.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.5 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p style="font-size:23px"><b>Values copy, references share</b><br><span class="muted" style="font-size:19px">semantics, not stack or heap</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p style="font-size:23px"><b>=== is identity, == is value</b><br><span class="muted" style="font-size:19px">only classes have identity</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p style="font-size:23px"><b>Struct first</b><br><span class="muted" style="font-size:19px">class when identity is the point</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Values copy and references share: that is the real difference, not stack versus heap, and copy-on-write keeps values cheap. Identity versus equality: three equals signs asks whether two references are the same object, double equals asks whether two values are equal. And start with a struct; choose a class when identity or shared ownership is genuinely part of the design.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>8 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does assigning a class instance to another variable create a new instance?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>let b = a</code> create a new instance when <code>a</code> is a class instance?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It copies the <b>reference</b>. <code>a</code> and <code>b</code> now identify the same object.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting a copy, as with structs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It copies the <b>reference</b>. <code>a</code> and <code>b</code> now identify the same object.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Do structs guarantee independent logical values after assignment?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">After <code>var b = a</code> with a struct, are <code>a</code> and <code>b</code> independent logical values?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Changing one never changes the other, even if storage is shared until a write (copy-on-write).</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking shared storage means shared values.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. Changing one never changes the other, even if storage is shared until a write (copy-on-write).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does a let-bound class reference make every property immutable?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>let account = Account(&hellip;)</code> make every property of a class instance immutable?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why"><code>let</code> fixes the reference. The instance&rsquo;s <code>var</code> properties can still change.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading let as &ldquo;frozen object&rdquo;.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes.</p>
+    <span class="notes-label">SAY</span><p>No. <code>let</code> fixes the reference. The instance&rsquo;s <code>var</code> properties can still change.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does Swift Array use copy-on-write?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does Swift&rsquo;s <code>Array</code> use copy-on-write?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Copies share a buffer until one is mutated; we measured the same address before <code>append</code> and different after.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking every assignment copies all elements.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. Copies share a buffer until one is mutated; we measured the same address before <code>append</code> and different after.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should every iOS model be a class?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should every model type in an iOS app be a class?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Start with structs for values. Use classes where identity or shared ownership is part of the design.</p>
+          <p class="q-trap"><b>Common trap:</b> Bringing class-everything habits from other languages.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Java developers may say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Start with structs for values. Use classes where identity or shared ownership is part of the design.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which NPay type should be a class?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Which of these should be a class?</p><ol class="q-opts"><li><code>Money</code></li><li>A transaction record</li><li>An observable ViewModel</li><li>A SwiftUI screen description</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">The screen observes one shared ViewModel instance, and <code>@Observable</code> works on classes. The others are values.</p>
+          <p class="q-trap"><b>Common trap:</b> Picking the type that &ldquo;feels important&rdquo;.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>C. The screen observes one shared ViewModel instance, and <code>@Observable</code> works on classes. The others are values.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does print(a === b, a === c) print?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text"><code>let a = Customer(name: "Ravi")</code></p><pre class="q-code">let b = Customer(name: "Ravi")
+let c = a
+print(a === b, a === c)</pre>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">false true</span>
+          <p class="q-why">Same data does not make the same object. <code>c</code> is another name for <code>a</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting === to compare names.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say true true.</p>
+    <span class="notes-label">SAY</span><p>false true. Same data does not make the same object. <code>c</code> is another name for <code>a</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does the closure print after n changes?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text"><code>var n = 1</code></p><pre class="q-code">let f = { print(n) }
+n = 2
+f()</pre>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">2</span>
+          <p class="q-why">A closure captures the <b>variable</b>, not a snapshot of its value, so it sees the change.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting the value at creation time (1).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 1.4.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say 1.</p>
+    <span class="notes-label">SAY</span><p>2. A closure captures the <b>variable</b>, not a snapshot of its value, so it sees the change.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.5 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">1.6</td><td><b>Protocols, extensions &amp; protocol-oriented design</b></td><td><code>Equatable</code> and protocols for structs</td></tr><tr><td class="mono">1.8</td><td><b>ARC, ownership &amp; memory management</b></td><td>references, cycles, <code>~Copyable</code></td></tr><tr><td class="mono">1.10</td><td><b>NPay domain model, actor ledger &amp; tests</b></td><td>a full <code>Money</code> value type</td></tr><tr><td class="mono">3.1</td><td><b>View identity, lifetime &amp; state reset</b></td><td>why view structs are cheap</td></tr><tr><td class="mono">3.2</td><td><b>Observation: @Observable &amp; @Bindable</b></td><td>the ViewModel as a class</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Values and references run through the rest of the course. 1.6 shows how protocols like Equatable work with structs; 1.8 goes deep on references, cycles and non-copyable types; 1.10 builds the full Money value type; and Unit 03 explains view identity and why the ViewModel is an observable class.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.5 &middot; Lab</p>
+  <h2>Model NPay&rsquo;s types</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Build the model, then prove each claim from today with output.</p><ol class="lab"><li>Copy a <code>Transaction</code>, change the copy: is the original unchanged? Is <code>==</code> false?</li><li>Give two &ldquo;screens&rdquo; one <code>SessionManager</code>; log in from one; check the other and <code>===</code>.</li><li>Hold the manager in an optional; set it to <code>nil</code>: does <code>deinit</code> print?</li><li>Copy an array of transaction ids; compare buffer addresses before and after an <code>append</code>.</li></ol></div>
+    <div><div><div class="cw"><div class="ch"><span>lab.swift</span></div><pre class="cb" style="font-size:13px">struct Money: Equatable { let amountMinor: Int64; let currency: String }
+struct Transaction: Equatable {
+    let id: String
+    var amount: Money
+    let description: String
+}
+final class SessionManager {
+    private(set) var isLoggedIn = false
+    func login() { isLoggedIn = true }
+    deinit { print(&quot;SessionManager destroyed&quot;) }
+}</pre></div><div class="gap"></div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Four outputs, each next to the claim it proves</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift only: swiftc lab.swift -o lab && ./lab. Expected: t1 = Transaction(id: "T1", amount: Money(amountMinor: 50_000, currency: "INR"), description: "Rent"); var t2 = t1; t2.amount = Money(amountMinor: 60_000, currency: "INR") → t1 keeps 50000, t2 has 60000, t1 == t2 is false. let session = SessionManager(); let screenA = session; let screenB = session; screenB.login() → screenA.isLoggedIn is true and screenA === screenB is true. var maybe: SessionManager? = SessionManager(); maybe = nil prints "SessionManager destroyed". Buffer check: ids.withUnsafeBufferPointer { $0.baseAddress } == copy.withUnsafeBufferPointer { $0.baseAddress } is true before copy.append("T3") and false after. No force unwraps (Lesson 1.3).</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 1.5 complete</p>
+    <h2>Structs vs Classes:<br>Value &amp; Reference Semantics</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 1.6 &mdash; Protocols, Extensions &amp; Protocol-Oriented Design</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain value versus reference semantics, compare structs and classes feature by feature, use mutating and initializers, tell identity from equality, describe copy-on-write, connect ARC to reference types and SwiftUI views to structs, and choose the right kind of type for NPay&rsquo;s model.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 1.6: protocols, extensions and protocol-oriented design, including how Equatable gave our structs ==.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1.10 — NPay Domain Model</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 01 · Lesson 1.10 — NPay Domain Model">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 01 &middot; Lesson 1.10</p>
+    <h1 style="font-size:54px;line-height:1.05">Build NPay&rsquo;s<br>Domain Model</h1>
+    <p class="lead" style="max-width:760px">Everything from Unit 01, in one small banking engine, <b>with tests</b>.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This is the final lesson of Unit 01. We have covered types, optionals, functions and closures, structs and classes, protocols, generics and errors, ARC and concurrency. Today we connect them by designing the core engine of NPay: a small, well-structured Swift banking simulation with tests, not disconnected examples. Everything on these slides was built and tested as a real Swift package.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.10 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Split a design into <b>responsibilities</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></span><p>Model <b>Money</b>, accounts and transactions as values</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></span><p>Describe failures with a <b>domain error</b> type</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></span><p>Protect shared state with an <b>actor ledger</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Test it with <b>Swift Testing</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Spot <b>reentrancy</b> races; review the architecture</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.10 &middot; Where we are</p>
+  <h2>Today: putting Unit 01 together</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 01 &middot; Swift Language Mastery</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 01 progress: lesson 1.10 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">1.1</text><text x="12" y="50" style="font-size:14px">Swift &amp;</text><text x="12" y="68" style="font-size:14px">compiler</text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">1.2</text><text x="126.667" y="50" style="font-size:14px">Variables</text><text x="126.667" y="68" style="font-size:14px">&amp; types</text></g>
+        <g class="nd"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">1.3</text><text x="241.333" y="50" style="font-size:14px">Optionals</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">1.4</text><text x="356" y="50" style="font-size:14px">Functions</text><text x="356" y="68" style="font-size:14px">&amp; closures</text></g>
+        <g class="nd"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">1.5</text><text x="470.667" y="50" style="font-size:14px">Structs</text><text x="470.667" y="68" style="font-size:14px">&amp; classes</text></g>
+        <g class="nd"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">1.6</text><text x="585.333" y="50" style="font-size:14px">Protocols</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">1.7</text><text x="700" y="50" style="font-size:14px">Generics</text><text x="700" y="68" style="font-size:14px">&amp; errors</text></g>
+        <g class="nd"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">1.8</text><text x="814.667" y="50" style="font-size:14px">ARC &amp;</text><text x="814.667" y="68" style="font-size:14px">ownership</text></g>
+        <g class="nd"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">1.9</text><text x="929.333" y="50" style="font-size:14px">Concurrency</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd lit"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">1.10</text><text x="1044" y="50" style="font-size:14px">NPay</text><text x="1044" y="68" style="font-size:14px">model</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>Lesson 1.9: tasks, structured concurrency, cancellation, actors and Sendable.</span><span><b>Today</b>Money, accounts, a protocol, an actor ledger and tests, as one Swift package.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 1.9 gave us actors and Sendable. Today they hold up a real design, together with everything else from the unit. By the end you will have the deliverable your training plan names for Unit 01: a cross-platform Swift package with Money, accounts, a ledger actor and tests.</p>
+    <span class="notes-label">CONNECT</span><p>Start with what the engine must do.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The challenge and the architecture</h2>
+    <p class="lead">Decide responsibilities before code</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Eight capabilities. Which Swift feature carries each one?</p>
+    <span class="notes-label">CONNECT</span><p>Architecture first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Architecture (sections 1&ndash;2)</p>
+  <h2>Four layers, one job each</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:.8fr 1.2fr;gap:28px;align-items:start">
+      <div class="card accent"><span class="label">The engine must</span><ul style="margin:6px 0 0;font-size:18px"><li>Create accounts</li><li>Represent money accurately</li><li>Deposit and withdraw</li><li>Validate transfers</li><li>Store transaction records</li><li>Load data asynchronously</li><li>Prevent unsafe concurrent changes</li><li>Handle failures explicitly</li></ul></div>
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 560 278" style="max-height:330px" role="img" aria-labelledby="arch">
+        <title id="arch">ViewModel, BankingService protocol, BankLedger actor, and BankAccount and Transaction values</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="560" height="50" rx="12"/><use href="#i-layout" x="14" y="12" width="26" height="26"/><text x="52" y="22">ViewModel</text><text class="sm" x="52" y="40">coordinates user actions</text></g>
+        <path class="wire" d="M280 54V70M273 63l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="76" width="560" height="50" rx="12"/><use href="#i-link" x="14" y="88" width="26" height="26"/><text x="52" y="98">BankingService protocol</text><text class="sm" x="52" y="116">what the engine can do</text></g>
+        <path class="wire" d="M280 130V146M273 139l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="152" width="560" height="50" rx="12"/><use href="#i-lock" x="14" y="164" width="26" height="26"/><text x="52" y="174">BankLedger actor</text><text class="sm" x="52" y="192">protects shared account state</text></g>
+        <path class="wire" d="M140 206V222M133 215l7 7 7-7"/>
+        <path class="wire" d="M420 206V222M413 215l7 7 7-7"/>
+        <g class="nd" data-lit="4+"><rect class="sh" x="0" y="228" width="270" height="50" rx="12"/><use href="#i-user" x="14" y="240" width="26" height="26"/><text x="52" y="250">BankAccount</text><text class="sm" x="52" y="268">value</text></g>
+        <g class="nd" data-lit="4+"><rect class="sh" x="290" y="228" width="270" height="50" rx="12"/><use href="#i-file" x="304" y="240" width="26" height="26"/><text x="342" y="250">Transaction</text><text class="sm" x="342" y="268">value</text></g>
+      </svg>
+    </div>
+        <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+        <p class="small muted" style="margin:8px 0 0">In-memory learning design. A real bank: server-side ledger, authentication, durable transactions, audit.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay&rsquo;s engine must create accounts, represent money accurately, deposit and withdraw, validate transfers, store transaction records, load data asynchronously, prevent unsafe concurrent changes, and handle failures explicitly. Before writing code, decide which Swift feature carries each job.</p>
+    <span class="notes-label">SAY</span><p>Click through the layers: a ViewModel coordinates user actions; a BankingService protocol defines what the engine can do; a BankLedger actor protects the shared account state; and BankAccount and Transaction are plain values.</p>
+    <span class="notes-label">ASK</span><p>Why not put everything in one BankAccount class? EXPECT: data, validation, transaction processing and synchronization are different responsibilities; separating them makes the design easier to reason about, test and extend.</p>
+    <span class="notes-label">SAY</span><p>This is an in-memory learning design. A real bank needs a server-side authoritative ledger, authentication, durable transactions and audit controls: the server is authoritative, as in Lesson 0.8.</p>
+    <span class="notes-label">CONNECT</span><p>Start at the bottom: money.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Values: Money, Account, Transaction</h2>
+    <p class="lead">The data is all structs and enums</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 1.2 said money is whole paise in Int64. Now it gets its own type.</p>
+    <span class="notes-label">CONNECT</span><p>Money first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Money and account (sections 3&ndash;4)</p>
+  <h2>A Money type, and an account made of values</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Money.swift</span></div><pre class="cb" style="font-size:14px">struct Money: Equatable, Sendable {
+    let paise: Int64
+
+    init(paise: Int64) { self.paise = paise }
+
+    var rupees: Decimal {
+        Decimal(paise) / Decimal(100)
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <div class="cw"><div class="ch"><span>BankAccount.swift</span></div><pre class="cb" style="font-size:14px">struct BankAccount: Identifiable, Sendable {
+    let id: String
+    let customerName: String
+    var balance: Money
+    var isActive: Bool
+}</pre></div></div>
+      <div><table class="tbl"><thead><tr><th>Choice</th><th>Why</th></tr></thead><tbody><tr><td>struct</td><td>an amount is a <b>value</b> (1.5)</td></tr><tr><td>Int64 paise</td><td><b>exact</b>; no binary fractions (1.2)</td></tr><tr><td>Equatable</td><td>compare amounts with <code>==</code></td></tr><tr><td>Sendable</td><td>safe to cross into the actor (1.9)</td></tr><tr><td>Identifiable</td><td>a standard <code>id</code> contract</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">2,500,000 paise</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">Money(paise: 2_500_000).rupees  →  25000</p><ul style="margin:6px 0 0"><li>Formatting &#8377;25,000 stays in the ViewModel (0.2)</li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Money is a struct, because an amount is a value; it stores whole paise in an Int64, exact, with no binary fractions, as Lesson 1.2 argued. It is Equatable so amounts compare with ==, and Sendable because this immutable value will cross into the ledger actor. rupees converts to Decimal for display.</p>
+    <span class="notes-label">SAY</span><p>BankAccount is also a value: an id, the customer name, a Money balance and an active flag. Identifiable gives it the standard id contract; Sendable lets it cross isolation boundaries. The shared, changing collection of accounts will live inside an actor, not in these structs.</p>
+    <span class="notes-label">SAY</span><p>Click: Money(paise: 2_500_000).rupees is 25000. Turning that into ₹25,000 with grouping is still the ViewModel&rsquo;s job.</p>
+    <span class="notes-label">CONNECT</span><p>Every change should leave a record.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Transactions and errors (sections 5&ndash;6)</p>
+  <h2>Enums for known cases: types and failures</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Transaction.swift</span></div><pre class="cb" style="font-size:14px">enum TransactionType: String, Sendable {
+    case deposit, withdrawal, transfer
+}
+
+struct Transaction: Identifiable, Sendable {
+    let id: UUID
+    let accountId: String
+    let type: TransactionType
+    let amount: Money
+    let timestamp: Date
+}</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">enum TransactionType</span><ul style="margin:6px 0 0"><li>A <b>known set</b> of cases</li><li>Not &ldquo;Deposit&rdquo;, &ldquo;deposit&rdquo;, &ldquo;DEPOSIT&rdquo;</li></ul></div></div></div>
+      <div><div class="cw"><div class="ch"><span>BankingError.swift</span></div><pre class="cb" style="font-size:14px">enum BankingError: Error {
+    case accountNotFound
+    case accountInactive
+    case invalidAmount
+    case insufficientFunds
+    case sameAccountTransfer
+    case arithmeticOverflow
+}</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">enum BankingError</span><ul style="margin:6px 0 0"><li>Says <b>why</b> it failed (1.7)</li><li>Better than returning <code>false</code></li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Every deposit, withdrawal or transfer should produce a record. The type is an enum because valid types form a known set; that is safer than strings like Deposit, deposit and DEPOSIT, which a typo silently breaks.</p>
+    <span class="notes-label">SAY</span><p>Failures get their own enum, as in Lesson 1.7: account not found, inactive, invalid amount, insufficient funds, a transfer to the same account, arithmetic overflow. A good error model says why an operation failed; a Boolean false loses that information.</p>
+    <span class="notes-label">CONNECT</span><p>Now the contract for the whole engine.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>The service contract</h2>
+    <p class="lead">A protocol for the engine</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The ViewModel should not care how banking is implemented.</p>
+    <span class="notes-label">CONNECT</span><p>Define what, not how.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Contract (section 7)</p>
+  <h2>One protocol, several implementations</h2>
+  <div class="body">
+    <div class="cw"><div class="ch"><span>BankingService.swift</span></div><pre class="cb" style="font-size:15px">protocol BankingService: Sendable {
+    func balance(for accountId: String) async throws -&gt; Money
+    func deposit(_ amount: Money, into accountId: String) async throws
+    func withdraw(_ amount: Money, from accountId: String) async throws
+    func transfer(_ amount: Money,
+                  from sourceId: String,
+                  to destinationId: String) async throws
+}</pre></div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:1.1fr .9fr;gap:24px;align-items:center">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 620 150" style="max-height:170px" role="img" aria-labelledby="svc">
+        <title id="svc">BankingService is implemented by the BankLedger actor, a mock, and later a network service</title>
+        <g class="nd lit"><rect class="sh" x="160" y="0" width="300" height="52" rx="12"/><use href="#i-link" x="174" y="13" width="26" height="26"/><text x="212" y="23">BankingService</text><text class="sm" x="212" y="41">protocol</text></g>
+        <path class="wire dash" d="M210 56L90 92M83 85l7 7 7-7"/>
+        <path class="wire dash" d="M310 56V92M303 85l7 7 7-7"/>
+        <path class="wire dash" d="M410 56L530 92M523 85l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="98" width="190" height="52" rx="12"/><use href="#i-lock" x="14" y="111" width="26" height="26"/><text x="52" y="121">BankLedger</text><text class="sm" x="52" y="139">in-memory actor</text></g>
+        <g class="nd"><rect class="sh" x="215" y="98" width="190" height="52" rx="12"/><use href="#i-check" x="229" y="111" width="26" height="26"/><text x="267" y="121">Mock</text><text class="sm" x="267" y="139">tests, previews</text></g>
+        <g class="nd"><rect class="sh" x="430" y="98" width="190" height="52" rx="12"/><use href="#i-globe" x="444" y="111" width="26" height="26"/><text x="482" y="121">Network</text><text class="sm" x="482" y="139">real backend later</text></g>
+      </svg>
+    </div>
+      <div class="step"><div class="card accent"><span class="label">Why</span><ul style="margin:6px 0 0"><li><code>async throws</code>: any implementation may wait or fail</li><li><code>Sendable</code>: safe to share (1.6, 1.9)</li><li>The ViewModel depends on <b>this</b> (4.5)</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>BankingService says what the engine can do: read a balance, deposit, withdraw, transfer. Every requirement is async throws, because some implementation may need to wait, for the network for example, and any of them can fail. It is Sendable, as Lesson 1.9 explained, because it will be shared across isolation boundaries.</p>
+    <span class="notes-label">SAY</span><p>It says nothing about how. Today&rsquo;s in-memory BankLedger actor implements it; a mock can implement it for tests and previews; later a network-backed service can implement it.</p>
+    <span class="notes-label">SAY</span><p>Click: the ViewModel depends on this protocol, not on a concrete type: dependency injection from Lesson 1.6, built properly in Lesson 4.5.</p>
+    <span class="notes-label">CONNECT</span><p>The interesting implementation is the actor.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>The BankLedger actor</h2>
+    <p class="lead">Shared state behind one door</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two tasks withdraw from the same account at once. Who protects the balance?</p>
+    <span class="notes-label">CONNECT</span><p>An actor.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; The actor (sections 8&ndash;9)</p>
+  <h2>The ledger owns the accounts</h2>
+  <div class="body">
+    <div class="cw"><div class="ch"><span>BankLedger.swift</span></div><pre class="cb" style="font-size:14px">actor BankLedger: BankingService {
+    private var accounts: [String: BankAccount]
+
+    init(accounts: [BankAccount]) {
+        self.accounts = Dictionary(uniqueKeysWithValues: accounts.map { ($0.id, $0) })
+    }
+
+    func balance(for accountId: String) throws -&gt; Money {
+        guard let account = accounts[accountId] else { throw BankingError.accountNotFound }
+        return account.balance
+    }
+}</pre></div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:repeat(3,1fr);gap:18px">
+      <div class="card accent"><span class="label">private var accounts</span><ul style="margin:6px 0 0"><li>Only the actor touches it</li></ul></div>
+      <div class="card accent step"><span class="label">No async needed</span><ul style="margin:6px 0 0"><li>Methods without <code>await</code> inside stay <b>sync</b></li><li>Callers outside still <code>await</code></li></ul></div>
+      <div class="card accent step"><span class="label">Not a database</span><ul style="margin:6px 0 0"><li>One door, in memory</li><li>No durability, no ACID</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Without synchronization, two tasks could both read the same balance and both approve a withdrawal, the lost update from Lesson 1.9. So the account dictionary lives inside an actor, private, and only the actor touches it.</p>
+    <span class="notes-label">SAY</span><p>Click: balance(for:) is not marked async: it contains no suspension point. Yet it satisfies the protocol&rsquo;s async throws requirement, and code outside the actor still awaits it, because it may have to wait its turn. We compiled this under Swift 6.</p>
+    <span class="notes-label">SAY</span><p>Click: an actor serializes access to its own state; it is not a database transaction system. And actor methods are reentrant at suspension points, so for our transfer we deliberately keep validation and mutation free of await. Remember that for Part 7.</p>
+    <span class="notes-label">CONNECT</span><p>Deposits and withdrawals: validate, then change.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Deposit and withdraw (sections 9&ndash;10)</p>
+  <h2>Every guard before any change</h2>
+  <div class="body">
+    <div class="cw"><div class="ch"><span>BankLedger+Withdraw.swift</span></div><pre class="cb" style="font-size:14px">func withdraw(_ amount: Money, from accountId: String) throws {
+    guard amount.paise &gt; 0 else { throw BankingError.invalidAmount }
+    guard var account = accounts[accountId] else { throw BankingError.accountNotFound }
+    guard account.isActive else { throw BankingError.accountInactive }
+    guard account.balance.paise &gt;= amount.paise else {
+        throw BankingError.insufficientFunds
+    }
+    account.balance = Money(paise: account.balance.paise - amount.paise)
+    accounts[accountId] = account
+}</pre></div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="card accent"><span class="label">Validation order</span><ul style="margin:6px 0 0"><li>Amount, account exists, active, enough funds</li><li>Only <b>then</b> change the balance</li></ul></div>
+      <div class="step"><div class="card accent"><span class="label">deposit</span><ul style="margin:6px 0 0"><li>Same guards, plus <code>addingReportingOverflow</code> (1.2)</li><li>Overflow throws <code>.arithmeticOverflow</code></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>withdraw checks, in order: a positive amount, the account exists, it is active, and it has enough money. Only after every guard passes does it change the balance and write the account back into the dictionary. A failed withdrawal changes nothing.</p>
+    <span class="notes-label">SAY</span><p>With a non-negative balance and a positive amount no larger than it, the subtraction cannot overflow Int64.</p>
+    <span class="notes-label">SAY</span><p>Click: deposit uses the same guards, and addingReportingOverflow from Lesson 1.2, throwing arithmeticOverflow instead of crashing.</p>
+    <span class="notes-label">CONNECT</span><p>The most important operation touches two accounts.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Transfers</h2>
+    <p class="lead">Two accounts, one logical change</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Ravi sends Meena ₹5,000. Both balances must change, or neither.</p>
+    <span class="notes-label">CONNECT</span><p>Watch it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Transfer (section 11)</p>
+  <h2>All the checks, then both writes, no await</h2>
+  <div class="body">
+    <i class="step cue"></i>
+    <div class="cw"><div class="ch"><span>BankLedger+Transfer.swift</span></div><pre class="cb" style="font-size:12.5px">func transfer(_ amount: Money, from sourceId: String, to destinationId: String) throws {
+    guard sourceId != destinationId else { throw BankingError.sameAccountTransfer }
+    guard amount.paise &gt; 0 else { throw BankingError.invalidAmount }
+    guard var source = accounts[sourceId],
+          var destination = accounts[destinationId] else { throw BankingError.accountNotFound }
+    guard source.isActive, destination.isActive else { throw BankingError.accountInactive }
+    guard source.balance.paise &gt;= amount.paise else { throw BankingError.insufficientFunds }
+    let (newDest, overflow) = destination.balance.paise.addingReportingOverflow(amount.paise)
+    guard !overflow else { throw BankingError.arithmeticOverflow }
+    source.balance = Money(paise: source.balance.paise - amount.paise)
+    destination.balance = Money(paise: newDest)
+    accounts[sourceId] = source
+    accounts[destinationId] = destination          // no await anywhere above
+}</pre></div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:1fr 1fr;gap:24px;align-items:center">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 582 90" style="max-height:110px" role="img" aria-labelledby="tr">
+        <title id="tr">Ravi 25,000 sends 5,000 to Meena 10,000; afterwards Ravi 20,000 and Meena 15,000; total 35,000</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="0" width="260" height="56" rx="12"/><use href="#i-user" x="14" y="15" width="26" height="26"/><text x="52" y="25">Ravi</text><text class="sm" x="52" y="43">&#8377;25,000</text></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="0" y="0" width="260" height="56" rx="12"/><use href="#i-user" x="14" y="15" width="26" height="26"/><text x="52" y="25">Ravi</text><text class="sm" x="52" y="43">&#8377;20,000</text></g></g>
+        <path class="wire" data-lit="1+" d="M264 28H316M309 21l7 7-7 7"/>
+        <text class="sm" x="290" y="18" text-anchor="middle">&#8377;5,000</text>
+        <g class="nd" data-lit="0"><rect class="sh" x="322" y="0" width="260" height="56" rx="12"/><use href="#i-user" x="336" y="15" width="26" height="26"/><text x="374" y="25">Meena</text><text class="sm" x="374" y="43">&#8377;10,000</text></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="322" y="0" width="260" height="56" rx="12"/><use href="#i-user" x="336" y="15" width="26" height="26"/><text x="374" y="25">Meena</text><text class="sm" x="374" y="43">&#8377;15,000</text></g></g>
+        <text class="sm" x="291" y="84" text-anchor="middle">total stays &#8377;35,000</text>
+      </svg>
+    </div>
+      <div class="step"><div class="card accent"><span class="label">Safe here because</span><ul style="margin:6px 0 0"><li>The actor owns both accounts</li><li><b>No <code>await</code></b> between check and change</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A transfer changes two accounts: the source goes down, the destination goes up, as one logical operation. The method checks everything first: not the same account, a positive amount, both accounts exist and are active, enough funds, and no overflow at the destination. Only then does it write both accounts.</p>
+    <span class="notes-label">SAY</span><p>Click: Ravi ₹25,000 sends ₹5,000 to Meena ₹10,000. Afterwards ₹20,000 and ₹15,000; the total stays ₹35,000 in this zero-fee example.</p>
+    <span class="notes-label">SAY</span><p>Click: why is this safe? The actor owns both accounts, and there is no await between validation and mutation, so no other call on the ledger can interleave with this critical section. It is still an in-memory simulation: no durable transactions, no distributed consistency, nothing survives the process ending.</p>
+    <span class="notes-label">CONNECT</span><p>Call it from app code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Using it, and history (sections 12&ndash;13)</p>
+  <h2>Run a transfer; then record it properly</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1.15fr .85fr;gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>App.swift</span></div><pre class="cb" style="font-size:13px">let ledger = BankLedger(accounts: [
+    BankAccount(id: &quot;NP1001&quot;, customerName: &quot;Ravi&quot;,
+                balance: Money(paise: 2_500_000), isActive: true),
+    BankAccount(id: &quot;NP2002&quot;, customerName: &quot;Meena&quot;,
+                balance: Money(paise: 1_000_000), isActive: true)
+])
+try await ledger.transfer(Money(paise: 500_000), from: &quot;NP1001&quot;, to: &quot;NP2002&quot;)
+print(&quot;Ravi:&quot;, try await ledger.balance(for: &quot;NP1001&quot;).rupees)
+print(&quot;Meena:&quot;, try await ledger.balance(for: &quot;NP2002&quot;).rupees)</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Real output</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:16px;line-height:1.55">Ravi: 20000<br>Meena: 15000</p><p class="small muted" style="margin:6px 0 0">A further &#8377;90,000 transfer: <code>Transfer failed: insufficientFunds</code></p></div></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>LedgerEntry.swift</span></div><pre class="cb" style="font-size:13px">struct LedgerEntry: Sendable {
+    let id: UUID
+    let accountId: String
+    let amountPaise: Int64       // − debit, + credit
+    let timestamp: Date
+}</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">A transfer = two entries</span><ul style="margin:6px 0 0"><li>A <b>debit</b> and a <b>credit</b></li><li>Durable, consistent storage is the <b>backend&rsquo;s</b> job</li><li>Double entry, idempotency, audit</li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>App code creates the ledger with Ravi and Meena, transfers ₹5,000 with try await, and reads both balances. Real output: Ravi 20000, Meena 15000; rupees is a Decimal, so formatting with ₹ and grouping is still the ViewModel&rsquo;s job. A second transfer of ₹90,000 fails with insufficientFunds.</p>
+    <span class="notes-label">SAY</span><p>Click: our ledger changes balances but keeps no history. A stronger design stores ledger entries: for a transfer, a debit on one account and a credit on the other.</p>
+    <span class="notes-label">SAY</span><p>In a real bank, entries and balances must be committed durably and consistently, which leads to double-entry bookkeeping, idempotency, auditability and transactional databases. Those are backend guarantees, not something Swift actors provide.</p>
+    <span class="notes-label">CONNECT</span><p>Does it actually work? Prove it with tests.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Testing the domain</h2>
+    <p class="lead">No iPhone needed</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Domain logic separate from SwiftUI can be tested on any machine.</p>
+    <span class="notes-label">CONNECT</span><p>Swift Testing.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Tests (sections 14&ndash;15)</p>
+  <h2>@Test and #expect</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>TransferTests.swift</span></div><pre class="cb" style="font-size:12.5px">import Testing
+@testable import NPayCore
+
+@Test func transferMovesMoney() async throws {
+    let ledger = makeLedger(2_500_000, 1_000_000)  // Ravi, Meena
+    try await ledger.transfer(Money(paise: 500_000),
+                              from: &quot;A&quot;, to: &quot;B&quot;)
+    #expect(try await ledger.balance(for: &quot;A&quot;).paise == 2_000_000)
+    #expect(try await ledger.balance(for: &quot;B&quot;).paise == 1_500_000)
+}</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">@Test, #expect</span><ul style="margin:6px 0 0"><li><code>@Test</code> marks a test</li><li><code>#expect</code> fails the test if false</li></ul></div></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>FailureTests.swift</span></div><pre class="cb" style="font-size:12.5px">@Test func insufficientFundsChangesNothing() async throws {
+    let ledger = makeLedger(100_000, 50_000)
+    await #expect(throws: BankingError.insufficientFunds) {
+        try await ledger.transfer(Money(paise: 200_000),
+                                  from: &quot;A&quot;, to: &quot;B&quot;)
+    }
+    #expect(try await ledger.balance(for: &quot;A&quot;).paise == 100_000)
+    #expect(try await ledger.balance(for: &quot;B&quot;).paise == 50_000)
+}</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Precise failure test</span><ul style="margin:6px 0 0"><li>The <b>exact</b> error, not just &ldquo;some error&rdquo;</li><li>And <b>nothing changed</b></li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Because the domain is separate from SwiftUI, we test it without launching an iPhone interface. transferMovesMoney builds a ledger, transfers ₹5,000, reads both balances with await, and checks them with #expect. @Test marks a test; #expect reports a failure if its condition is false. makeLedger is a small helper that creates Ravi and Meena.</p>
+    <span class="notes-label">SAY</span><p>Click: good engineers test failures too. The lesson text&rsquo;s version checks that some BankingError is thrown. We tightened it, as the text suggests: the exact error, insufficientFunds, and that neither balance changed.</p>
+    <span class="notes-label">SAY</span><p>A passing test shows correctness for that scenario; it does not prove the whole system correct. That is why we write many.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the full list we ran.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Test plan (section 15)</p>
+  <h2>Eight tests, all passing</h2>
+  <div class="body">
+    <table class="tbl compact"><thead><tr><th>Scenario</th><th>Expected</th><th>Result</th></tr></thead><tbody><tr><td>Valid transfer</td><td>both balances updated</td><td>&#10003;</td></tr><tr><td>Insufficient funds (2 tests)</td><td>rejected; exact error, nothing changes</td><td>&#10003;</td></tr><tr><td>Same-account transfer</td><td>rejected</td><td>&#10003;</td></tr><tr><td>Inactive account</td><td>rejected</td><td>&#10003;</td></tr><tr><td>Destination overflow</td><td>rejected</td><td>&#10003;</td></tr><tr><td>Negative deposit</td><td>rejected</td><td>&#10003;</td></tr><tr><td>₹7,000 + ₹6,000 at once from ₹10,000</td><td>exactly one succeeds</td><td>&#10003;</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="card accent"><span class="label">swift test</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:16px;line-height:1.55">✔ Test run with 8 tests passed</p></div>
+      <div class="card accent"><span class="label">Still to add</span><ul style="margin:6px 0 0"><li>Valid deposit and withdrawal</li><li>Transaction history entries</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The lesson lists the scenarios every banking model should consider. We wrote them as Swift Testing tests in the NPayCore package: valid transfer, insufficient funds with nothing changed, same-account transfer, inactive account, destination overflow, negative deposit, plus a concurrency test: transfers of ₹7,000 and ₹6,000 at the same time from ₹10,000 must leave exactly one succeeding.</p>
+    <span class="notes-label">SAY</span><p>Click: swift test: all eight passed. Still to add from the list: valid deposit and withdrawal, and once history exists, its entries. That is part of the lab.</p>
+    <span class="notes-label">CONNECT</span><p>That concurrency test passed because of one detail. Change it and watch it break.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Reentrancy</h2>
+    <p class="lead">When an actor is not enough</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Ravi has ₹10,000. Two withdrawals arrive together: ₹7,000 and ₹6,000. Both cannot succeed.</p>
+    <span class="notes-label">CONNECT</span><p>Unless we put an await in the wrong place.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Reentrancy (sections 16&ndash;17)</p>
+  <h2>Check, await, change: the check goes stale</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>AccountStore.swift</span></div><pre class="cb" style="font-size:13px">actor AccountStore {
+    var balancePaise: Int64 = 1_000_000            // ₹10,000
+
+    func withdraw(_ amountPaise: Int64) async throws {
+        guard balancePaise &gt;= amountPaise else {
+            throw BankingError.insufficientFunds
+        }
+        await performExternalCheck()     // others may run
+        balancePaise -= amountPaise
+    }
+}</pre></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 552 260" style="max-height:300px" role="img" aria-labelledby="re">
+        <title id="re">A checks, awaits; B checks the old balance; both pay; balance minus 3,000</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="552" height="44" rx="12"/><use href="#i-check" x="14" y="9" width="26" height="26"/><text x="52" y="28">A checks ₹10,000 ≥ ₹7,000: ok</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="54" width="552" height="44" rx="12"/><use href="#i-clock" x="14" y="63" width="26" height="26"/><text x="52" y="73">A awaits the external check</text><text class="sm" x="52" y="91">the actor is free again</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="108" width="552" height="44" rx="12"/><use href="#i-check" x="14" y="117" width="26" height="26"/><text x="52" y="127">B checks ₹10,000 ≥ ₹6,000: ok</text><text class="sm" x="52" y="145">stale: A hasn&rsquo;t paid yet</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="162" width="552" height="44" rx="12"/><use href="#i-send" x="14" y="171" width="26" height="26"/><text x="52" y="190">A pays ₹7,000, then B pays ₹6,000</text></g>
+        <g class="fade" data-lit="5+"><g class="nd alert"><rect class="sh" x="0" y="216" width="552" height="44" rx="12"/><use href="#i-cross" x="14" y="225" width="26" height="26"/><text x="52" y="235">Balance: −₹3,000</text><text class="sm" x="52" y="253">measured</text></g></g>
+      </svg>
+    </div>
+    </div>
+    <div class="gap"></div>
+    <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">Real runs</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">check, await, change → both ok, &#8377;&minus;3,000<br>await, then check + change → one rejected, &#8377;4,000</p></div>
+      <div class="rule" data-label="Rule"><ul style="margin:6px 0 0"><li>Actor isolation does <b>not</b> make a multi-step async operation atomic</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An actor lets one task in at a time, but it is reentrant: at an await, the actor is free to run other calls. This AccountStore checks the balance, then awaits an external check, then subtracts.</p>
+    <span class="notes-label">SAY</span><p>Click through: A checks ₹10,000 against ₹7,000: fine. A awaits the external check, and the actor is free. B checks ₹10,000 against ₹6,000: fine, but stale, because A has not paid yet. A pays, then B pays. Click: −₹3,000.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran both versions. Check, await, change: both withdrawals succeeded and the balance went to minus ₹3,000. Await first, then check and change together with no suspension in between: one was rejected and ₹4,000 remained. That is why our BankLedger&rsquo;s transfer has no await inside it, and why its concurrency test passed.</p>
+    <span class="notes-label">SAY</span><p>The rule: never assume actor isolation makes a multi-step asynchronous business operation atomic. Keep validation and mutation together without suspension, or re-validate after the await. In a real bank this is a database and business-consistency problem; Lesson 8.4 goes deeper.</p>
+    <span class="notes-label">CONNECT</span><p>Step back and look at the whole design.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>The whole architecture</h2>
+    <p class="lead">Every Unit 01 idea has a job</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>From the SwiftUI view down to the Money struct.</p>
+    <span class="notes-label">CONNECT</span><p>One map, one table.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Architecture (section 18)</p>
+  <h2>Ten concepts, one engine</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:.75fr 1.25fr;gap:24px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 400 260" style="max-height:340px" role="img" aria-labelledby="all">
+        <title id="all">SwiftUI View, ViewModel, BankingService, BankLedger actor, and value types</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="400" height="44" rx="12"/><use href="#i-phone" x="14" y="9" width="26" height="26"/><text x="52" y="19">SwiftUI View</text><text class="sm" x="52" y="37">presentation</text></g>
+        <g class="nd"><rect class="sh" x="0" y="54" width="400" height="44" rx="12"/><use href="#i-layout" x="14" y="63" width="26" height="26"/><text x="52" y="73">ViewModel</text><text class="sm" x="52" y="91">state, async coordination</text></g>
+        <g class="nd"><rect class="sh" x="0" y="108" width="400" height="44" rx="12"/><use href="#i-link" x="14" y="117" width="26" height="26"/><text x="52" y="127">BankingService</text><text class="sm" x="52" y="145">injection</text></g>
+        <g class="nd lit"><rect class="sh" x="0" y="162" width="400" height="44" rx="12"/><use href="#i-lock" x="14" y="171" width="26" height="26"/><text x="52" y="181">BankLedger actor</text><text class="sm" x="52" y="199">shared state</text></g>
+        <g class="nd"><rect class="sh" x="0" y="216" width="400" height="44" rx="12"/><use href="#i-bank" x="14" y="225" width="26" height="26"/><text x="52" y="235">Money · BankAccount · Transaction</text><text class="sm" x="52" y="253">structs</text></g>
+      </svg>
+    </div>
+      <table class="tbl compact"><thead><tr><th>Concept</th><th>NPay usage</th><th>Lesson</th></tr></thead><tbody><tr><td>Struct</td><td><code>Money</code>, <code>BankAccount</code>, <code>Transaction</code></td><td>1.5</td></tr><tr><td>Enum</td><td><code>TransactionType</code>, <code>BankingError</code></td><td>1.2, 1.7</td></tr><tr><td>Protocol</td><td><code>BankingService</code></td><td>1.6</td></tr><tr><td>Generics</td><td>repositories, API responses</td><td>1.7</td></tr><tr><td>Optionals</td><td>a missing account in the dictionary</td><td>1.3</td></tr><tr><td>throws</td><td>every failed operation</td><td>1.7</td></tr><tr><td>async/await</td><td>calls into the ledger</td><td>1.9</td></tr><tr><td>Actor</td><td><code>BankLedger</code></td><td>1.9</td></tr><tr><td>Sendable</td><td>values crossing into the actor</td><td>1.9</td></tr><tr><td>ARC</td><td>ViewModel and service lifetimes</td><td>1.8</td></tr></tbody></table>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The whole design: a SwiftUI view presents; a ViewModel holds observable state and coordinates async work; it depends on the BankingService protocol; the BankLedger actor protects shared state; and the data is plain value types.</p>
+    <span class="notes-label">SAY</span><p>And every Unit 01 concept has a job. Structs for Money, accounts and transactions; enums for transaction types and errors; a protocol for the service; generics for reusable repositories and API responses; optionals for a missing account; throws for failures; async and await for ledger calls; an actor for shared state; Sendable for values crossing into it; and ARC for the lifetimes of the ViewModel and services.</p>
+    <span class="notes-label">CONNECT</span><p>Now review it like a senior engineer.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.10 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></span><p style="font-size:23px"><b>Values for data</b><br><span class="muted" style="font-size:19px">Money in paise, structs, enums</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></span><p style="font-size:23px"><b>One owner for shared state</b><br><span class="muted" style="font-size:19px">an actor; no await mid-change</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p style="font-size:23px"><b>Prove it with tests</b><br><span class="muted" style="font-size:19px">including failures and concurrency</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Data is values: Money in exact paise, accounts and transactions as structs, closed sets as enums. Shared state has one owner, the actor, and its critical sections contain no await, because actors are reentrant. And prove the design with tests, including failure cases and a concurrent one, on any machine.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Architecture review</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Review the design as a senior engineer would before a team builds it. Eight questions: the lesson&rsquo;s five, then three more. Commit to an answer before each reveal.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can an in-memory actor replace a bank&#x27;s production database?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can this in-memory <code>BankLedger</code> actor replace a bank&rsquo;s production database?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">No durability, no ACID transactions, nothing survives the process. The server&rsquo;s ledger is authoritative (0.8).</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking actor safety equals transactional safety.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no; ask why.</p>
+    <span class="notes-label">SAY</span><p>No. No durability, no ACID transactions, nothing survives the process. The server&rsquo;s ledger is authoritative (0.8).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can an actor method still have a logical race?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can an actor method still have a logical race?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">At an <code>await</code> the actor runs other calls; a check before it can go stale (we measured &minus;&#8377;3,000).</p>
+          <p class="q-trap"><b>Common trap:</b> Believing actors make every method atomic.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say no.</p>
+    <span class="notes-label">SAY</span><p>Yes. At an <code>await</code> the actor runs other calls; a check before it can go stale (we measured &minus;&#8377;3,000).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why is Money a struct rather than a class?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Why is <code>Money</code> a struct rather than a class?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">It&rsquo;s a value</span>
+          <p class="q-why">Two equal amounts are interchangeable, there is no identity, and copies can&rsquo;t race; it is Sendable for free.</p>
+          <p class="q-trap"><b>Common trap:</b> Defaulting to classes for &ldquo;important&rdquo; types.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most get it.</p>
+    <span class="notes-label">SAY</span><p>It&rsquo;s a value. Two equal amounts are interchangeable, there is no identity, and copies can&rsquo;t race; it is Sendable for free.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why should the ViewModel depend on BankingService?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Why should the ViewModel depend on <code>BankingService</code> instead of <code>BankLedger</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">To swap it</span>
+          <p class="q-why">Inject a mock in tests and previews, the in-memory ledger today, a network service later, with no ViewModel change.</p>
+          <p class="q-trap"><b>Common trap:</b> Coupling the UI to one implementation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most get it.</p>
+    <span class="notes-label">SAY</span><p>To swap it. Inject a mock in tests and previews, the in-memory ledger today, a network service later, with no ViewModel change.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why validate on the server if the app already validates transfers?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">The app already validates transfers. Why must the server validate them too?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Server decides</span>
+          <p class="q-why">The client can be modified, outdated or bypassed; the server owns the authoritative balance and rules (Unit 07).</p>
+          <p class="q-trap"><b>Common trap:</b> Trusting client-side checks.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say it is redundant.</p>
+    <span class="notes-label">SAY</span><p>Server decides. The client can be modified, outdated or bypassed; the server owns the authoritative balance and rules (Unit 07).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Ravi has ₹10,000; transfers of ₹7,000 and ₹6,000 run concurrently on BankLedger. How many succeed?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text">Ravi has &#8377;10,000. Transfers of &#8377;7,000 and &#8377;6,000 run concurrently on <code>BankLedger</code>. How many succeed?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Exactly one</span>
+          <p class="q-why">The transfer checks and changes with no <code>await</code>, so the actor runs them one at a time. Our test confirms it.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting both, or neither.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say both.</p>
+    <span class="notes-label">SAY</span><p>Exactly one. The transfer checks and changes with no <code>await</code>, so the actor runs them one at a time. Our test confirms it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which test is most precise for a failed transfer?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Which test is most precise for a transfer with insufficient funds?</p><ol class="q-opts"><li><code>#expect(throws: BankingError.self)</code></li><li><code>#expect(throws: BankingError.insufficientFunds)</code>, then check both balances</li><li>Expect the call to return false</li><li>Just check it doesn&rsquo;t crash</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The exact error, plus proof nothing changed.</p>
+          <p class="q-trap"><b>Common trap:</b> Settling for &ldquo;some error happened&rdquo;.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The exact error, plus proof nothing changed.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Three independent requests of 2 s, 3 s and 1 s with async let take about?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Three independent requests of 2 s, 3 s and 1 s, started with <code>async let</code>, take about:</p><ol class="q-opts"><li>6 s</li><li>1 s</li><li>3 s</li><li>2 s</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">They overlap; the total is roughly the slowest (measured 3.2 s).</p>
+          <p class="q-trap"><b>Common trap:</b> Adding the durations.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 1.9.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>C. They overlap; the total is roughly the slowest (measured 3.2 s).</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Unit 01 &middot; Complete</p>
+  <h2>Swift Language Mastery: done</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:repeat(5,1fr);gap:14px"><div class="card accent" style="padding:12px 16px"><span class="label">1.1</span><p style="margin:2px 0 0;font-size:17px">Swift, compiler, SIL, LLVM</p></div><div class="card accent" style="padding:12px 16px"><span class="label">1.2</span><p style="margin:2px 0 0;font-size:17px">Variables, constants, types</p></div><div class="card accent" style="padding:12px 16px"><span class="label">1.3</span><p style="margin:2px 0 0;font-size:17px">Optionals</p></div><div class="card accent" style="padding:12px 16px"><span class="label">1.4</span><p style="margin:2px 0 0;font-size:17px">Functions, closures</p></div><div class="card accent" style="padding:12px 16px"><span class="label">1.5</span><p style="margin:2px 0 0;font-size:17px">Structs, classes, semantics</p></div><div class="card accent" style="padding:12px 16px"><span class="label">1.6</span><p style="margin:2px 0 0;font-size:17px">Protocols, extensions</p></div><div class="card accent" style="padding:12px 16px"><span class="label">1.7</span><p style="margin:2px 0 0;font-size:17px">Generics, errors</p></div><div class="card accent" style="padding:12px 16px"><span class="label">1.8</span><p style="margin:2px 0 0;font-size:17px">ARC, ownership</p></div><div class="card accent" style="padding:12px 16px"><span class="label">1.9</span><p style="margin:2px 0 0;font-size:17px">Concurrency, actors</p></div><div class="card accent" style="padding:12px 16px"><span class="label">1.10</span><p style="margin:2px 0 0;font-size:17px">NPay domain model</p></div></div>
+    <div class="gap"></div>
+    <div class="takeaway">Your plan&rsquo;s Unit 01 deliverable: a <b>cross-platform Swift package</b> with Money, accounts, a ledger actor and <b>tests</b>. That is the lab.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>That completes Unit 01: the compiler, types, optionals, functions and closures, structs and classes, protocols, generics and errors, ARC, concurrency, and today&rsquo;s domain model.</p>
+    <span class="notes-label">SAY</span><p>The training plan&rsquo;s Unit 01 deliverable is a cross-platform Swift package with Money, accounts, a ledger actor and tests. The final lab builds exactly that, and it runs on any computer, which is the next slide.</p>
+    <span class="notes-label">CONNECT</span><p>Can everyone practise this, even without a Mac?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Unit 01 &middot; Practice anywhere</p>
+  <h2>Unit 01 runs on Windows, macOS and Linux</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Terminal</span></div><pre class="cb" style="font-size:15px">swift package init --type library --name NPayCore
+swift build
+swift test          # runs the @Test functions</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Setup</span><ul style="margin:6px 0 0"><li>Install the Swift toolchain (swift.org)</li><li>Windows: VS Code + the Swift extension</li><li>macOS: Xcode or VS Code</li></ul></div></div></div>
+      <div><table class="tbl"><thead><tr><th></th><th>Windows</th><th>macOS</th><th>Linux</th></tr></thead><tbody><tr><td>Swift language, Unit 01 labs</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr><tr><td>Swift Testing (<code>swift test</code>)</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr><tr><td>SwiftUI, UIKit, iOS Simulator</td><td>&mdash;</td><td>&#10003;</td><td>&mdash;</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="tip" data-label="Unit 02"><ul style="margin:6px 0 0"><li>SwiftUI needs <b>macOS and Xcode</b>: everyone moves to a Mac for Unit 02</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Almost everything in Unit 01 is pure Swift, so it runs on Windows, macOS and Linux with the Swift toolchain from swift.org. On Windows, use VS Code with the Swift extension; on a Mac, Xcode or VS Code.</p>
+    <span class="notes-label">SAY</span><p>Swift Package Manager does the rest: swift package init creates the package, swift build builds it, and swift test runs the @Test functions. All the lesson code here was built and tested that way, on macOS.</p>
+    <span class="notes-label">SAY</span><p>What needs a Mac: SwiftUI, UIKit, the iOS Simulator and iOS app builds. So Unit 01 can be practised anywhere, and for Unit 02 everyone moves to macOS with Xcode, as the training plan says.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.10 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.1</td><td><b>Declarative UI, View &amp; body</b></td><td>the first SwiftUI screen</td></tr><tr><td class="mono">2.2</td><td><b>Xcode projects, simulator &amp; previews</b></td><td>NPayCore inside an iOS app</td></tr><tr><td class="mono">4.3</td><td><b>Domain entities &amp; use cases</b></td><td>today&rsquo;s model, at app scale</td></tr><tr><td class="mono">4.5</td><td><b>Dependency injection &amp; composition root</b></td><td>injecting <code>BankingService</code></td></tr><tr><td class="mono">8.4</td><td><b>Actor reentrancy &amp; logical races</b></td><td>the &minus;&#8377;3,000 bug, in depth</td></tr><tr><td class="mono">9.2</td><td><b>Swift Testing framework</b></td><td>more <code>@Test</code> and <code>#expect</code></td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Today&rsquo;s engine stays with us. Unit 02 builds the first SwiftUI screens and puts NPayCore into an Xcode project; Unit 04 turns it into domain entities and use cases with proper dependency injection; Lesson 8.4 returns to reentrancy; and Unit 09 extends the tests with Swift Testing.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.10 &middot; Lab</p>
+  <h2>Unit 01 checkpoint: NPayCore</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Build the package from today&rsquo;s slides and make every test pass. Any OS.</p><ol class="lab"><li>Create the package; add the model, errors, protocol and <code>BankLedger</code>.</li><li>Write the eight tests from Part 6; run <code>swift test</code>.</li><li>Add valid deposit and withdrawal tests.</li><li>Stretch: record <code>LedgerEntry</code> debits and credits; test them.</li><li>Peer review against the eight architecture questions.</li></ol></div>
+    <div><div><div class="cw"><div class="ch"><span>Layout</span></div><pre class="cb" style="font-size:13px">NPayCore/
+├── Package.swift
+├── Sources/NPayCore/
+│   ├── Money.swift  BankAccount.swift  Transaction.swift
+│   ├── BankingError.swift  BankingService.swift
+│   └── BankLedger.swift
+└── Tests/NPayCoreTests/
+    └── LedgerTests.swift      // 8+ @Test functions</pre></div><div class="gap"></div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li><code>swift test</code> output</li><li>Your answers to the architecture review</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Works on Windows, macOS and Linux with the Swift toolchain. Package.swift: swift-tools-version 6.0, a library target NPayCore and a test target NPayCoreTests depending on it. Make the types public, or use @testable import NPayCore in tests. Expected: all tests pass, including the concurrent ₹7,000 + ₹6,000 test (exactly one succeeds). Reference implementation verified with swift test (8 tests passed). Checkpoint rubric (plan: "build or explain a feature, review correctness, answer architecture questions"): correct values and errors; all guards before mutation; no await inside the transfer; failure tests check the exact error and unchanged balances; can explain the reentrancy race and why the server stays authoritative.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 1.10 complete</p>
+    <h2>Unit 01 complete:<br>Swift Language Mastery</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Unit 02 &mdash; SwiftUI Fundamentals, Lesson 2.1: Declarative UI, View &amp; body</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now design a small Swift domain: values for money, accounts and transactions, enums for types and errors, a protocol for the service, an actor that owns shared state with no await mid-change, and tests that prove success, failure and concurrency. That completes Unit 01.</p>
+    <span class="notes-label">SAY</span><p>Next, Unit 02: SwiftUI Fundamentals, starting with Lesson 2.1, declarative UI, View and body, on a Mac with Xcode, building NPay&rsquo;s first real screen on top of this engine.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

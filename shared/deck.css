@@ -56,6 +56,8 @@
   /* fonts */
   --sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  /* code blocks use Xcode's editor font (SF Mono) where installed; Menlo on other Macs; Plex elsewhere */
+  --code-font: "SF Mono", ui-monospace, SFMono-Regular, Menlo, "IBM Plex Mono", Consolas, monospace;
 }
 
 /* ---------- reset ---------- */
@@ -359,7 +361,7 @@ em { font-style: italic; }
   color: #94a3b8; letter-spacing: .02em;
 }
 .cb {
-  margin: 0; padding: 18px 22px; font-family: var(--mono);
+  margin: 0; padding: 18px 22px; font-family: var(--code-font);
   font-size: 19px; line-height: 1.5; color: var(--code-ink);
   overflow: hidden; white-space: pre;
 }
@@ -403,6 +405,7 @@ em { font-style: italic; }
 /* ---------- tables ---------- */
 .tbl { border-collapse: collapse; width: 100%; font-size: 20px; }
 .tbl th, .tbl td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl.compact th, .tbl.compact td { padding: 7px 14px; }
 .tbl th {
   font-family: var(--mono); font-size: 12px; letter-spacing: .12em;
   text-transform: uppercase; color: var(--muted);
@@ -625,10 +628,15 @@ em { font-style: italic; }
 .bridge { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
 .bridge span { border-left: 4px solid var(--line); padding: 4px 0 4px 16px; font-size: 19px; line-height: 1.4; color: var(--ink-2); }
 .bridge span:last-child { border-color: var(--teal); }
+.bridge.lg span { font-size: 23px; padding: 6px 0 6px 20px; }
 .bridge span > b:first-child { display: block; font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
 .bridge span:last-child > b:first-child { color: var(--teal); }
 
 /* lab steps */
+/* compact cards: a row of short point-cards under code */
+.cols.tight .card { padding: 14px 20px; }
+.cols.tight .card li { margin-bottom: 2px; }
+
 ol.lab { margin: 0; padding-left: 26px; font-size: 20px; line-height: 1.45; }
 ol.lab li { margin-bottom: 10px; padding-left: 6px; }
 ol.lab li::marker { color: var(--teal); font-weight: 700; }
@@ -665,7 +673,7 @@ ol.lab li::marker { color: var(--teal); font-weight: 700; }
 .q-opts { list-style: upper-alpha; margin: 14px 0 0; padding-left: 30px; font-size: 21px; line-height: 1.35; color: var(--ink-2); }
 .q-opts li { margin: 0 0 6px; padding-left: 4px; }
 .q-opts li::marker { color: var(--teal); font-weight: 700; }
-.q-code { font-family: var(--mono); font-size: 16px; line-height: 1.5; background: var(--soft); border: 1px solid var(--line);
+.q-code { font-family: var(--code-font); font-size: 16px; line-height: 1.5; background: var(--soft); border: 1px solid var(--line);
   border-radius: 8px; padding: 10px 14px; margin: 14px 0 0; white-space: pre; color: var(--ink-2); overflow: hidden; }
 .q-text.q-tail { margin-top: 12px; }
 .q-icon {

@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1.1 — Inside the Swift Programming Language</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 01 · Lesson 1.1 — Inside the Swift Programming Language">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 01 &middot; Lesson 1.1</p>
+    <h1 style="font-size:56px;line-height:1.05">Inside the Swift<br>Programming Language</h1>
+    <p class="lead" style="max-width:720px">How does the Swift code we write become <b>instructions an Apple processor can execute?</b></p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We have completed our iOS architecture foundation. Now we explore the language used to build iOS applications. Rather than starting with let, var and print, we begin with a more interesting question: how does the Swift code we write become instructions an Apple processor can execute? Today: Swift&rsquo;s design philosophy, its compiler and LLVM, the type system, the memory model, and how Swift differs from Java, Python and JavaScript.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.1 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-book"/></svg></span><p>Why Apple created Swift, and its four <b>design goals</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>How source becomes <b>machine code</b>: SIL and LLVM</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p><b>Static typing</b> and <b>type inference</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></span><p><b>Optionals</b>: absence made explicit in the type</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p><b>Value</b> versus <b>reference</b> semantics, and ARC</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p><b>Protocol-oriented</b> design, and where Swift fits in iOS</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Six things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where the language sits.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.1 &middot; Where we are</p>
+  <h2>Today: the language itself</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 396" style="max-height:330px" role="img" aria-labelledby="where">
+        <title id="where">Swift language, SwiftUI and UIKit, Foundation, the Swift compiler and runtime, iOS, Apple hardware</title>
+        <g class="nd lit"><rect class="sh" x="0" y="0" width="1136" height="56" rx="12"/><use href="#i-code" x="14" y="15" width="26" height="26"/><text x="52" y="25">Swift language</text><text class="sm" x="52" y="43">types, functions, structs, classes, protocols</text></g>
+        <g class="nd"><rect class="sh" x="0" y="68" width="1136" height="56" rx="12"/><use href="#i-phone" x="14" y="83" width="26" height="26"/><text x="52" y="93">SwiftUI / UIKit</text><text class="sm" x="52" y="111">application interfaces and interaction</text></g>
+        <g class="nd"><rect class="sh" x="0" y="136" width="1136" height="56" rx="12"/><use href="#i-frameworks" x="14" y="151" width="26" height="26"/><text x="52" y="161">Foundation and system APIs</text><text class="sm" x="52" y="179">networking, data, files and other capabilities</text></g>
+        <g class="nd lit"><rect class="sh" x="0" y="204" width="1136" height="56" rx="12"/><use href="#i-gear" x="14" y="219" width="26" height="26"/><text x="52" y="229">Swift compiler and runtime</text><text class="sm" x="52" y="247">native code, runtime support and ARC</text></g>
+        <g class="nd"><rect class="sh" x="0" y="272" width="1136" height="56" rx="12"/><use href="#i-kernel" x="14" y="287" width="26" height="26"/><text x="52" y="297">iOS operating system</text><text class="sm" x="52" y="315">process execution, scheduling, memory and security</text></g>
+        <g class="nd solid"><rect class="sh" x="0" y="340" width="1136" height="56" rx="12"/><use class="on" href="#i-chip" x="14" y="355" width="26" height="26"/><text class="on" x="52" y="365">Apple hardware</text><text class="sm on" x="52" y="383">processor, memory, GPU and device capabilities</text></g>
+      </svg>
+    </div>
+    <div class="bridge"><span><b>Last time</b>Lesson 0.10: one NPay journey across the whole iOS architecture map. Unit 00 is complete.</span><span><b>Today</b>The Swift language, and the compiler that turns it into native code.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 00 gave us the platform: the process, the main thread, memory, security, networking and storage. This picture is the same system seen from the language side. Today lives in the two teal layers: the Swift language we write, and the compiler and runtime that turn it into native code and manage memory with ARC.</p>
+    <span class="notes-label">CONNECT</span><p>Why did Apple need a new language at all?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Why did Apple create Swift?</h2>
+    <p class="lead">Four design goals</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Imagine you are building NPay, a financial application. What would you want from its language?</p>
+    <span class="notes-label">CONNECT</span><p>Here is what you would ask for.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Design goals</p>
+  <h2>A language for an app like NPay</h2>
+  <div class="body">
+    <p class="lead" style="margin-top:0">Introduced by Apple in <b>2014</b>: a modern alternative to Objective-C that still works with existing Apple technologies.</p>
+    <div class="cols c4 stagger step" style="align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></span><p><b>Performance</b><br><span class="muted" style="font-size:17px">native compiled code and optimization</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p><b>Safety</b><br><span class="muted" style="font-size:17px">optionals, type checking, memory safety mechanisms</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p><b>Expressiveness</b><br><span class="muted" style="font-size:17px">concise syntax and powerful abstractions</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p><b>Interoperability</b><br><span class="muted" style="font-size:17px">Apple frameworks and supported language interfaces</span></p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Not Apple's Java">Swift has its own design: <b>value semantics</b>, <b>protocol-oriented</b> programming, <b>optionals</b>, <b>ARC</b> and <b>structured concurrency</b>.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>For NPay you want a language that is fast enough for demanding native apps, safe enough to prevent many common programming errors, expressive enough to write understandable code, able to work with existing Apple frameworks, and suited to modern concurrency. Apple introduced Swift in 2014 as a modern alternative to Objective-C that interoperates with existing Apple technologies.</p>
+    <span class="notes-label">SAY</span><p>Click: the four design goals. Performance from native compilation and optimization. Safety from optionals, type checking and memory-safety mechanisms. Expressiveness from concise syntax and powerful abstractions. Interoperability with Apple frameworks and supported language interfaces.</p>
+    <span class="notes-label">SAY</span><p>Click: do not file Swift away as Apple&rsquo;s version of Java. It has its own design: value semantics, protocol-oriented programming, optionals, ARC and structured concurrency. Each of those gets its own lesson in this unit.</p>
+    <span class="notes-label">CONNECT</span><p>Start with performance: is Swift compiled or interpreted?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Is Swift compiled or interpreted?</h2>
+    <p class="lead">From source to machine code</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift is primarily a compiled language. Follow six lines of Swift all the way to the processor.</p>
+    <span class="notes-label">CONNECT</span><p>Here are the six lines.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Compilation pipeline &middot; conceptual</p>
+  <h2>Six lines, six stages</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:420px 1fr;gap:32px;align-items:center">
+      <div class="cw"><div class="ch"><span>main.swift</span></div><pre class="cb" style="font-size:16px">let amount = 500
+let quantity = 3
+
+let total = amount * quantity
+
+print(total)</pre></div>
+      <p class="lead" style="margin:0">Building NPay sends every <code>.swift</code> file through the same stages before anything runs on the iPhone.</p>
+    </div>
+    <div class="gap"></div>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 190" role="img" aria-labelledby="pipe">
+        <title id="pipe">Swift source, parse and check, SIL, LLVM IR, machine code, executable</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0.0" y="40" width="172" height="150" rx="14"/><use href="#i-code" x="72" y="54" width="28" height="28"/><text x="86" y="154" text-anchor="middle">Swift source</text><text class="sm" x="86" y="174" text-anchor="middle">main.swift</text></g>
+        <path class="wire" d="M175 115H189.8M182.8 108l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="192.8" y="40" width="172" height="150" rx="14"/><use href="#i-decision" x="264.8" y="54" width="28" height="28"/><text x="278.8" y="154" text-anchor="middle">Parse &amp; check</text><text class="sm" x="278.8" y="174" text-anchor="middle">syntax, types, diagnostics</text></g>
+        <path class="wire" d="M367.8 115H382.6M375.6 108l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="385.6" y="40" width="172" height="150" rx="14"/><use href="#i-layers" x="457.6" y="54" width="28" height="28"/><text x="471.6" y="154" text-anchor="middle">SIL</text><text class="sm" x="471.6" y="174" text-anchor="middle">Swift-specific IR</text></g>
+        <path class="wire" d="M560.6 115H575.4M568.4 108l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="578.4000000000001" y="40" width="172" height="150" rx="14"/><use href="#i-frameworks" x="650.4" y="54" width="28" height="28"/><text x="664.4" y="154" text-anchor="middle">LLVM IR</text><text class="sm" x="664.4" y="174" text-anchor="middle">lower-level IR</text></g>
+        <path class="wire" d="M753.4 115H768.2M761.2 108l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="771.2" y="40" width="172" height="150" rx="14"/><use href="#i-chip" x="843.2" y="54" width="28" height="28"/><text x="857.2" y="154" text-anchor="middle">Machine code</text><text class="sm" x="857.2" y="174" text-anchor="middle">target instructions</text></g>
+        <path class="wire" d="M946.2 115H961M954.0 108l7 7-7 7"/>
+        <g class="nd" data-lit="6+"><rect class="sh" x="964.0" y="40" width="172" height="150" rx="14"/><use href="#i-app" x="1036" y="54" width="28" height="28"/><text x="1050" y="154" text-anchor="middle">Executable</text><text class="sm" x="1050" y="174" text-anchor="middle">linked binary</text></g>
+        <path class="wire faint" d="M0 22V14H557.6V22"/>
+        <text class="mono" x="278.8" y="8" text-anchor="middle">SWIFT FRONTEND (swiftc)</text>
+        <path class="wire faint" d="M578.4 22V14H943.2V22"/>
+        <text class="mono" x="760.8" y="8" text-anchor="middle">LLVM</text>
+        <path class="wire faint" d="M964 22V14H1136V22"/>
+        <text class="mono" x="1050" y="8" text-anchor="middle">LINKER</text>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="takeaway step">Swift source &rarr; <b>Swift-specific compilation</b> &rarr; <b>LLVM-based</b> code generation &rarr; native executable.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Six lines: amount times quantity, printed. Building a native Swift app sends this source through a compilation pipeline. Click through it.</p>
+    <span class="notes-label">SAY</span><p>One, the Swift source files. Two, parsing and semantic analysis: syntax, types, declarations, and the diagnostics you see as errors. Three, SIL, the Swift Intermediate Language. Four, LLVM IR, a lower-level intermediate representation. Five, machine code for the target architecture, arm64 on an iPhone. Six, the linker produces the executable with its dependencies.</p>
+    <span class="notes-label">SAY</span><p>The brackets show who does what: the Swift frontend, swiftc, handles stages one to three and produces the LLVM IR; LLVM optimizes it and generates machine code; the linker builds the binary. This is conceptual: real builds have more passes, modules and optimization stages.</p>
+    <span class="notes-label">SAY</span><p>Is Swift ever interpreted? Running swift main.swift in a terminal feels like a script, but it still compiles the code first and runs it straight away. There is no bytecode virtual machine.</p>
+    <span class="notes-label">CONNECT</span><p>What are SIL and LLVM, and can we see them?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; SIL and LLVM</p>
+  <h2>What SIL and LLVM do</h2>
+  <div class="body">
+    <div class="cols" style="gap:24px">
+      <div class="card accent"><span class="label">SIL &middot; Swift Intermediate Language</span><p>A representation designed <b>for Swift</b>. It keeps Swift&rsquo;s semantics so the compiler can check and optimize them before lowering the code further.</p></div>
+      <div class="card accent"><span class="label">LLVM</span><p>A <b>compiler infrastructure</b> project. Swift uses it to optimize and generate native machine code for each supported target.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="step">
+      <p class="small muted" style="margin:0 0 6px">Our six lines, compiled with <code>swiftc -O</code> (Swift 6.3, arm64):</p>
+      <table class="tbl"><thead><tr><th style="width:150px">Stage</th><th style="width:360px">What we see</th><th>Meaning</th></tr></thead><tbody><tr><td><b>SIL</b></td><td><code>smul_with_overflow_Int64</code></td><td>Swift semantics kept: the multiply is <b>overflow-checked</b></td></tr><tr><td><b>LLVM IR</b></td><td><code>store i64 1500</code></td><td>LLVM worked out <b>500 &times; 3</b> at compile time</td></tr><tr><td><b>Assembly</b></td><td><code>mov w20, #1500</code></td><td>one processor instruction loads the answer</td></tr></tbody></table>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SIL stands for Swift Intermediate Language: an intermediate representation designed specifically for Swift. It lets the compiler represent Swift semantics and optimize them before lowering the code further. LLVM is a compiler infrastructure project; Swift uses it to optimize and generate native machine code for each supported target.</p>
+    <span class="notes-label">SAY</span><p>Click: real output from our six lines. In SIL the multiply is still there, as an overflow-checked multiply: Swift traps on integer overflow instead of silently wrapping, and SIL carries that rule. In LLVM IR the optimizer has already computed 500 times 3, so it just stores 1500. The arm64 assembly loads 1500 with a single instruction. You will reproduce this in the lab.</p>
+    <span class="notes-label">LIVE DEMO</span><p>In a terminal: xcrun swiftc -emit-sil -O main.swift | grep smul; xcrun swiftc -emit-ir -O main.swift | grep 1500; xcrun swiftc -S -O main.swift | grep 1500. Exact text varies with compiler version.</p>
+    <span class="notes-label">CONNECT</span><p>Native compilation is one difference from other languages. Here are the rest.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Swift, Java, Python, JavaScript</h2>
+    <p class="lead">One table, five differences</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You already program in other languages. Comparison is one of the fastest ways to understand Swift.</p>
+    <span class="notes-label">CONNECT</span><p>Here is the table.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Comparison</p>
+  <h2>Swift among familiar languages</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Feature</th><th>Swift</th><th>Java</th><th>Python</th><th>JavaScript</th></tr></thead><tbody><tr><td><b>Typical execution</b></td><td>Native compilation</td><td>JVM bytecode / JIT</td><td>Interpreter / VM</td><td>Engine / JIT</td></tr><tr><td><b>Type system</b></td><td>Static</td><td>Static</td><td>Dynamic</td><td>Dynamic</td></tr><tr><td><b>Null handling</b></td><td>Explicit optionals</td><td>Nullable references</td><td><code>None</code></td><td><code>null</code>, <code>undefined</code></td></tr><tr><td><b>Memory management</b></td><td>ARC + value semantics</td><td>Garbage collection</td><td>Reference counting + GC (CPython)</td><td>Garbage collection</td></tr><tr><td><b>Common app UI</b></td><td>SwiftUI, UIKit</td><td>Java UI ecosystems</td><td>Various frameworks</td><td>Web and other frameworks</td></tr></tbody></table>
+    <p class="small muted" style="margin:10px 0 0">Broad comparisons: language implementations and execution modes vary.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Read across each row. Swift compiles to native code; Java runs JVM bytecode with a JIT; Python runs on an interpreter or VM; JavaScript runs in an engine with a JIT. Swift and Java are statically typed; Python and JavaScript are dynamic. Swift makes absence explicit with optionals, where Java has nullable references, Python None, and JavaScript null and undefined. Swift manages memory with ARC plus value semantics; Java and JavaScript use garbage collection; CPython uses reference counting plus a cycle-detecting GC. And Swift apps use SwiftUI or UIKit.</p>
+    <span class="notes-label">SAY</span><p>These are broad comparisons; implementations and execution modes vary.</p>
+    <span class="notes-label">CONNECT</span><p>Now the same idea written in three languages.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Declaring a variable</p>
+  <h2>Same idea, three languages</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px">
+      <div class="cw"><div class="ch"><span>Swift</span></div><pre class="cb" style="font-size:17px">let balance = 25000
+var customerName = &quot;Ravi&quot;</pre></div>
+      <div class="cw"><div class="ch"><span>Java</span></div><pre class="cb" style="font-size:17px">final int balance = 25000;
+String customerName = &quot;Ravi&quot;;</pre></div>
+      <div class="cw"><div class="ch"><span>Python</span></div><pre class="cb" style="font-size:17px">balance = 25000
+customer_name = &quot;Ravi&quot;</pre></div>
+    </div>
+    <div class="gap"></div>
+    <div class="cols step" style="gap:24px">
+      <div class="card accent"><span class="label">let and var</span><p><code>let</code> is an immutable binding; <code>var</code> is a mutable variable.</p></div>
+      <div class="card accent"><span class="label">Type inference</span><p>No type written, yet the compiler knows: <code>balance</code> is an <code>Int</code>, <code>customerName</code> is a <code>String</code>.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The same two declarations in Swift, Java and Python. Java writes the types and uses final for the constant. Python has no declarations or types at all.</p>
+    <span class="notes-label">SAY</span><p>Click: Swift uses let for an immutable binding and var for a mutable variable. And it infers the types: balance is an Int and customerName is a String, checked at compile time, even though we never wrote them. Static typing does not mean writing types everywhere.</p>
+    <span class="notes-label">CONNECT</span><p>So what happens when we break the type?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Strongly and statically typed</h2>
+    <p class="lead">The compiler checks every assignment</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift infers a type once and then holds you to it.</p>
+    <span class="notes-label">CONNECT</span><p>Try three assignments.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Type checking</p>
+  <h2>Three assignments to an Int</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:.8fr 1.2fr;gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Types.swift</span></div><pre class="cb" style="font-size:17px">var balance = 25000   // inferred: Int</pre></div>
+        <p class="small muted" style="margin:12px 0 0">Real <code>swiftc</code> messages (Swift 6.3).</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card accent" style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:center;padding:16px 22px">
+        <code style="font-size:20px">balance = 30000</code>
+        <p class="step" style="margin:0;font-size:19px"><b>Compiles</b> <span class="muted">an <code>Int</code> into an <code>Int</code></span></p>
+      </div>
+      <div class="card accent" style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:center;padding:16px 22px">
+        <code style="font-size:20px">balance = "30000"</code>
+        <p class="step" style="margin:0;font-size:19px"><b>error</b>: <span class="">cannot assign value of type &lsquo;String&rsquo; to type &lsquo;Int&rsquo;</span></p>
+      </div>
+      <div class="card accent" style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:center;padding:16px 22px">
+        <code style="font-size:20px">balance = 30000.5</code>
+        <p class="step" style="margin:0;font-size:19px"><b>error</b>: <span class="">cannot assign value of type &lsquo;Double&rsquo; to type &lsquo;Int&rsquo;</span></p>
+      </div>
+      </div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step">Swift does <b>not</b> silently convert between unrelated types. A type mismatch is a <b>compile-time</b> error, not a surprise at run time.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p><code>var balance = 25000</code>: Swift infers Int. Now three assignments; reveal each result.</p>
+    <span class="notes-label">SAY</span><p>Click: 30000 is an Int, so it compiles. Click: the string "30000" does not: cannot assign value of type String to type Int. Click: 30000.5 is a Double, and Swift will not silently drop the .5, so that is an error too. These are the compiler&rsquo;s real messages.</p>
+    <span class="notes-label">SAY</span><p>Click: the rule. Swift does not silently convert between unrelated types, and the mistake is caught when you build, not when a customer runs the app.</p>
+    <span class="notes-label">CONNECT</span><p>So how do you convert when you mean to?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Explicit conversion</p>
+  <h2>Convert on purpose</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1fr 1fr;gap:32px;align-items:center">
+      <div class="cw"><div class="ch"><span>Conversion.swift</span></div><pre class="cb" style="font-size:18px">let count: Int = 10
+let price: Double = 99.5
+
+let total = Double(count) * price   // 995.0</pre></div>
+      <div>
+        <div class="tip" data-label="Visible">We wrote <code>Double(count)</code>. The change of representation is <b>in the code</b>, where a reviewer can see it.</div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Money in NPay"><code>Double</code> is not ideal for exact money arithmetic. NPay keeps amounts as whole <b>paise</b> in an <code>Int64</code> (<code>balanceMinor</code>), and formats rupees only for display.</div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>count is an Int and price is a Double. To multiply them we convert count explicitly with Double(count). The result is 995.0.</p>
+    <span class="notes-label">SAY</span><p>Why is that useful in financial software? The representation change is visible in the code and easy to review.</p>
+    <span class="notes-label">SAY</span><p>Click: but explicit conversion is not enough on its own. Double is binary floating point, so it cannot represent most decimal fractions exactly, and that matters for money. NPay stores amounts as whole paise in an Int64, balanceMinor, and turns them into rupees only for display. Lesson 1.2 goes into numeric types, and 1.10 builds a real Money type.</p>
+    <span class="notes-label">CONNECT</span><p>Swift&rsquo;s type system also answers one of the oldest bugs in programming: missing values.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Optionals</h2>
+    <p class="lead">Absence, made explicit</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One of Swift&rsquo;s most important features. NPay asks the server for a customer&rsquo;s nickname. Some customers have one; others do not. How should Swift represent that?</p>
+    <span class="notes-label">CONNECT</span><p>With a question mark.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Optionals</p>
+  <h2>One type, two possible states</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1fr 1fr;gap:32px;align-items:center">
+      <div><div class="cw"><div class="ch"><span>Nickname.swift</span></div><pre class="cb" style="font-size:18px">var nickname: String? = &quot;Ravi&quot;
+
+nickname = nil</pre></div>
+        <div class="gap"></div>
+        <div class="diagram">
+      <svg class="art" viewBox="0 0 540 170" style="max-height:200px" role="img" aria-labelledby="opt">
+        <title id="opt">A String optional holds either Some Ravi or nil</title>
+        <text class="mono" x="270" y="16" text-anchor="middle">String?</text>
+        <path class="wire faint" d="M0 28V22H540V28"/>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="40" width="260" height="130" rx="14"/><use href="#i-check" x="116" y="54" width="28" height="28"/><text x="130" y="134" text-anchor="middle">Has a value</text><text class="sm" x="130" y="154" text-anchor="middle">Some("Ravi")</text></g>
+        <g class="nd" data-lit="1+"><rect class="sh" x="280" y="40" width="260" height="130" rx="14"/><use href="#i-cross" x="396" y="54" width="28" height="28"/><text x="410" y="134" text-anchor="middle">No value</text><text class="sm" x="410" y="154" text-anchor="middle">nil</text></g>
+      </svg>
+    </div></div>
+      <div><div class="cw"><div class="ch"><span>Unwrap.swift</span></div><pre class="cb" style="font-size:17px">let nickname: String? = &quot;Ravi&quot;
+
+if let name = nickname {
+    print(&quot;Hello, \(name)&quot;)
+} else {
+    print(&quot;No nickname available&quot;)
+}</pre></div></div>
+    </div>
+    <i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="takeaway step">The possibility of absence is part of the <b>type</b>. You unwrap before you use the value.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>var nickname: String? = "Ravi". The question mark means: either a String, or no value. It starts with a value.</p>
+    <span class="notes-label">SAY</span><p>Right now the optional holds Some("Ravi"). Click: nickname = nil, and now it holds no value.</p>
+    <span class="notes-label">SAY</span><p>In many languages, null-related errors happen because code assumes a value exists. Swift puts the possibility of absence into the type system, so the compiler knows. You generally must unwrap an optional before using the value as a non-optional one. if let does that: it binds name only when there is a value, and the else branch handles absence.</p>
+    <span class="notes-label">SAY</span><p>Click: the takeaway. Lesson 1.3 covers optionals in much greater depth.</p>
+    <span class="notes-label">CONNECT</span><p>Next, another major design choice: values and references.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Values versus references</h2>
+    <p class="lead">Two kinds of data</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Think of two kinds of NPay data: a transaction amount, and a shared account session manager. Are they the same kind of thing?</p>
+    <span class="notes-label">CONNECT</span><p>They are not.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Semantics</p>
+  <h2>Value types and reference types</h2>
+  <div class="body">
+    <div class="cols" style="gap:24px">
+      <div class="card accent"><span class="label">Value types</span><ul style="margin:6px 0 0"><li><b>Structs, enums, tuples</b></li><li>Assignment makes an <b>independent</b> value</li><li>Example: a transaction amount</li></ul></div>
+      <div class="card accent"><span class="label">Reference types</span><ul style="margin:6px 0 0"><li><b>Classes, actors</b></li><li>Many references, <b>one shared</b> instance</li><li>Example: a session manager</li></ul></div>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="misconception step">&ldquo;Structs live on the stack, classes on the heap.&rdquo; Not a guaranteed rule in Swift. The real distinction is <b>value semantics</b> versus <b>reference semantics</b>.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A transaction amount is naturally a value. A session manager may need shared identity and controlled mutable state. Swift supports both. Value types are structs, enums and tuples: assignment produces an independent logical value. Reference types are classes and actors, and closures behave the same way: several references can point to the same instance.</p>
+    <span class="notes-label">SAY</span><p>Click: the misconception. Struct-on-stack, class-on-heap is not a guaranteed rule; a struct inside a class or an array lives on the heap, and the optimizer may place a class instance on the stack. Lesson 0.6 showed this. Think in semantics, not storage.</p>
+    <span class="notes-label">CONNECT</span><p>Now see the difference in code, and what each version leaves in memory.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; In code</p>
+  <h2>Change the copy, check the original</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>StructAccount.swift</span></div><pre class="cb" style="font-size:15px;min-height:272px">struct Account {
+    var balanceMinor: Int64      // paise
+}
+
+var accountA = Account(balanceMinor: 500_000)
+var accountB = accountA
+accountB.balanceMinor = 900_000
+print(accountA.balanceMinor)
+print(accountB.balanceMinor)</pre></div>
+        <div class="step" style="margin-top:12px"><div class="diagram">
+      <svg class="art" viewBox="0 0 552 126" role="img" aria-labelledby="vv">
+        <title id="vv">After the struct code: accountA holds 500,000 and accountB, an independent copy, holds 900,000</title>
+        <g class="nd"><rect class="sh" x="0" y="32" width="236" height="62" rx="12"/><use href="#i-file" x="14" y="50" width="26" height="26"/><text x="52" y="60">accountA</text><text class="sm" x="52" y="78">500_000 &middot; &#8377;5,000</text></g>
+        <path class="wire dash" d="M244 63H308M301 56l7 7-7 7"/>
+        <text class="sm" x="276" y="52" text-anchor="middle">copy</text>
+        <g class="nd lit"><rect class="sh" x="316" y="32" width="236" height="62" rx="12"/><use href="#i-file" x="330" y="50" width="26" height="26"/><text x="368" y="60">accountB</text><text class="sm" x="368" y="78">900_000 &middot; &#8377;9,000</text></g>
+      </svg>
+    </div>
+          <p style="margin:8px 0 0;font-size:19px">Prints <code>500000</code>, <code>900000</code>: <b>two values</b>.</p></div></div>
+      <div><div class="cw"><div class="ch"><span>ClassAccount.swift</span></div><pre class="cb" style="font-size:15px;min-height:272px">class Account {
+    var balanceMinor: Int64
+    init(balanceMinor: Int64) {
+        self.balanceMinor = balanceMinor
+    }
+}
+let accountA = Account(balanceMinor: 500_000)
+let accountB = accountA
+accountB.balanceMinor = 900_000
+print(accountA.balanceMinor)</pre></div>
+        <div class="step" style="margin-top:12px"><div class="diagram">
+      <svg class="art" viewBox="0 0 552 126" role="img" aria-labelledby="rr">
+        <title id="rr">After the class code: accountA and accountB both refer to one Account instance holding 900,000</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="190" height="54" rx="12"/><use href="#i-link" x="14" y="14" width="26" height="26"/><text x="52" y="24">accountA</text><text class="sm" x="52" y="42">reference</text></g>
+        <g class="nd"><rect class="sh" x="0" y="72" width="190" height="54" rx="12"/><use href="#i-link" x="14" y="86" width="26" height="26"/><text x="52" y="96">accountB</text><text class="sm" x="52" y="114">reference</text></g>
+        <path class="wire" d="M194 27L258 55M251 48l7 7-7 7"/>
+        <path class="wire" d="M194 99L258 71M251 64l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="266" y="28" width="286" height="70" rx="12"/><use href="#i-memory" x="280" y="50" width="26" height="26"/><text x="318" y="60">One Account instance</text><text class="sm" x="318" y="78">900_000 &middot; &#8377;9,000</text></g>
+      </svg>
+    </div>
+          <p style="margin:8px 0 0;font-size:19px">Prints <code>900000</code>: <b>one shared instance</b>.</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two files, each with its own Account type. Amounts are whole paise in an Int64, as NPay stores money: 500,000 paise is ₹5,000. In both, accountB starts from accountA, and we change accountB to 900,000.</p>
+    <span class="notes-label">ASK</span><p>Before the click: what does each print?</p>
+    <span class="notes-label">SAY</span><p>Click: the struct. var accountB = accountA made a copy, so memory holds two Account values: changing accountB left accountA at ₹5,000. It prints 500000 then 900000. Click: the class. let accountB = accountA copied only the reference, so both names point to one instance, and the change through accountB is seen through accountA. It prints 900000.</p>
+    <span class="notes-label">CONNECT</span><p>Class instances are shared, so who decides when one goes away?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>How does Swift manage memory?</h2>
+    <p class="lead">ARC, revisited</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We studied this in Lesson 0.6. Here is the one idea to carry into the rest of the unit.</p>
+    <span class="notes-label">CONNECT</span><p>Three stages.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; ARC</p>
+  <h2>Automatic Reference Counting</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:1.1fr 1fr;gap:32px;align-items:center">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 640 244" style="max-height:300px" role="img" aria-labelledby="arc">
+        <title id="arc">Instance created, strong references keep it alive, no strong references left so ARC deinitializes it</title>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="0" width="640" height="60" rx="12"/><use href="#i-memory" x="14" y="17" width="26" height="26"/><text x="52" y="36">Class instance created</text></g>
+        <path class="wire" d="M320 64V86M313 79l7 7 7-7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="0" y="92" width="640" height="60" rx="12"/><use href="#i-link" x="14" y="109" width="26" height="26"/><text x="52" y="128">Strong references keep it alive</text></g>
+        <path class="wire" d="M320 156V178M313 171l7 7 7-7"/>
+        <g class="nd" data-lit="3+"><rect class="sh" x="0" y="184" width="640" height="60" rx="12"/><use href="#i-cross" x="14" y="201" width="26" height="26"/><text x="52" y="211">No strong references left</text><text class="sm" x="52" y="229">ARC deinitializes it</text></g>
+      </svg>
+    </div>
+      <div>
+        <div class="tip" data-label="Not a tracing GC">ARC counts strong references and frees an instance when the count reaches zero. Nothing pauses to scan memory.</div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="The cost">Ownership becomes your design job: <b>retain cycles</b> keep instances alive forever.</div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift uses Automatic Reference Counting to manage the lifetime of class instances. Click through it: an instance is created; strong references keep it alive; when no strong ownership remains, ARC deinitializes it.</p>
+    <span class="notes-label">SAY</span><p>ARC is different from tracing garbage collection: it does not periodically scan memory to find unreachable objects. Click: the cost is that ownership becomes part of your design. Two objects that strongly own each other, a retain cycle, are never freed.</p>
+    <span class="notes-label">SAY</span><p>We return to ARC with classes and closures in Lessons 1.4, 1.5 and 1.8, and with concurrency in 1.9.</p>
+    <span class="notes-label">CONNECT</span><p>The last design idea: building abstractions with protocols.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Protocol-oriented design</h2>
+    <p class="lead">Abstractions without a class hierarchy</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay could get balances from several providers: the live bank API, a test double, a demo mode. Do they all need one base class?</p>
+    <span class="notes-label">CONNECT</span><p>No. They need a protocol.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Protocols</p>
+  <h2>Depend on what, not on who</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1.25fr .75fr;gap:32px;align-items:center">
+      <div class="cw"><div class="ch"><span>BalanceProviding.swift</span></div><pre class="cb" style="font-size:16px">struct Balance { let balanceMinor: Int64 }   // paise
+
+protocol BalanceProviding {
+    func fetchBalance() async throws -&gt; Balance
+}
+
+struct MockBalanceService: BalanceProviding {
+    func fetchBalance() async throws -&gt; Balance {
+        Balance(balanceMinor: 2_500_000)        // ₹25,000
+    }
+}</pre></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 470 298" style="max-height:380px" role="img" aria-labelledby="proto">
+        <title id="proto">DashboardViewModel depends on BalanceProviding; BalanceService and MockBalanceService conform</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="470" height="62" rx="12"/><use href="#i-layout" x="14" y="18" width="26" height="26"/><text x="52" y="28">DashboardViewModel</text><text class="sm" x="52" y="46">depends on the protocol only</text></g>
+        <path class="wire" d="M235 66V96M228 89l7 7 7-7"/>
+        <g class="nd lit"><rect class="sh" x="0" y="102" width="470" height="62" rx="12"/><use href="#i-link" x="14" y="120" width="26" height="26"/><text x="52" y="130">BalanceProviding</text><text class="sm" x="52" y="148">protocol</text></g>
+        <path class="wire dash" d="M112 230V170M105 177l7-7 7 7"/>
+        <path class="wire dash" d="M357 230V170M350 177l7-7 7 7"/>
+        <g class="nd"><rect class="sh" x="0" y="236" width="225" height="62" rx="12"/><use href="#i-bank" x="14" y="254" width="26" height="26"/><text x="52" y="264">BalanceService</text><text class="sm" x="52" y="282">live bank API</text></g>
+        <g class="nd"><rect class="sh" x="245" y="236" width="225" height="62" rx="12"/><use href="#i-check" x="259" y="254" width="26" height="26"/><text x="297" y="264">MockBalanceService</text><text class="sm" x="297" y="282">tests, previews</text></g>
+      </svg>
+    </div>
+    </div>
+    <div class="gap"></div>
+    <div class="points step"><div><svg viewBox="0 0 24 24"><use href="#i-link"/></svg><span><b>Dependency injection</b><small>pass in any provider</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-check"/></svg><span><b>Testing</b><small>a mock, no network</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg><span><b>Modular architecture</b><small>swap implementations</small></span></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Instead of forcing every provider into one class inheritance hierarchy, we define a protocol: BalanceProviding promises a fetchBalance function that returns a Balance. Any suitable type can conform, including a struct. MockBalanceService always returns ₹25,000, held as 2,500,000 paise.</p>
+    <span class="notes-label">SAY</span><p>The diagram: DashboardViewModel depends only on the protocol. The live BalanceService and the mock both conform, so either can be passed in.</p>
+    <span class="notes-label">SAY</span><p>Click: that is what makes dependency injection, testing without a network, modular architecture and interchangeable implementations possible. Lesson 1.6 covers protocols in depth; Unit 04, Lesson 4.5, builds the injection.</p>
+    <span class="notes-label">CONNECT</span><p>Finally, put the language back into the platform.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 9</p>
+    <h2>How Swift connects to iOS</h2>
+    <p class="lead">From language to hardware</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Now connect the language to the platform we spent Unit 00 on.</p>
+    <span class="notes-label">CONNECT</span><p>Six layers.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 9 &middot; The full stack</p>
+  <h2>Where Swift fits</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 396" style="max-height:410px" role="img" aria-labelledby="stack9">
+        <title id="stack9">Swift language, SwiftUI and UIKit, Foundation, the Swift compiler and runtime, iOS, Apple hardware</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="1136" height="56" rx="12"/><use href="#i-code" x="14" y="15" width="26" height="26"/><text x="52" y="25">Swift language</text><text class="sm" x="52" y="43">types, functions, structs, classes, protocols</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="68" width="1136" height="56" rx="12"/><use href="#i-phone" x="14" y="83" width="26" height="26"/><text x="52" y="93">SwiftUI / UIKit</text><text class="sm" x="52" y="111">application interfaces and interaction</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="136" width="1136" height="56" rx="12"/><use href="#i-frameworks" x="14" y="151" width="26" height="26"/><text x="52" y="161">Foundation and system APIs</text><text class="sm" x="52" y="179">networking, data, files and other capabilities</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="204" width="1136" height="56" rx="12"/><use href="#i-gear" x="14" y="219" width="26" height="26"/><text x="52" y="229">Swift compiler and runtime</text><text class="sm" x="52" y="247">native code, runtime support and ARC</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="272" width="1136" height="56" rx="12"/><use href="#i-kernel" x="14" y="287" width="26" height="26"/><text x="52" y="297">iOS operating system</text><text class="sm" x="52" y="315">process execution, scheduling, memory and security</text></g>
+        <g class="nd solid" data-lit="6+"><rect class="sh" x="0" y="340" width="1136" height="56" rx="12"/><use class="on" href="#i-chip" x="14" y="355" width="26" height="26"/><text class="on" x="52" y="365">Apple hardware</text><text class="sm on" x="52" y="383">processor, memory, GPU and device capabilities</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click down the stack. The Swift language: types, functions, structs, classes, protocols. SwiftUI and UIKit: interfaces and interaction. Foundation and system APIs: networking, data, files and more. The Swift compiler and runtime: native code, runtime support and ARC. The iOS operating system: process execution, scheduling, memory and security. And Apple hardware: processor, memory, GPU and device capabilities.</p>
+    <span class="notes-label">SAY</span><p>This is why we studied iOS architecture before Swift syntax. You already know the bottom of this stack; now you know where Swift fits within the whole system.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.1 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 396" style="max-height:290px" role="img" aria-labelledby="recap">
+        <title id="recap">Swift language, SwiftUI and UIKit, Foundation, the Swift compiler and runtime, iOS, Apple hardware</title>
+        <g class="nd lit"><rect class="sh" x="0" y="0" width="1136" height="56" rx="12"/><use href="#i-code" x="14" y="15" width="26" height="26"/><text x="52" y="25">Swift language</text><text class="sm" x="52" y="43">types, functions, structs, classes, protocols</text></g>
+        <g class="nd"><rect class="sh" x="0" y="68" width="1136" height="56" rx="12"/><use href="#i-phone" x="14" y="83" width="26" height="26"/><text x="52" y="93">SwiftUI / UIKit</text><text class="sm" x="52" y="111">application interfaces and interaction</text></g>
+        <g class="nd"><rect class="sh" x="0" y="136" width="1136" height="56" rx="12"/><use href="#i-frameworks" x="14" y="151" width="26" height="26"/><text x="52" y="161">Foundation and system APIs</text><text class="sm" x="52" y="179">networking, data, files and other capabilities</text></g>
+        <g class="nd lit"><rect class="sh" x="0" y="204" width="1136" height="56" rx="12"/><use href="#i-gear" x="14" y="219" width="26" height="26"/><text x="52" y="229">Swift compiler and runtime</text><text class="sm" x="52" y="247">native code, runtime support and ARC</text></g>
+        <g class="nd"><rect class="sh" x="0" y="272" width="1136" height="56" rx="12"/><use href="#i-kernel" x="14" y="287" width="26" height="26"/><text x="52" y="297">iOS operating system</text><text class="sm" x="52" y="315">process execution, scheduling, memory and security</text></g>
+        <g class="nd solid"><rect class="sh" x="0" y="340" width="1136" height="56" rx="12"/><use class="on" href="#i-chip" x="14" y="355" width="26" height="26"/><text class="on" x="52" y="365">Apple hardware</text><text class="sm on" x="52" y="383">processor, memory, GPU and device capabilities</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="tip" data-label="Recap"><div class="points"><div><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg><span><b>Compiled to native code</b><small>source &rarr; SIL &rarr; LLVM IR &rarr; machine code</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-check"/></svg><span><b>Types are checked at build time</b><small>inferred, never silently converted</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg><span><b>Semantics, not storage</b><small>values copy, references share, ARC frees</small></span></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Swift compiles to native code: source, SIL, LLVM IR, machine code. Types are checked when you build: inferred where you leave them out, never silently converted, and absence is explicit with optionals. And think in semantics, not storage: values copy, references share, and ARC frees class instances when the last strong reference goes. Protocols let NPay depend on what a service does, not which type provides it.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Eight questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does Swift always execute through a JVM-like virtual machine?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-chip"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does Swift always execute through a JVM-like virtual machine?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Swift is commonly compiled ahead of time to native machine code for Apple platforms. There is no bytecode VM.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming every modern language runs on a VM.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Java developers often say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Swift is commonly compiled ahead of time to native machine code for Apple platforms. There is no bytecode VM.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which order is the Swift compilation pipeline?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Which is the Swift compilation pipeline?</p><ol class="q-opts"><li>Source &rarr; LLVM IR &rarr; SIL &rarr; machine code</li><li>Source &rarr; SIL &rarr; LLVM IR &rarr; machine code</li><li>Source &rarr; bytecode &rarr; JIT</li><li>Source &rarr; machine code, in one step</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The Swift frontend lowers source to SIL, a Swift-specific representation, then to LLVM IR; LLVM generates the machine code.</p>
+          <p class="q-trap"><b>Common trap:</b> Putting LLVM before SIL.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>A is the common slip.</p>
+    <span class="notes-label">SAY</span><p>B. The Swift frontend lowers source to SIL, a Swift-specific representation, then to LLVM IR; LLVM generates the machine code.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does assigning a struct always create a separate logical value?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does assigning a struct always create a separate logical value?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Structs have value semantics, even though the actual copying may be optimized. If the struct holds a class reference, the copy holds the same reference.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking an optimized copy means shared state.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say no because copies are optimized away.</p>
+    <span class="notes-label">SAY</span><p>Yes. Structs have value semantics, even though the actual copying may be optimized. If the struct holds a class reference, the copy holds the same reference.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can Swift infer variable types?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can Swift infer variable types?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why"><code>let balance = 25000</code> is an <code>Int</code>, checked at compile time. Inference is static, not dynamic typing.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking inferred means dynamically typed.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Python developers may hesitate.</p>
+    <span class="notes-label">SAY</span><p>Yes. <code>let balance = 25000</code> is an <code>Int</code>, checked at compile time. Inference is static, not dynamic typing.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why is explicit numeric conversion useful in financial software?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Why is an explicit conversion like <code>Double(count)</code> useful in financial software?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">It&rsquo;s visible</span>
+          <p class="q-why">Representation changes show up in the code, where they can be reviewed. The representation still matters: NPay keeps money in whole paise, not <code>Double</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking conversion alone makes Double safe for money.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say safety; push for the reason.</p>
+    <span class="notes-label">SAY</span><p>It&rsquo;s visible. Representation changes show up in the code, where they can be reviewed. The representation still matters: NPay keeps money in whole paise, not <code>Double</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which best describes Swift&#x27;s programming paradigm?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Which best describes Swift?</p><ol class="q-opts"><li>Purely object-oriented</li><li>Purely functional</li><li>Multi-paradigm: object-oriented, functional, generic, protocol-oriented</li><li>Protocol-oriented only</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Swift supports several paradigms. Protocols are central, but classes, closures and generics are first-class too.</p>
+          <p class="q-trap"><b>Common trap:</b> Picking one label for the whole language.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick D after Part 8.</p>
+    <span class="notes-label">SAY</span><p>C. Swift supports several paradigms. Protocols are central, but classes, closures and generics are first-class too.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Are protocols useful for dependency injection?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Are protocols useful for dependency injection?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">A protocol defines what a dependency does, so NPay can pass in the live service or a mock.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking injection needs a class hierarchy.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. A protocol defines what a dependency does, so NPay can pass in the live service or a mock.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does async automatically create a background thread?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>async</code> automatically create a background thread?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why"><code>async</code> means the function can suspend. Where it runs is decided by isolation, not by the keyword.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading async as &ldquo;on another thread&rdquo;.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 0.5.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes.</p>
+    <span class="notes-label">SAY</span><p>No. <code>async</code> means the function can suspend. Where it runs is decided by isolation, not by the keyword.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.1 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">1.2</td><td><b>Variables, constants &amp; type system</b></td><td><code>let</code>, <code>var</code>, numeric types, conversion</td></tr><tr><td class="mono">1.3</td><td><b>Optionals &amp; safe unwrapping</b></td><td>every way to unwrap, and when</td></tr><tr><td class="mono">1.5</td><td><b>Structs, classes &amp; value semantics</b></td><td>choosing value or reference</td></tr><tr><td class="mono">1.6</td><td><b>Protocols, extensions &amp; protocol-oriented design</b></td><td><code>BalanceProviding</code> in depth</td></tr><tr><td class="mono">1.8</td><td><b>ARC, ownership &amp; memory management</b></td><td>ownership and retain cycles</td></tr><tr><td class="mono">1.9</td><td><b>Swift concurrency: tasks, actors &amp; Sendable</b></td><td>what <code>async</code> really does</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Each part of today has its own lesson in this unit: types in 1.2, optionals in 1.3, value and reference semantics in 1.5, protocols in 1.6, ARC and ownership in 1.8, and concurrency in 1.9. Lesson 1.10 brings them together in an NPay Swift package with tests.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.1 &middot; Lab</p>
+  <h2>See the pipeline yourself</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Compile the example and find each stage in the compiler&rsquo;s output. Swift only, no Xcode project.</p><ol class="lab"><li>Save the code as <code>main.swift</code>; build and run it.</li><li><b>SIL:</b> find the overflow-checked multiply.</li><li><b>LLVM IR</b> and <b>assembly:</b> find where 1500 appears.</li><li>Change <code>quantity</code> to <code>"3"</code>, build again, and read the error.</li><li>Hand in the line you found at each stage, and one sentence on what that stage did.</li></ol></div>
+    <div><div><div class="cw"><div class="ch"><span>main.swift</span></div><pre class="cb" style="font-size:16px">let amount = 500
+let quantity = 3
+let total = amount * quantity
+print(total)</pre></div><div class="gap"></div><div class="cw"><div class="ch"><span>Terminal</span></div><pre class="cb" style="font-size:14px">swiftc main.swift -o total &amp;&amp; ./total
+swiftc -emit-sil -O main.swift | grep smul
+swiftc -emit-ir  -O main.swift | grep 1500
+swiftc -S        -O main.swift | grep 1500</pre></div><p class="small muted" style="margin:8px 0 0">On a Mac, prefix with <code>xcrun</code> if <code>swiftc</code> is not found.</p></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Students need a Swift toolchain only. On a Mac, prefix commands with xcrun if swiftc is not on the path. Expected: ./total prints 1500. SIL shows builtin "smul_with_overflow_Int64", the overflow-checked multiply. LLVM IR shows store i64 1500: the optimizer computed the product. arm64 assembly shows mov w20, #1500 (the register can differ; on Linux x86-64 it is a different instruction, but 1500 still appears). With quantity = "3", the build fails: cannot convert value of type String to expected argument type Int. Ask each student to write one sentence per stage: what did it do to the code?</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 1.1 complete</p>
+    <h2>Inside the Swift<br>Programming Language</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 1.2 &mdash; Variables, Constants &amp; Swift&rsquo;s Type System</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain why Swift was created, how Swift source becomes native machine code, the role of SIL and LLVM, static typing and inference, optionals, value versus reference semantics, ARC, protocol-oriented design, and how Swift fits into iOS.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 1.2: let versus var, type inference, numeric types, strings, tuples, collections, type conversion, and the difference between mutability and value semantics, with NPay examples.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

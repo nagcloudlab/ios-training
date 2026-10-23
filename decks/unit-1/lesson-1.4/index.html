@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1.4 — Functions, Parameters &amp; Closures</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 01 · Lesson 1.4 — Functions, Parameters &amp; Closures">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 01 &middot; Lesson 1.4</p>
+    <h1 style="font-size:54px;line-height:1.05">Functions, Parameters<br>&amp; Closures</h1>
+    <p class="lead" style="max-width:760px">How does Swift <b>name</b>, <b>pass</b> and <b>run later</b> a piece of logic?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We have learned variables, types and optionals. Now: how Swift organizes executable logic. This lesson matters because functions and closures are everywhere in iOS: SwiftUI buttons, networking, event handling, asynchronous work and dependency injection. We keep using NPay.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.4 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Write <b>functions</b> with parameters and return types</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>Use <b>argument labels</b>, <code>_</code> and <b>default</b> values</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Read <b>closure</b> syntax and trailing closures</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></span><p>Explain how a SwiftUI <b>Button</b> runs a closure</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><p><b>Capture</b>, <code>@escaping</code> and retain cycles</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Transform data with <code>map</code>, <code>filter</code>, <code>reduce</code></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.4 &middot; Where we are</p>
+  <h2>Today: logic you can name and pass</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 01 &middot; Swift Language Mastery</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 01 progress: lesson 1.4 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">1.1</text><text x="12" y="50" style="font-size:14px">Swift &amp;</text><text x="12" y="68" style="font-size:14px">compiler</text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">1.2</text><text x="126.667" y="50" style="font-size:14px">Variables</text><text x="126.667" y="68" style="font-size:14px">&amp; types</text></g>
+        <g class="nd"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">1.3</text><text x="241.333" y="50" style="font-size:14px">Optionals</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd lit"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">1.4</text><text x="356" y="50" style="font-size:14px">Functions</text><text x="356" y="68" style="font-size:14px">&amp; closures</text></g>
+        <g class="nd ghost"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">1.5</text><text x="470.667" y="50" style="font-size:14px">Structs</text><text x="470.667" y="68" style="font-size:14px">&amp; classes</text></g>
+        <g class="nd ghost"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">1.6</text><text x="585.333" y="50" style="font-size:14px">Protocols</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">1.7</text><text x="700" y="50" style="font-size:14px">Generics</text><text x="700" y="68" style="font-size:14px">&amp; errors</text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">1.8</text><text x="814.667" y="50" style="font-size:14px">ARC &amp;</text><text x="814.667" y="68" style="font-size:14px">ownership</text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">1.9</text><text x="929.333" y="50" style="font-size:14px">Concurrency</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">1.10</text><text x="1044" y="50" style="font-size:14px">NPay</text><text x="1044" y="68" style="font-size:14px">model</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>Lesson 1.3: optionals make absence part of the type; unwrap with if let, guard let, ?? and ?.</span><span><b>Today</b>Functions name logic; closures turn logic into a value you can store, pass and run later.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>So far we have described data: types, optionals, collections. Today we organize the logic that works on that data. Functions give logic a name. Closures go one step further: logic becomes a value, and that is exactly how SwiftUI, networking and callbacks hand work back to your code.</p>
+    <span class="notes-label">CONNECT</span><p>Start with a problem NPay already has.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Functions</h2>
+    <p class="lead">Give reusable logic a name</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay charges a 2% fee on transfers. Where does that rule live?</p>
+    <span class="notes-label">CONNECT</span><p>Right now, everywhere.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The problem (section 1)</p>
+  <h2>The same rule, copied three times</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center">
+      <div class="cw"><div class="ch"><span>Fees.swift</span></div><pre class="cb" style="font-size:17px">let fee1 = 100_000 * 2 / 100   // ₹1,000
+let fee2 = 250_000 * 2 / 100   // ₹2,500
+let fee3 = 500_000 * 2 / 100   // ₹5,000</pre></div>
+      <div><div class="card accent"><span class="label">If the fee becomes 3%</span><ul style="margin:6px 0 0"><li>Find and change <b>every copy</b></li><li>Miss one: customers are charged <b>differently</b></li></ul></div></div>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="step"><div class="diagram">
+      <svg class="art" viewBox="0 0 820 60" style="max-height:80px" role="img" aria-labelledby="io">
+        <title id="io">Transfer amount goes into calculateFee, which returns the fee amount</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="240" height="60" rx="12"/><use href="#i-send" x="14" y="17" width="26" height="26"/><text x="52" y="27">Transfer amount</text><text class="sm" x="52" y="45">input</text></g>
+        <path class="wire" d="M244 30H284M277 23l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="290" y="0" width="240" height="60" rx="12"/><use href="#i-code" x="304" y="17" width="26" height="26"/><text x="342" y="27">calculateFee</text><text class="sm" x="342" y="45">function</text></g>
+        <path class="wire" d="M534 30H574M567 23l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="580" y="0" width="240" height="60" rx="12"/><use href="#i-bank" x="594" y="17" width="26" height="26"/><text x="632" y="27">Fee amount</text><text class="sm" x="632" y="45">output</text></g>
+      </svg>
+    </div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay charges a 2% fee on transfers. Amounts are in paise, as in Lesson 1.2: 100,000 paise is ₹1,000, and 2% of it is 2,000 paise, ₹20. Without functions we repeat the calculation wherever a fee is needed.</p>
+    <span class="notes-label">SAY</span><p>If the fee changes from 2% to 3%, every copy must change, and missing one charges customers differently.</p>
+    <span class="notes-label">SAY</span><p>Click: a function gives the rule a name. An amount goes in, calculateFee runs, a fee comes out. One place to change.</p>
+    <span class="notes-label">CONNECT</span><p>Here is that function in Swift.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; First function (section 2)</p>
+  <h2>Anatomy of a function</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Fee.swift</span></div><pre class="cb" style="font-size:16px">func calculateFee(amountMinor: Int64) -&gt; Int64 {
+    return amountMinor * 2 / 100
+}
+
+let fee = calculateFee(amountMinor: 100_000)
+print(fee)   // 2000 paise = ₹20</pre></div>
+        <div class="step"><table class="tbl" style="margin-top:14px"><thead><tr><th>Transfer</th><th>amountMinor</th><th>Returns</th><th>Fee</th></tr></thead><tbody><tr><td>&#8377;1,000</td><td><code>100_000</code></td><td><code>2000</code></td><td><b>&#8377;20</b></td></tr><tr><td>&#8377;2,500</td><td><code>250_000</code></td><td><code>5000</code></td><td><b>&#8377;50</b></td></tr><tr><td>&#8377;5,000</td><td><code>500_000</code></td><td><code>10000</code></td><td><b>&#8377;100</b></td></tr></tbody></table></div></div>
+      <table class="tbl"><thead><tr><th>Part</th><th>Meaning</th></tr></thead><tbody><tr><td><code>func</code></td><td>declares a function</td></tr><tr><td><code>calculateFee</code></td><td>the function name</td></tr><tr><td><code>amountMinor: Int64</code></td><td>parameter and its type</td></tr><tr><td><code>-&gt; Int64</code></td><td>return type</td></tr><tr><td><code>return</code></td><td>returns a result</td></tr></tbody></table>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Read it left to right: func declares a function; calculateFee is its name; amountMinor colon Int64 is the parameter and its type; arrow Int64 is the return type; return hands back the result. Calling it with 100,000 paise returns 2,000, ₹20.</p>
+    <span class="notes-label">SAY</span><p>Click: run it for three transfers: ₹1,000 gives ₹20, ₹2,500 gives ₹50, ₹5,000 gives ₹100. These are the real outputs.</p>
+    <span class="notes-label">SAY</span><p>The lesson text used Double for the amount. In NPay money is whole paise in Int64, as in Lesson 1.2. Integer division also truncates, so a real fee needs an explicit rounding rule; that design comes in Lesson 1.10.</p>
+    <span class="notes-label">CONNECT</span><p>Two words people mix up: parameter and argument.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Parameters and labels</h2>
+    <p class="lead">Readable calls by design</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Parameters, arguments, and Swift&rsquo;s two-name parameters.</p>
+    <span class="notes-label">CONNECT</span><p>Start with the vocabulary.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Vocabulary (section 3)</p>
+  <h2>Parameter versus argument</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center">
+      <div class="cw"><div class="ch"><span>Greet.swift</span></div><pre class="cb" style="font-size:18px">func greet(name: String) {
+    print(&quot;Hello, \(name)&quot;)
+}
+
+greet(name: &quot;Ravi&quot;)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Parameter</span><ul style="margin:6px 0 0"><li>In the <b>declaration</b>: <code>name: String</code></li><li>What kind of input is accepted</li></ul></div>
+        <div class="card accent step"><span class="label">Argument</span><ul style="margin:6px 0 0"><li>In the <b>call</b>: <code>"Ravi"</code></li><li>The actual value supplied</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>name in the function declaration is a parameter: it describes what kind of input the function accepts.</p>
+    <span class="notes-label">SAY</span><p>Click: "Ravi", passed when we call the function, is an argument: the actual value supplied. Think of a machine: the parameter is the slot&rsquo;s shape, the argument is the item you put in.</p>
+    <span class="notes-label">CONNECT</span><p>Swift gives each parameter up to two names.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Argument labels (section 4)</p>
+  <h2>Outside name, inside name</h2>
+  <div class="body">
+    <div class="cw"><div class="ch"><span>Transfer.swift</span></div><pre class="cb" style="font-size:16px">func transfer(from source: String,
+              to destination: String,
+              amountMinor: Int64) {
+    print(&quot;\(source) → \(destination): \(amountMinor)&quot;)
+}
+
+transfer(from: &quot;NP1001&quot;, to: &quot;NP2002&quot;, amountMinor: 50_000)</pre></div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><table class="tbl"><thead><tr><th>External label (caller)</th><th>Internal name (body)</th></tr></thead><tbody><tr><td><code>from</code></td><td><code>source</code></td></tr><tr><td><code>to</code></td><td><code>destination</code></td></tr><tr><td><code>amountMinor</code></td><td><code>amountMinor</code></td></tr></tbody></table></div>
+      <div class="step"><div class="card accent"><span class="label">Without labels</span><p style="margin:4px 0 8px"><code>transfer("NP1001", "NP2002", 50_000)</code></p><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;missing argument labels &lsquo;from:to:amountMinor:&rsquo; in call</span></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A distinctive Swift feature: a parameter can have an external argument label, used by the caller, and an internal name, used in the body. from and to are labels; source and destination are names. amountMinor uses one name for both.</p>
+    <span class="notes-label">SAY</span><p>The call reads like a sentence: transfer from NP1001 to NP2002, amount 50,000 paise. Labels make calls readable; internal names make the implementation understandable.</p>
+    <span class="notes-label">SAY</span><p>Click: leave the labels out and Swift refuses: missing argument labels from, to, amountMinor in call. The labels are part of the function&rsquo;s name, so intent stays visible at every call site.</p>
+    <span class="notes-label">CONNECT</span><p>Sometimes a label adds nothing.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Omitting labels (section 5)</p>
+  <h2>The underscore removes the label</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Square.swift</span></div><pre class="cb" style="font-size:17px">func square(_ number: Int) -&gt; Int {
+    number * number
+}
+
+print(square(5))           // 25
+print(square(number: 5))   // error</pre></div>
+        <p class="step" style="margin:12px 0 0"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;extraneous argument label &lsquo;number:&rsquo; in call</span></p></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">_ number</span><ul style="margin:6px 0 0"><li>Callers write <b>no label</b>: <code>square(5)</code></li><li>Inside, the name is still <code>number</code></li></ul></div>
+        <div class="card accent"><span class="label">Use it when</span><ul style="margin:6px 0 0"><li>The function name already says it</li><li>Like <code>print(x)</code>, <code>square(5)</code></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The underscore means callers do not write an external label for that parameter: square(5) reads naturally. Inside the function the parameter is still called number.</p>
+    <span class="notes-label">SAY</span><p>Click: and now the label is not allowed: square(number: 5) fails with extraneous argument label number. Without the underscore, it is the other way round: the label is required.</p>
+    <span class="notes-label">CONNECT</span><p>Functions can also return more than one value, and supply defaults.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Returns and defaults</h2>
+    <p class="lead">Tuples out, defaults in</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two conveniences: several results at once, and arguments you rarely need to pass.</p>
+    <span class="notes-label">CONNECT</span><p>Side by side.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Tuples and defaults (sections 6&ndash;7)</p>
+  <h2>Several results, optional arguments</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Summary.swift</span></div><pre class="cb" style="font-size:15px;min-height:268px">func accountSummary() -&gt; (balanceMinor: Int64,
+                          isActive: Bool) {
+    (balanceMinor: 2_500_000, isActive: true)
+}
+
+let result = accountSummary()
+print(result.balanceMinor)   // 2500000
+print(result.isActive)       // true</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Tuple return</span><ul style="margin:6px 0 0"><li>Good for <b>small</b> grouped results</li><li>Stable model with behavior: a <b>struct</b></li></ul></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>DefaultRate.swift</span></div><pre class="cb" style="font-size:15px;min-height:268px">func calculateFee(amountMinor: Int64,
+                  percent: Int64 = 2) -&gt; Int64 {
+    amountMinor * percent / 100
+}
+
+print(calculateFee(amountMinor: 100_000))
+// 2000
+print(calculateFee(amountMinor: 100_000, percent: 3))
+// 3000</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Default value</span><ul style="margin:6px 0 0"><li>Callers <b>may omit</b> <code>percent</code></li><li>Override when needed: <code>percent: 3</code></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A function can return a tuple: here a balance and an active flag together, read back as result.balanceMinor and result.isActive. Useful for small grouped results; for a stable domain model with behavior, a struct is better, as in Lesson 1.2.</p>
+    <span class="notes-label">SAY</span><p>Click: default parameter values. percent defaults to 2, so most callers write calculateFee(amountMinor:) and get 2,000; a caller that needs 3% passes percent: 3 and gets 3,000. Fewer repeated arguments, still customizable.</p>
+    <span class="notes-label">CONNECT</span><p>Now one of Swift&rsquo;s most important ideas: closures.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Closures</h2>
+    <p class="lead">Logic as a value</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A closure is a self-contained block of functionality that can be passed around and executed later.</p>
+    <span class="notes-label">CONNECT</span><p>An executable instruction package.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; What is a closure? (section 8)</p>
+  <h2>Create it now, run it later</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1000 60" style="max-height:80px" role="img" aria-labelledby="life">
+        <title id="life">Create a block of logic, store or pass it, execute it when needed</title>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="0" width="300" height="60" rx="12"/><use href="#i-code" x="14" y="17" width="26" height="26"/><text x="52" y="27">Create</text><text class="sm" x="52" y="45">a block of logic</text></g>
+        <path class="wire" d="M304 30H344M337 23l7 7-7 7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="350" y="0" width="300" height="60" rx="12"/><use href="#i-link" x="364" y="17" width="26" height="26"/><text x="402" y="27">Store or pass it</text><text class="sm" x="402" y="45">a constant, a parameter</text></g>
+        <path class="wire" d="M654 30H694M687 23l7 7-7 7"/>
+        <g class="nd" data-lit="3+"><rect class="sh" x="700" y="0" width="300" height="60" rx="12"/><use href="#i-play" x="714" y="17" width="26" height="26"/><text x="752" y="27">Execute it</text><text class="sm" x="752" y="45">when needed</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap-lg"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center">
+      <div class="cw"><div class="ch"><span>FirstClosure.swift</span></div><pre class="cb" style="font-size:17px">let greet = {
+    print(&quot;Hello from a closure&quot;)
+}
+
+greet()   // Hello from a closure</pre></div>
+      <div class="card accent"><span class="label">Functions are closures too</span><ul style="margin:6px 0 0"><li>A function is a <b>named</b> closure</li><li>A closure <b>expression</b> is written inline</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A closure is a self-contained block of functionality that can be passed around and executed later. Click through its life: create a block of logic; store it in a constant or pass it as an argument; execute it when needed.</p>
+    <span class="notes-label">SAY</span><p>The first closure: we assign a block to greet, and later call greet() like a function. It prints Hello from a closure.</p>
+    <span class="notes-label">SAY</span><p>Functions are also closures in Swift&rsquo;s broad sense; closure expressions are the inline form, and that is what we write most often.</p>
+    <span class="notes-label">CONNECT</span><p>Closures that take parameters need a little more syntax.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Syntax (section 9)</p>
+  <h2>Reading a closure</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Add.swift</span></div><pre class="cb" style="font-size:17px">let add: (Int, Int) -&gt; Int = { a, b in
+    return a + b
+}
+
+print(add(10, 20))   // 30</pre></div>
+        <div class="gap"></div>
+        <div class="cols step" style="gap:14px"><div class="card accent"><span class="label">Function</span><ul style="margin:6px 0 0"><li>Named, reusable</li><li><code>func add(&hellip;)</code></li></ul></div><div class="card accent"><span class="label">Closure</span><ul style="margin:6px 0 0"><li>Inline value</li><li><code>{ a, b in &hellip; }</code></li></ul></div></div></div>
+      <table class="tbl"><thead><tr><th style="width:230px">Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>(Int, Int) -&gt; Int</code></td><td>the closure&rsquo;s <b>type</b></td></tr><tr><td><code>{ &hellip; }</code></td><td>the closure <b>expression</b></td></tr><tr><td><code>a, b</code></td><td>its <b>parameters</b></td></tr><tr><td><code>in</code></td><td>separates parameters from the <b>body</b></td></tr><tr><td><code>return a + b</code></td><td>the <b>result</b></td></tr></tbody></table>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A closure that adds two numbers. Read it piece by piece: (Int, Int) -> Int is the closure&rsquo;s type; the braces contain the closure expression; a and b are its parameters; the keyword in separates the parameters from the body; return a + b produces the result. add(10, 20) is 30.</p>
+    <span class="notes-label">SAY</span><p>Click: a function is named reusable behavior; a closure expression is an inline executable value. Same idea, two forms.</p>
+    <span class="notes-label">CONNECT</span><p>Why does this matter so much in iOS?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Closures in iOS</h2>
+    <p class="lead">Buttons, operations and trailing closures</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Every SwiftUI button you write hands a closure to SwiftUI.</p>
+    <span class="notes-label">CONNECT</span><p>Follow a tap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Buttons (section 10)</p>
+  <h2>A button stores your closure</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center">
+      <div class="cw"><div class="ch"><span>DashboardView.swift</span></div><pre class="cb" style="font-size:16px">import SwiftUI
+
+struct DashboardView: View {
+    var body: some View {
+        Button(&quot;Refresh balance&quot;) {
+            print(&quot;Button tapped&quot;)
+        }
+    }
+}</pre></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 520 280" style="max-height:320px" role="img" aria-labelledby="tap">
+        <title id="tap">User taps, SwiftUI recognizes the activation, the action closure executes, application logic runs</title>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="0" width="520" height="52" rx="12"/><use href="#i-tap" x="14" y="13" width="26" height="26"/><text x="52" y="32">User taps the button</text></g>
+        <path class="wire" d="M260 54V70M253 63l7 7 7-7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="0" y="76" width="520" height="52" rx="12"/><use href="#i-phone" x="14" y="89" width="26" height="26"/><text x="52" y="108">SwiftUI recognizes the activation</text></g>
+        <path class="wire" d="M260 130V146M253 139l7 7 7-7"/>
+        <g class="nd" data-lit="3+"><rect class="sh" x="0" y="152" width="520" height="52" rx="12"/><use href="#i-code" x="14" y="165" width="26" height="26"/><text x="52" y="184">The action closure executes</text></g>
+        <path class="wire" d="M260 206V222M253 215l7 7 7-7"/>
+        <g class="nd" data-lit="4+"><rect class="sh" x="0" y="228" width="520" height="52" rx="12"/><use href="#i-gear" x="14" y="241" width="26" height="26"/><text x="52" y="260">Application logic runs</text></g>
+      </svg>
+    </div>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay&rsquo;s Refresh balance button. The code in the braces after Button is a closure. SwiftUI receives it, keeps it, and calls it when the button is activated.</p>
+    <span class="notes-label">SAY</span><p>Click through: the user taps; SwiftUI recognizes the activation; the action closure executes; application logic runs. This is the bridge between language fundamentals and event-driven UI, and it connects to Lesson 0.5: the closure runs on the main thread.</p>
+    <span class="notes-label">CONNECT</span><p>You can write functions that accept closures too.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Passing closures (sections 11&ndash;12)</p>
+  <h2>Pass behavior in; trail it outside</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1.3fr .7fr;gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Operation.swift</span></div><pre class="cb" style="font-size:14px">func performOperation(a: Int, b: Int,
+                      operation: (Int, Int) -&gt; Int) -&gt; Int {
+    operation(a, b)
+}
+
+performOperation(a: 10, b: 5,
+                 operation: { x, y in x + y })   // 15</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="cw"><div class="ch"><span>Trailing.swift</span></div><pre class="cb" style="font-size:14px">performOperation(a: 10, b: 5) { x, y in
+    x + y
+}                                    // 15
+
+Button(&quot;Transfer&quot;) {                 // SwiftUI
+    print(&quot;Transfer tapped&quot;)
+}</pre></div></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Why it is powerful</span><ul style="margin:6px 0 0"><li>Same function, <b>any</b> operation</li><li><code>operation: *</code> gives 50</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Trailing closure</span><ul style="margin:6px 0 0"><li>Last argument a closure? Write it <b>after</b> <code>( )</code></li><li>Everywhere in SwiftUI</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>performOperation takes two numbers and an operation, itself a function-like value of type (Int, Int) -> Int. Pass an addition closure and you get 15. Pass the multiplication operator and you get 50, without changing performOperation at all. Behavior is supplied by the caller.</p>
+    <span class="notes-label">SAY</span><p>Click: when the last argument is a closure, Swift lets you write it after the parentheses. That is trailing closure syntax, and it is exactly what Button("Transfer") { &hellip; } uses.</p>
+    <span class="notes-label">CONNECT</span><p>Closures can also remember things.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Capturing values</h2>
+    <p class="lead">A closure remembers</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A closure can use values from the place where it was created, even after that place is gone.</p>
+    <span class="notes-label">CONNECT</span><p>Watch a counter.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Capture (section 13)</p>
+  <h2>The closure outlives the function</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center">
+      <div class="cw"><div class="ch"><span>Counter.swift</span></div><pre class="cb" style="font-size:15px">func makeCounter() -&gt; () -&gt; Int {
+    var count = 0
+    return {
+        count += 1
+        return count
+    }
+}
+
+let counter = makeCounter()
+print(counter(), counter(), counter())   // 1 2 3
+let other = makeCounter()
+print(other())                           // 1</pre></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 520 200" style="max-height:260px" role="img" aria-labelledby="cap">
+        <title id="cap">The counter closure keeps its own captured count, which grows 1, 2, 3; a new counter has its own count</title>
+        <rect class="wire faint" x="0" y="0" width="520" height="200" rx="16"/>
+        <text class="mono" x="20" y="28">counter: CLOSURE + CAPTURED STATE</text>
+        <g class="nd"><rect class="sh" x="20" y="44" width="230" height="56" rx="12"/><use href="#i-code" x="34" y="59" width="26" height="26"/><text x="72" y="69">{ count += 1 }</text><text class="sm" x="72" y="87">the code</text></g>
+        <g class="fade" data-lit="1"><g class="nd lit"><rect class="sh" x="270" y="44" width="230" height="56" rx="12"/><use href="#i-memory" x="284" y="59" width="26" height="26"/><text x="322" y="69">count = 1</text><text class="sm" x="322" y="87">counter() returned 1</text></g></g>
+        <g class="fade" data-lit="2"><g class="nd lit"><rect class="sh" x="270" y="44" width="230" height="56" rx="12"/><use href="#i-memory" x="284" y="59" width="26" height="26"/><text x="322" y="69">count = 2</text><text class="sm" x="322" y="87">counter() returned 2</text></g></g>
+        <g class="fade" data-lit="3+"><g class="nd lit"><rect class="sh" x="270" y="44" width="230" height="56" rx="12"/><use href="#i-memory" x="284" y="59" width="26" height="26"/><text x="322" y="69">count = 3</text><text class="sm" x="322" y="87">counter() returned 3</text></g></g>
+        <g class="fade" data-lit="0"><g class="nd"><rect class="sh" x="270" y="44" width="230" height="56" rx="12"/><use href="#i-memory" x="284" y="59" width="26" height="26"/><text x="322" y="69">count = 0</text><text class="sm" x="322" y="87">not called yet</text></g></g>
+        <g class="fade" data-lit="4+"><g class="nd"><rect class="sh" x="20" y="124" width="480" height="56" rx="12"/><use href="#i-memory" x="34" y="139" width="26" height="26"/><text x="72" y="149">other: a new counter</text><text class="sm" x="72" y="167">its own count, starting at 0</text></g></g>
+      </svg>
+    </div>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="warn step" data-label="The other side"><ul style="margin:6px 0 0"><li>Captured state <b>outlives</b> the call that created it</li><li>Capturing a class instance <b>strongly</b> can keep it alive (Part 7)</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>makeCounter creates a local var count, then returns a closure that adds one and returns it. When makeCounter returns, its local variables would normally be gone.</p>
+    <span class="notes-label">SAY</span><p>Click: call counter(): 1. Click: 2. Click: 3. The closure still remembers count, because it captured it. That is capturing values.</p>
+    <span class="notes-label">SAY</span><p>Click: a second makeCounter() call creates a new closure with its own count, so other() starts again at 1.</p>
+    <span class="notes-label">SAY</span><p>Click: captured state can outlive the function call that created it. That is also why closures can create memory ownership problems when they strongly capture class instances.</p>
+    <span class="notes-label">CONNECT</span><p>Which brings us to escaping closures and ARC.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Escaping closures and ARC</h2>
+    <p class="lead">When a closure is kept for later</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Some closures run during the call; others are stored and run later. Swift makes you say which.</p>
+    <span class="notes-label">CONNECT</span><p>Compare two functions.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; @escaping (section 14)</p>
+  <h2>Runs now, or escapes for later</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Now.swift</span></div><pre class="cb" style="font-size:15px">func executeNow(action: () -&gt; Void) {
+    action()                // runs during the call
+}</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Non-escaping (default)</span><ul style="margin:6px 0 0"><li>Cannot <b>outlive</b> the call</li><li>Safe to capture anything</li></ul></div></div>
+      <div><div class="cw"><div class="ch"><span>Later.swift</span></div><pre class="cb" style="font-size:15px">final class TaskManager {
+    var savedAction: (() -&gt; Void)?
+
+    func register(action: @escaping () -&gt; Void) {
+        savedAction = action    // kept for later
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">@escaping</span><ul style="margin:6px 0 0"><li>May run <b>after</b> the function returns</li><li>Without it:</li></ul><p style="margin:2px 0 0 26px"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;assigning non-escaping parameter &lsquo;action&rsquo; to an &lsquo;@escaping&rsquo; closure</span></p></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A non-escaping closure is guaranteed not to outlive the call it is passed to. executeNow runs its action during the call, and that is Swift&rsquo;s default for closure parameters.</p>
+    <span class="notes-label">SAY</span><p>An escaping closure may be stored or executed after the function returns. TaskManager stores the action in a property for later, so the parameter must be marked @escaping.</p>
+    <span class="notes-label">SAY</span><p>Click: leave @escaping out and the compiler refuses: assigning non-escaping parameter action to an @escaping closure. The marker is a warning sign to readers: this closure lives on, and so does everything it captures. That is where strong reference cycles can occur.</p>
+    <span class="notes-label">CONNECT</span><p>Here is that cycle in NPay.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Closures and ARC (section 15)</p>
+  <h2>A closure that owns its owner</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DashboardViewModel.swift</span></div><pre class="cb" style="font-size:13px">@MainActor
+final class DashboardViewModel {
+    var onRefresh: (() -&gt; Void)?
+
+    func configure() {
+        onRefresh = { self.refresh() }        // cycle
+        // fix: { [weak self] in self?.refresh() }
+    }
+
+    func refresh() { print(&quot;Refreshing&quot;) }
+    deinit { print(&quot;DashboardViewModel deinit&quot;) }
+}</pre></div>
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 550 70" style="max-height:90px" role="img" aria-labelledby="cyc">
+        <title id="cyc">The ViewModel owns the closure; the closure captures self strongly, or weakly after the fix</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="250" height="60" rx="12"/><use href="#i-layout" x="14" y="17" width="26" height="26"/><text x="52" y="36">DashboardViewModel</text></g>
+        <g class="nd"><rect class="sh" x="330" y="0" width="220" height="60" rx="12"/><use href="#i-code" x="344" y="17" width="26" height="26"/><text x="382" y="36">onRefresh closure</text></g>
+        <path class="wire" d="M254 22H326M319 15l7 7-7 7"/>
+        <text class="sm" x="290" y="14" text-anchor="middle">owns</text>
+        <g class="fade" data-lit="0"><path class="wire lit" d="M326 44H254M261 37l-7 7 7 7"/><text class="sm" x="290" y="62" text-anchor="middle">strong self</text></g>
+        <g class="fade" data-lit="1+"><path class="wire dash lit" d="M326 44H254M261 37l-7 7 7 7"/><text class="sm" x="290" y="62" text-anchor="middle">weak self</text></g>
+      </svg>
+    </div>
+        <div class="gap"></div>
+        <div class="step"><p class="small muted" style="margin:0 0 4px">Set the ViewModel to <code>nil</code> and run:</p>
+        <table class="tbl"><thead><tr><th>Capture</th><th>Result</th></tr></thead><tbody><tr><td style="white-space:nowrap">strong <code>self</code></td><td>nothing prints: <b>leaked</b></td></tr><tr><td style="white-space:nowrap"><code>[weak self]</code></td><td>&ldquo;deinit&rdquo; prints: <b>freed</b></td></tr></tbody></table></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Not every closure"><ul style="margin:6px 0 0"><li><code>[weak self]</code> only for <b>escaping</b> closures that self <b>keeps</b></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This connects to Lesson 0.6. The ViewModel strongly owns its onRefresh closure, and the closure strongly captures self, the ViewModel. Each keeps the other alive: a retain cycle.</p>
+    <span class="notes-label">SAY</span><p>Click: the evidence. We created the ViewModel, configured it and set it to nil. With the strong capture, nothing prints: deinit never runs, the ViewModel leaked. With [weak self], DashboardViewModel deinit prints: it was freed.</p>
+    <span class="notes-label">SAY</span><p>Click: weak capture is right when you need to break an unwanted ownership relationship, typically an escaping closure stored by the object it captures. Not every closure needs [weak self]: a non-escaping closure, or a map or filter, cannot create this cycle. Lesson 1.8 goes deeper.</p>
+    <span class="notes-label">CONNECT</span><p>Last, the closures you will use most every day.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>map, filter, reduce</h2>
+    <p class="lead">Higher-order functions</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift collections have functions that take closures. NPay has a list of transaction amounts.</p>
+    <span class="notes-label">CONNECT</span><p>Transform, select, combine.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Higher-order functions (section 16)</p>
+  <h2>Transform, select, combine</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 780 230" style="max-height:250px" role="img" aria-labelledby="hof">
+        <title id="hof">map doubles every value; filter keeps 1200 and 2500; reduce adds them all to 4500</title>
+        <text class="mono" x="0" y="14">ORIGINAL</text>
+        <g class="nd"><rect class="sh" x="220" y="0" width="120" height="44" rx="12"/><text x="236" y="28">500</text></g>
+        <g class="nd"><rect class="sh" x="360" y="0" width="120" height="44" rx="12"/><text x="376" y="28">1200</text></g>
+        <g class="nd"><rect class="sh" x="500" y="0" width="120" height="44" rx="12"/><text x="516" y="28">300</text></g>
+        <g class="nd"><rect class="sh" x="640" y="0" width="120" height="44" rx="12"/><text x="656" y="28">2500</text></g>
+        <text class="mono" x="0" y="80">map { $0 * 2 }</text>
+        <g class="nd" data-lit="1"><rect class="sh" x="220" y="62" width="120" height="44" rx="12"/><text x="236" y="90">1000</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="360" y="62" width="120" height="44" rx="12"/><text x="376" y="90">2400</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="500" y="62" width="120" height="44" rx="12"/><text x="516" y="90">600</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="640" y="62" width="120" height="44" rx="12"/><text x="656" y="90">5000</text></g>
+        <text class="mono" x="0" y="142">filter { $0 &gt; 1000 }</text>
+        <g class="nd ghost"><rect class="sh" x="220" y="124" width="120" height="44" rx="12"/><text x="236" y="143">500</text><text class="sm" x="236" y="161">dropped</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="360" y="124" width="120" height="44" rx="12"/><text x="376" y="143">1200</text><text class="sm" x="376" y="161">kept</text></g>
+        <g class="nd ghost"><rect class="sh" x="500" y="124" width="120" height="44" rx="12"/><text x="516" y="143">300</text><text class="sm" x="516" y="161">dropped</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="640" y="124" width="120" height="44" rx="12"/><text x="656" y="143">2500</text><text class="sm" x="656" y="161">kept</text></g>
+        <text class="mono" x="0" y="204">reduce(0, +)</text>
+        <g class="nd" data-lit="3+"><rect class="sh" x="220" y="186" width="540" height="44" rx="12"/><text x="236" y="214">500 + 1200 + 300 + 2500 = 4500</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="cw"><div class="ch"><span>Transactions.swift</span></div><pre class="cb" style="font-size:15px">let transactions = [500, 1200, 300, 2500]
+
+let doubled = transactions.map { $0 * 2 }        // [1000, 2400, 600, 5000]
+let large = transactions.filter { $0 &gt; 1000 }    // [1200, 2500]
+let total = transactions.reduce(0) { result, value in
+    result + value
+}                                                // 4500</pre></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Four transaction amounts. Each of these functions takes a closure; $0 is the shorthand name for the closure&rsquo;s first argument.</p>
+    <span class="notes-label">SAY</span><p>Click: map transforms each element: doubling gives 1000, 2400, 600, 5000. Click: filter selects the elements that match: above 1000 keeps 1200 and 2500. Click: reduce combines everything into one value, starting from 0 and adding each element: 4500.</p>
+    <span class="notes-label">SAY</span><p>They chain: transactions.filter { $0 > 1000 }.reduce(0, +) is 3700. And these closures are non-escaping: they run during the call, so no [weak self] needed. Collections and performance come back in later lessons.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.4 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p style="font-size:23px"><b>Functions name logic</b><br><span class="muted" style="font-size:19px">labels make calls read well</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Closures are values</b><br><span class="muted" style="font-size:19px">stored, passed, run later</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><p style="font-size:23px"><b>Captures keep things alive</b><br><span class="muted" style="font-size:19px">@escaping + self: think weak</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Functions give logic a name, and argument labels, underscores and defaults make the call site read clearly. Closures are logic as a value: SwiftUI stores your button&rsquo;s closure and runs it on a tap, and trailing closure syntax keeps that readable. And closures capture what they use: an escaping closure kept by the object it captures strongly is a retain cycle, which [weak self] breaks.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>8 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="In greet(name: &quot;Ravi&quot;), which is the argument?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">In <code>greet(name: "Ravi")</code>, what is the argument?</p><ol class="q-opts"><li><code>greet</code></li><li><code>name</code></li><li><code>"Ravi"</code></li><li><code>String</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">The argument is the value supplied at the call. <code>name</code> is the parameter (and here also the label).</p>
+          <p class="q-trap"><b>Common trap:</b> Calling the label the argument.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>C. The argument is the value supplied at the call. <code>name</code> is the parameter (and here also the label).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which call compiles for func square(_ number: Int)?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Given <code>func square(_ number: Int) -&gt; Int</code>, which call compiles?</p><ol class="q-opts"><li><code>square(number: 5)</code></li><li><code>square(5)</code></li><li><code>square(_: 5)</code></li><li><code>square(n: 5)</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The underscore removes the external label, so callers pass the value alone. A label is now an error.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the internal name is still the label.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The underscore removes the external label, so callers pass the value alone. A label is now an error.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does calculateFee(amountMinor: 250_000) return with the default 2%?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text"><code>func calculateFee(amountMinor: Int64, percent: Int64 = 2) -&gt; Int64</code></p><p class="q-text q-tail">What does <code>calculateFee(amountMinor: 250_000)</code> return?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">5000</span>
+          <p class="q-why">The default <code>percent</code> of 2 is used: 250,000 &times; 2 / 100 = 5,000 paise, &#8377;50.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking a defaulted argument must still be passed.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most get it.</p>
+    <span class="notes-label">SAY</span><p>5000. The default <code>percent</code> of 2 is used: 250,000 &times; 2 / 100 = 5,000 paise, &#8377;50.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What prints for two counters?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text"><code>let a = makeCounter()</code></p><pre class="q-code">let b = makeCounter()
+print(a(), a(), b())</pre>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">1 2 1</span>
+          <p class="q-why">Each call to <code>makeCounter()</code> creates a new closure with its own captured <code>count</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking all counters share one count.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say 1 2 3.</p>
+    <span class="notes-label">SAY</span><p>1 2 1. Each call to <code>makeCounter()</code> creates a new closure with its own captured <code>count</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Must a closure parameter that is stored for later be marked @escaping?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">A function stores its closure parameter in a property. Must the parameter be marked <code>@escaping</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">A closure that may run after the function returns escapes; the compiler rejects storing it otherwise.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking @escaping is an optimization hint.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. A closure that may run after the function returns escapes; the compiler rejects storing it otherwise.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does every closure need [weak self]?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does every closure that uses <code>self</code> need <code>[weak self]</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Only when a cycle is possible, typically an escaping closure stored by the object it captures. <code>map</code>, <code>filter</code> and other non-escaping closures cannot create it.</p>
+          <p class="q-trap"><b>Common trap:</b> Adding [weak self] everywhere out of habit.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Only when a cycle is possible, typically an escaping closure stored by the object it captures. <code>map</code>, <code>filter</code> and other non-escaping closures cannot create it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is transactions.filter { $0 &gt; 1000 }.reduce(0, +)?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text"><code>let transactions = [500, 1200, 300, 2500]</code></p><pre class="q-code">print(transactions.filter { $0 &gt; 1000 }.reduce(0, +))</pre>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">3700</span>
+          <p class="q-why"><code>filter</code> keeps 1200 and 2500; <code>reduce(0, +)</code> adds them.</p>
+          <p class="q-trap"><b>Common trap:</b> Adding everything (4500).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say 4500.</p>
+    <span class="notes-label">SAY</span><p>3700. <code>filter</code> keeps 1200 and 2500; <code>reduce(0, +)</code> adds them.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does onRefresh?() do when onRefresh is nil?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text"><code>var onRefresh: (() -&gt; Void)? = nil</code></p><ol class="q-opts"><li>Traps at run time</li><li>Nothing; the expression is nil</li><li>Compile error</li><li>Calls an empty closure</li></ol><p class="q-text q-tail">What does <code>onRefresh?()</code> do?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Optional chaining works on optional closures too: with no closure, nothing is called and the result is <code>nil</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting a crash, like force unwrapping.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 1.3.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Optional chaining works on optional closures too: with no closure, nothing is called and the result is <code>nil</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.4 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">1.5</td><td><b>Structs, classes &amp; value semantics</b></td><td>what a closure captures: a copy or a reference</td></tr><tr><td class="mono">1.7</td><td><b>Generics &amp; error handling</b></td><td>why <code>map</code> works for any element type</td></tr><tr><td class="mono">1.8</td><td><b>ARC, ownership &amp; memory management</b></td><td>capture lists and cycles in depth</td></tr><tr><td class="mono">1.9</td><td><b>Swift concurrency: tasks, actors &amp; Sendable</b></td><td><code>async</code> instead of callbacks, <code>@Sendable</code> closures</td></tr><tr><td class="mono">2.3</td><td><b>Text, images, buttons &amp; modifiers</b></td><td>SwiftUI actions as closures</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Closures run through the rest of the course. 1.5 explains what a closure captures for values and references; 1.7 shows why map works for any element type; 1.8 goes deep on capture lists and cycles; 1.9 replaces many callbacks with async and introduces Sendable closures; and in Unit 02 every SwiftUI action is a closure.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.4 &middot; Lab</p>
+  <h2>NPay fee toolkit</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Functions, closures and higher-order functions on real NPay amounts.</p><ol class="lab"><li>Write <code>calculateFee</code> with a 2% default.</li><li>Fees above &#8377;1,000: <code>filter</code>, then <code>map</code>.</li><li>Total them with <code>reduce</code>.</li><li>A receipt counter: &ldquo;NP-R1&rdquo;, &ldquo;NP-R2&rdquo;&hellip;</li><li>Run the cycle demo: predict <code>deinit</code>, then fix it.</li></ol></div>
+    <div><div><div class="cw"><div class="ch"><span>lab.swift</span></div><pre class="cb" style="font-size:14px">let transfers: [Int64] = [50_000, 120_000, 30_000, 250_000]  // paise
+
+// 1. calculateFee(amountMinor:percent:) with percent = 2 by default
+// 2. fees for transfers above ₹1,000:  filter, then map
+// 3. total of those fees:              reduce
+// 4. makeReceiptCounter() -&gt; () -&gt; String   // &quot;NP-R1&quot;, &quot;NP-R2&quot;…</pre></div><div class="gap"></div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Large transfers, their fees and the total</li><li>Your receipt numbers</li><li>deinit: before and after the fix</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift only: swiftc lab.swift -o lab && ./lab. Expected: transfers above 100,000 paise are [120000, 250000]; fees [2400, 5000]; total 7400 paise (₹74). makeReceiptCounter: var n = 0; return { n += 1; return "NP-R\(n)" } prints NP-R1 then NP-R2. Cycle: with the strong capture, setting the ViewModel to nil prints nothing; with [weak self], DashboardViewModel deinit prints. The class is @MainActor, so wrap the test in a @MainActor function and call it with MainActor.assumeIsolated { run() } at top level.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 1.4 complete</p>
+    <h2>Functions, Parameters<br>&amp; Closures</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 1.5 &mdash; Structs, Classes &amp; Value Semantics</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now write functions with labels and defaults, read closure syntax and trailing closures, explain how a SwiftUI button runs your closure, describe capture and @escaping, spot a closure retain cycle, and use map, filter and reduce.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 1.5: structs, classes and value semantics, including what a closure actually captures when it uses a value or a reference.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

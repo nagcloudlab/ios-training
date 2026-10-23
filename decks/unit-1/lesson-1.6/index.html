@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1.6 — Protocols &amp; Extensions</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 01 · Lesson 1.6 — Protocols, Extensions &amp; POP">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 01 &middot; Lesson 1.6</p>
+    <h1 style="font-size:54px;line-height:1.05">Protocols, Extensions &amp;<br>Protocol-Oriented Programming</h1>
+    <p class="lead" style="max-width:760px">How can different types offer the <b>same capability</b> without a <b>shared parent class</b>?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In Lesson 1.5 we learned structs versus classes. Now a new architectural problem: how can different Swift types provide the same capability without inheriting from the same parent class? That is where protocol-oriented programming comes in. We stay with NPay and see how protocols make an app flexible and testable.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.6 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>Define a <b>protocol</b> and make types <b>conform</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Use <b>polymorphism</b> through a protocol</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Protocols versus <b>class inheritance</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p><b>Extensions</b>, defaults, and a dispatch surprise</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></span><p><b>Composition</b> with <code>&amp;</code>, and <code>any</code> vs <code>some</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Protocols in <b>SwiftUI</b> and <b>dependency injection</b></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.6 &middot; Where we are</p>
+  <h2>Today: shared capabilities</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 01 &middot; Swift Language Mastery</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 01 progress: lesson 1.6 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">1.1</text><text x="12" y="50" style="font-size:14px">Swift &amp;</text><text x="12" y="68" style="font-size:14px">compiler</text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">1.2</text><text x="126.667" y="50" style="font-size:14px">Variables</text><text x="126.667" y="68" style="font-size:14px">&amp; types</text></g>
+        <g class="nd"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">1.3</text><text x="241.333" y="50" style="font-size:14px">Optionals</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">1.4</text><text x="356" y="50" style="font-size:14px">Functions</text><text x="356" y="68" style="font-size:14px">&amp; closures</text></g>
+        <g class="nd"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">1.5</text><text x="470.667" y="50" style="font-size:14px">Structs</text><text x="470.667" y="68" style="font-size:14px">&amp; classes</text></g>
+        <g class="nd lit"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">1.6</text><text x="585.333" y="50" style="font-size:14px">Protocols</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">1.7</text><text x="700" y="50" style="font-size:14px">Generics</text><text x="700" y="68" style="font-size:14px">&amp; errors</text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">1.8</text><text x="814.667" y="50" style="font-size:14px">ARC &amp;</text><text x="814.667" y="68" style="font-size:14px">ownership</text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">1.9</text><text x="929.333" y="50" style="font-size:14px">Concurrency</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">1.10</text><text x="1044" y="50" style="font-size:14px">NPay</text><text x="1044" y="68" style="font-size:14px">model</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>Lesson 1.5: structs are values, classes share identity; start with a struct.</span><span><b>Today</b>Protocols let structs and classes share a capability without a class hierarchy.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson ended with a rule: start with a struct. But structs cannot inherit. So how do several struct types share a capability, such as paying? Today&rsquo;s answer is protocols, and it is the idea underneath SwiftUI&rsquo;s View and NPay&rsquo;s testable services.</p>
+    <span class="notes-label">CONNECT</span><p>Start with NPay&rsquo;s payment screen.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Protocols</h2>
+    <p class="lead">A contract, not an implementation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay supports three payment methods. Each works differently, but all must be able to pay.</p>
+    <span class="notes-label">CONNECT</span><p>Define the contract.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The problem (sections 1&ndash;2)</p>
+  <h2>Three payment methods, one contract</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 830 182" style="max-height:220px" role="img" aria-labelledby="pm">
+        <title id="pm">UPI, card and bank transfer all provide one common capability: pay</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="250" height="60" rx="12"/><use href="#i-phone" x="14" y="17" width="26" height="26"/><text x="52" y="36">UPI</text></g>
+        <g class="nd"><rect class="sh" x="290" y="0" width="250" height="60" rx="12"/><use href="#i-key" x="304" y="17" width="26" height="26"/><text x="342" y="36">Card</text></g>
+        <g class="nd"><rect class="sh" x="580" y="0" width="250" height="60" rx="12"/><use href="#i-bank" x="594" y="17" width="26" height="26"/><text x="632" y="36">Bank transfer</text></g>
+        <path class="wire" d="M125 64L400 116M393 109l7 7 7-7"/>
+        <path class="wire" d="M415 64V116M408 109l7 7 7-7"/>
+        <path class="wire" d="M705 64L430 116M423 109l7 7 7-7"/>
+        <g class="nd lit"><rect class="sh" x="240" y="122" width="350" height="60" rx="12"/><use href="#i-link" x="254" y="139" width="26" height="26"/><text x="292" y="149">Common capability: pay</text><text class="sm" x="292" y="167">different implementations, one contract</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center">
+      <div class="cw"><div class="ch"><span>PaymentMethod.swift</span></div><pre class="cb" style="font-size:18px">protocol PaymentMethod {
+    func pay(amountMinor: Int64)
+}</pre></div>
+      <div class="card accent"><span class="label">A protocol</span><ul style="margin:6px 0 0"><li>States <b>what</b> a conforming type must provide</li><li>Says nothing about <b>how</b></li><li>Each type supplies its own implementation</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay supports UPI, card and bank transfer. Each behaves differently, but all must support one operation: making a payment. The challenge is a common contract without forcing every payment method into one class hierarchy.</p>
+    <span class="notes-label">SAY</span><p>Click: a protocol defines requirements that conforming types must satisfy, a contract. PaymentMethod says any conforming type must provide pay(amountMinor:). It says nothing about how payment works; that belongs to each type. Amounts are in paise, as in earlier lessons.</p>
+    <span class="notes-label">CONNECT</span><p>Now make two types conform.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Conformance and polymorphism</h2>
+    <p class="lead">One call, many implementations</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two structs promise the same capability. One function uses both.</p>
+    <span class="notes-label">CONNECT</span><p>Here they are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Conformance (sections 3&ndash;4)</p>
+  <h2>Same contract, different behavior</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Payments.swift</span></div><pre class="cb" style="font-size:13px">struct UPIPayment: PaymentMethod {
+    func pay(amountMinor: Int64) {
+        print(&quot;UPI payment: ₹\(amountMinor / 100)&quot;)
+    }
+}
+
+struct CardPayment: PaymentMethod {
+    func pay(amountMinor: Int64) {
+        print(&quot;Card payment: ₹\(amountMinor / 100)&quot;)
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Conformance</span><ul style="margin:6px 0 0"><li>Two <b>structs</b>, one protocol</li><li>No class inheritance involved</li></ul></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>Process.swift</span></div><pre class="cb" style="font-size:13px">func processPayment(using method: any PaymentMethod,
+                    amountMinor: Int64) {
+    method.pay(amountMinor: amountMinor)
+}
+
+processPayment(using: UPIPayment(),
+               amountMinor: 100_000)
+processPayment(using: CardPayment(),
+               amountMinor: 200_000)</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Prints</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">UPI payment: ₹1000<br>Card payment: ₹2000</p><ul style="margin:6px 0 0"><li>Polymorphism: the caller depends on the <b>contract</b></li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>UPIPayment and CardPayment both conform to PaymentMethod: each provides pay(amountMinor:), in its own way. Both are structs. Protocol conformance does not imply class inheritance.</p>
+    <span class="notes-label">SAY</span><p>Click: processPayment takes any value that conforms to PaymentMethod and calls pay. Pass a UPI payment and a card payment and each prints its own message: UPI payment ₹1000, Card payment ₹2000. That is polymorphism: different implementations through one interface.</p>
+    <span class="notes-label">SAY</span><p>The caller depends on a contract, not a concrete payment type. Adding BankTransferPayment needs no change to processPayment, and in tests you can pass a fake. Less coupling, easier to extend and test.</p>
+    <span class="notes-label">CONNECT</span><p>Protocols can require properties too.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Property requirements</h2>
+    <p class="lead">{ get } and { get set }</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A protocol can require data as well as behavior.</p>
+    <span class="notes-label">CONNECT</span><p>Readable, or readable and writable.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Properties (section 5)</p>
+  <h2>Readable, or readable and writable</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>BankAccount.swift</span></div><pre class="cb" style="font-size:15px">protocol BankAccount {
+    var accountNumber: String { get }
+    var balanceMinor: Int64 { get set }
+}
+
+struct SavingsAccount: BankAccount {
+    let accountNumber: String   // { get }
+    var balanceMinor: Int64     // { get set }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">{ get }</span><ul style="margin:6px 0 0"><li>Must be <b>readable</b></li><li>A <code>let</code> or a <code>var</code> satisfies it</li></ul></div>
+        <div class="card accent"><span class="label">{ get set }</span><ul style="margin:6px 0 0"><li>Must be readable <b>and writable</b></li><li>A <code>let</code> does not satisfy it</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">balanceMinor as a let</span><p style="margin:4px 0 0"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;type &lsquo;SavingsAccount&rsquo; does not conform to protocol &lsquo;BankAccount&rsquo;</span></p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>BankAccount requires two properties. { get } means the property must be readable; { get set } means readable and writable. SavingsAccount satisfies both: a let accountNumber is readable, a var balanceMinor is readable and writable.</p>
+    <span class="notes-label">SAY</span><p>A read-only requirement can be satisfied by something that is also writable, but not the other way round.</p>
+    <span class="notes-label">SAY</span><p>Click: make balanceMinor a let and SavingsAccount no longer conforms: type SavingsAccount does not conform to protocol BankAccount.</p>
+    <span class="notes-label">CONNECT</span><p>How does this compare with class inheritance?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Protocols versus inheritance</h2>
+    <p class="lead">Capabilities or a family tree</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two ways to share: a class hierarchy, or a capability.</p>
+    <span class="notes-label">CONNECT</span><p>Compare them.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Comparison (section 6)</p>
+  <h2>One parent, or many capabilities</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 184" style="max-height:200px" role="img" aria-labelledby="inh">
+        <title id="inh">Class inheritance: UPIPayment has one superclass. Protocols: UPIPayment conforms to several protocols</title>
+        <text class="mono" x="270" y="14" text-anchor="middle">CLASS INHERITANCE</text>
+        <g class="nd"><rect class="sh" x="160" y="30" width="220" height="56" rx="12"/><use href="#i-layers" x="174" y="45" width="26" height="26"/><text x="212" y="55">BasePayment</text><text class="sm" x="212" y="73">superclass</text></g>
+        <path class="wire" d="M270 90V122M263 115l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="160" y="128" width="220" height="56" rx="12"/><use href="#i-phone" x="174" y="143" width="26" height="26"/><text x="212" y="153">UPIPayment</text><text class="sm" x="212" y="171">subclass: one parent</text></g>
+        <text class="mono" x="866" y="14" text-anchor="middle">PROTOCOL CONFORMANCE</text>
+        <g class="nd lit"><rect class="sh" x="596" y="30" width="260" height="56" rx="12"/><use href="#i-link" x="610" y="45" width="26" height="26"/><text x="648" y="55">PaymentMethod</text><text class="sm" x="648" y="73">protocol</text></g>
+        <g class="nd lit"><rect class="sh" x="876" y="30" width="260" height="56" rx="12"/><use href="#i-file" x="890" y="45" width="26" height="26"/><text x="928" y="55">Receipts</text><text class="sm" x="928" y="73">protocol</text></g>
+        <path class="wire dash" d="M726 90L846 122M839 115l7 7 7-7"/>
+        <path class="wire dash" d="M1006 90L886 122M879 115l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="756" y="128" width="220" height="56" rx="12"/><use href="#i-phone" x="770" y="143" width="26" height="26"/><text x="808" y="153">UPIPayment</text><text class="sm" x="808" y="171">struct: many protocols</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <table class="tbl compact"><thead><tr><th>Feature</th><th>Protocol</th><th>Class inheritance</th></tr></thead><tbody><tr><td>Structs can take part</td><td>Yes</td><td>No</td></tr><tr><td>Classes can take part</td><td>Yes</td><td>Yes</td></tr><tr><td>How many</td><td>Many protocols</td><td>One superclass</td></tr><tr><td>Shares implementation</td><td>Protocol extensions</td><td>Inherited members</td></tr><tr><td>Main purpose</td><td>Abstraction, capabilities</td><td>Shared identity, specialization</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two design approaches. Class inheritance shares behavior and implementation through a hierarchy, and a class has exactly one superclass. Protocol conformance defines a shared capability, and a type, struct or class, can conform to many protocols.</p>
+    <span class="notes-label">SAY</span><p>The table: structs can take part in protocols but not inheritance; classes can do both; many protocols versus one superclass; protocols share implementation through extensions, which is the next part; and the main purpose differs: abstraction and capabilities versus shared identity and specialization.</p>
+    <span class="notes-label">CONNECT</span><p>So how do protocols share code without a base class?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Protocol extensions</h2>
+    <p class="lead">Shared behavior and defaults</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An extension on a protocol gives every conforming type code for free.</p>
+    <span class="notes-label">CONNECT</span><p>Two uses, one surprise.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Extensions and defaults (sections 7&ndash;8)</p>
+  <h2>Write it once, every type gets it</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:1.2fr .8fr;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentMethod.swift</span></div><pre class="cb" style="font-size:14px">protocol PaymentMethod {
+    func pay(amountMinor: Int64)
+    func validate(amountMinor: Int64) -&gt; Bool    // requirement
+}
+
+extension PaymentMethod {
+    func validate(amountMinor: Int64) -&gt; Bool {   // default
+        amountMinor &gt; 0
+    }
+    func logPayment(amountMinor: Int64) {        // shared helper
+        print(&quot;Payment initiated: ₹\(amountMinor / 100)&quot;)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Shared behavior</span><ul style="margin:6px 0 0"><li><code>logPayment</code>: every payment method can call it</li></ul></div>
+        <div class="card accent step"><span class="label">Default implementation</span><ul style="margin:6px 0 0"><li><code>validate</code> is a <b>requirement</b></li><li>Types may use the default, or <b>provide their own</b></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Result</span><ul style="margin:6px 0 0"><li>Composition without a deep class hierarchy</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A protocol extension adds code to every conforming type. logPayment is a shared helper: any payment method can call it instead of re-implementing logging.</p>
+    <span class="notes-label">SAY</span><p>Click: an extension can also provide a default implementation of a requirement. validate is declared in the protocol, and the extension gives it a default: amount greater than zero. A type with no validate of its own satisfies the requirement through the default; a type that needs stricter rules provides its own.</p>
+    <span class="notes-label">SAY</span><p>Click: protocols define capabilities; extensions provide shared behavior. That is composition without a deep class hierarchy.</p>
+    <span class="notes-label">CONNECT</span><p>Now the surprise the lesson text warned about. Watch closely.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Dispatch (section 8)</p>
+  <h2>Same object, two different answers</h2>
+  <div class="body">
+    <div class="cw"><div class="ch"><span>Dispatch.swift</span></div><pre class="cb" style="font-size:13px">protocol PaymentMethod {
+    func validate(amountMinor: Int64) -&gt; Bool   // requirement
+}
+extension PaymentMethod {
+    func validate(amountMinor: Int64) -&gt; Bool { amountMinor &gt; 0 }
+    func label() -&gt; String { &quot;payment&quot; }        // extension only
+}
+struct CardPayment: PaymentMethod {
+    func validate(amountMinor: Int64) -&gt; Bool { amountMinor &gt;= 10_000 }
+    func label() -&gt; String { &quot;card&quot; }
+}
+let card = CardPayment()
+let method: any PaymentMethod = card</pre></div>
+    <div class="gap"></div>
+    <div class="step"><table class="tbl compact"><thead><tr><th>Call</th><th>on <code>card</code></th><th>on <code>method</code></th><th>Why</th></tr></thead><tbody><tr><td><code>validate(amountMinor: 5_000)</code></td><td><code>false</code></td><td><code>false</code></td><td>requirement: the <b>card&rsquo;s</b> version both times</td></tr><tr><td><code>label()</code></td><td><code>"card"</code></td><td><b><code>"payment"</code></b></td><td>extension only: chosen by the <b>static</b> type</td></tr></tbody></table></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One CardPayment value, seen two ways: as card, its concrete type, and as method, typed any PaymentMethod. validate is a requirement; label exists only in the extension. CardPayment provides its own version of both.</p>
+    <span class="notes-label">ASK</span><p>Before the click: what does each call return?</p>
+    <span class="notes-label">SAY</span><p>Click: we ran it. validate is a requirement, so the call goes through the protocol&rsquo;s witness table to the card&rsquo;s own version both times: false, because the card needs at least ₹100. But label is only in the extension: through method, Swift calls the extension&rsquo;s version and returns "payment", even though the object is a card. Methods only in an extension are chosen by the static type.</p>
+    <span class="notes-label">SAY</span><p>This surprises developers from Java, where every method is virtual. The rule: if conforming types should be able to customize a method, declare it in the protocol.</p>
+    <span class="notes-label">CONNECT</span><p>Extensions are not just for protocols.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Extensions</h2>
+    <p class="lead">Add to types you don&rsquo;t own</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An extension adds functionality to an existing type, even one from the standard library.</p>
+    <span class="notes-label">CONNECT</span><p>Add a helper to Int64.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Extensions (section 9)</p>
+  <h2>Extend Int64 with a rupee helper</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Int64+Rupees.swift</span></div><pre class="cb" style="font-size:16px">extension Int64 {
+    var rupeesText: String {   // computed
+        &quot;₹\(self / 100)&quot;
+    }
+}
+
+let amountMinor: Int64 = 50_000
+print(amountMinor.rupeesText)       // ₹500</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Can add</span><ul style="margin:6px 0 0"><li>Computed properties, methods</li><li>Initializers, protocol conformances, more</li></ul></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Even for types you don&rsquo;t own</span><ul style="margin:6px 0 0"><li><code>Int64</code>, <code>String</code>, Apple&rsquo;s types</li><li>Subject to access rules</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Cannot add stored properties</span><p style="margin:4px 0 0"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;extensions must not contain stored properties</span></p></div></div>
+        <div class="tip step" data-label="Display text"><ul style="margin:6px 0 0"><li>Real formatting (&#8377;25,000) belongs in the <b>ViewModel</b></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An extension adds functionality to an existing type. Here we add a rupeesText computed property to Int64, turning paise into a simple rupee string: 50,000 paise is ₹500. We do not own Int64; it is in the standard library. Extensions work on accessible types you did not write, subject to access rules.</p>
+    <span class="notes-label">SAY</span><p>Extensions can add computed properties, methods, initializers in supported contexts, protocol conformances and more.</p>
+    <span class="notes-label">SAY</span><p>Click: they cannot add stored properties: extensions must not contain stored properties. The type&rsquo;s memory layout is already fixed.</p>
+    <span class="notes-label">SAY</span><p>Click: this helper is a teaching example. Real display formatting, with grouping like ₹25,000 and the user&rsquo;s locale, belongs in the ViewModel, as in Lesson 0.2.</p>
+    <span class="notes-label">CONNECT</span><p>Sometimes you need two capabilities at once.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Composition, any and some</h2>
+    <p class="lead">Combine capabilities; hide or fix the type</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Require several protocols at once, and choose between any and some.</p>
+    <span class="notes-label">CONNECT</span><p>First, composition.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Composition (section 10)</p>
+  <h2>Require two capabilities with &amp;</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>CompletePayment.swift</span></div><pre class="cb" style="font-size:13.5px">protocol PaymentProcessing {
+    func process(amountMinor: Int64)
+}
+protocol ReceiptGenerating {
+    func generateReceipt() -&gt; String
+}
+func completePayment(
+    using service: any PaymentProcessing &amp; ReceiptGenerating,
+    amountMinor: Int64
+) {
+    service.process(amountMinor: amountMinor)
+    print(service.generateReceipt())
+}</pre></div>
+        <div class="gap"></div>
+        <div class="cw"><div class="ch"><span>Callers.swift</span></div><pre class="cb" style="font-size:13px">completePayment(using: UPIService(), amountMinor: 50_000)
+completePayment(using: CashCounter(), amountMinor: 50_000)</pre></div></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 552 276" style="max-height:400px" role="img" aria-labelledby="comp">
+        <title id="comp">completePayment needs both process and receipt. UPIService has both and is accepted; CashCounter has only process and is rejected</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="552" height="60" rx="12"/><use href="#i-phone" x="14" y="17" width="26" height="26"/><text x="52" y="27">UPIService</text><text class="sm" x="52" y="45">conforms to both</text></g>
+        <g class="nd"><rect class="sh" x="236" y="13" width="150" height="34" rx="17"/><text class="sm" x="311" y="35" text-anchor="middle">process &#10003;</text></g>
+        <g class="nd"><rect class="sh" x="394" y="13" width="150" height="34" rx="17"/><text class="sm" x="469" y="35" text-anchor="middle">receipt &#10003;</text></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="0" y="70" width="552" height="56" rx="12"/><use href="#i-check" x="14" y="85" width="26" height="26"/><text x="52" y="95">Accepted</text><text class="sm" x="52" y="113">UPI: ₹500 paid · Receipt NP-R1</text></g></g>
+        <g class="nd"><rect class="sh" x="0" y="150" width="552" height="60" rx="12"/><use href="#i-bank" x="14" y="167" width="26" height="26"/><text x="52" y="177">CashCounter</text><text class="sm" x="52" y="195">pays only</text></g>
+        <g class="nd"><rect class="sh" x="236" y="163" width="150" height="34" rx="17"/><text class="sm" x="311" y="185" text-anchor="middle">process &#10003;</text></g>
+        <g class="nd ghost"><rect class="sh" x="394" y="163" width="150" height="34" rx="17"/><text class="sm" x="469" y="185" text-anchor="middle">receipt &#10007;</text></g>
+        <g class="fade" data-lit="2+"><g class="nd alert"><rect class="sh" x="0" y="220" width="552" height="56" rx="12"/><use href="#i-cross" x="14" y="235" width="26" height="26"/><text x="52" y="245">Rejected by the compiler</text><text class="sm" x="52" y="263">does not conform to ReceiptGenerating</text></g></g>
+      </svg>
+    </div>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two small protocols: PaymentProcessing can take a payment, ReceiptGenerating can produce a receipt. completePayment needs a service that can do both, so its parameter type is any PaymentProcessing & ReceiptGenerating. The ampersand means: must conform to both.</p>
+    <span class="notes-label">SAY</span><p>Two NPay services. UPIService conforms to both protocols. CashCounter only takes payments; it cannot issue receipts.</p>
+    <span class="notes-label">SAY</span><p>Click: pass the UPI service and it is accepted. Real output: UPI: ₹500 paid, then Receipt NP-R1.</p>
+    <span class="notes-label">SAY</span><p>Click: pass the cash counter and the build fails before the app ever runs. The real message: argument type CashCounter does not conform to expected type ReceiptGenerating.</p>
+    <span class="notes-label">SAY</span><p>Notice we did not need a combined superclass, such as a PaymentAndReceiptBase, just to say both. Keep protocols small and combine them with the ampersand where a function needs more.</p>
+    <span class="notes-label">CONNECT</span><p>You have now seen any several times. Swift also has some.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; any (section 11)</p>
+  <h2>any: different types in one place</h2>
+  <div class="body">
+    <i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Mixed.swift</span></div><pre class="cb" style="font-size:14px">let methods: [any PaymentMethod] = [
+    UPIPayment(), CardPayment()
+]
+
+for m in methods {
+    m.pay(amountMinor: 50_000)
+}</pre></div>
+        <div class="step" style="margin-top:14px"><div class="card accent"><span class="label">Same array with some</span><p style="margin:4px 0 8px"><code>[some PaymentMethod]</code></p><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;conflicting arguments to generic parameter (&lsquo;UPIPayment&rsquo; vs. &lsquo;CardPayment&rsquo;)</span></div></div></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 552 218" style="max-height:280px" role="img" aria-labelledby="anymix">
+        <title id="anymix">An array of any PaymentMethod holds a UPIPayment and a CardPayment; each calls its own pay and prints UPI 500 rupees and Card 500 rupees</title>
+        <text class="mono" x="0" y="14">[any PaymentMethod]: ONE ARRAY, MIXED TYPES</text>
+        <rect class="wire dash" x="0" y="28" width="552" height="96" rx="16"/>
+        <g class="nd"><rect class="sh" x="16" y="44" width="252" height="64" rx="12"/><use href="#i-phone" x="30" y="63" width="26" height="26"/><text x="68" y="73">UPIPayment</text><text class="sm" x="68" y="91">[0]</text></g>
+        <g class="nd"><rect class="sh" x="284" y="44" width="252" height="64" rx="12"/><use href="#i-key" x="298" y="63" width="26" height="26"/><text x="336" y="73">CardPayment</text><text class="sm" x="336" y="91">[1]</text></g>
+        <path class="wire" data-lit="1+" d="M142 128V156M135 149l7 7 7-7"/>
+        <path class="wire" data-lit="1+" d="M410 128V156M403 149l7 7 7-7"/>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="16" y="162" width="252" height="56" rx="12"/><use href="#i-check" x="30" y="177" width="26" height="26"/><text x="68" y="187">UPI ₹500</text><text class="sm" x="68" y="205">its own pay()</text></g><g class="nd lit"><rect class="sh" x="284" y="162" width="252" height="56" rx="12"/><use href="#i-check" x="298" y="177" width="26" height="26"/><text x="336" y="187">Card ₹500</text><text class="sm" x="336" y="205">its own pay()</text></g></g>
+      </svg>
+    </div>
+    </div>
+    <div class="gap"></div>
+    <div class="takeaway step"><code>any</code>: the type <b>can be different</b> for each value. Use it for mixed arrays and swappable values.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>any PaymentMethod and some PaymentMethod both mean: a value of a type that conforms to PaymentMethod. The difference is whether that type can vary. Start with any.</p>
+    <span class="notes-label">SAY</span><p>This array holds two different types: a UPIPayment and a CardPayment. That is only possible because the element type is any PaymentMethod.</p>
+    <span class="notes-label">SAY</span><p>Click: loop over it and each one calls its own pay. Real output: UPI ₹500, then Card ₹500. Swift works out which pay to call while the app runs.</p>
+    <span class="notes-label">SAY</span><p>Click: write the same array with some instead, and the compiler refuses: conflicting arguments, UPIPayment versus CardPayment. some allows only one type.</p>
+    <span class="notes-label">SAY</span><p>Click: so any means the type can be different for each value. Use it for mixed arrays and for stored values you may swap, like the service in a ViewModel in Part 8.</p>
+    <span class="notes-label">CONNECT</span><p>So what is some for?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; some (section 11)</p>
+  <h2>some: one exact type you don&rsquo;t have to name</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DashboardView.swift</span></div><pre class="cb" style="font-size:14px">import SwiftUI
+
+struct DashboardView: View {
+    var body: some View {
+        VStack {
+            Text(&quot;₹25,000&quot;)
+            Button(&quot;Refresh balance&quot;) { }
+        }
+    }
+}</pre></div>
+      <div>
+        <div class="step"><div class="card accent"><span class="label">The real type of body (printed)</span><p style="font-family:var(--code-font);font-size:20px;margin:8px 0 4px;color:var(--teal-ink);font-weight:600">VStack&lt;TupleView&lt;(Text, Button&lt;Text&gt;)&gt;&gt;</p><ul style="margin:6px 0 0"><li><code>some View</code> hides this</li><li>It changes every time you edit the view</li></ul></div></div>
+        <div class="gap"></div>
+        <div class="step"><div class="cw"><div class="ch"><span>DefaultPayment.swift</span></div><pre class="cb" style="font-size:14px">func defaultPayment() -&gt; some PaymentMethod {
+    UPIPayment()   // always UPIPayment; a CardPayment
+}                  // on another path won&#x27;t compile</pre></div></div>
+      </div>
+    </div>
+    <div class="gap"></div>
+    <div class="takeaway step"><code>some</code>: <b>one</b> exact type the compiler knows, so you don&rsquo;t have to name it. <code>any</code> can vary; <code>some</code> cannot.</div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Now some. Here is a small NPay view: a VStack with a Text and a Button. Its body is declared as some View.</p>
+    <span class="notes-label">SAY</span><p>Click: we printed the real type of body. It is VStack of TupleView of Text and Button of Text. Nobody wants to write that, and it changes every time you edit the view. some View means: one exact type, the compiler knows it, you do not have to spell it.</p>
+    <span class="notes-label">SAY</span><p>Click: the same works for our protocol. defaultPayment returns some PaymentMethod, and it is always a UPIPayment; the caller just does not see the name. Because it must be one type, returning a card payment on another path is a compile error: the return statements do not have matching underlying types.</p>
+    <span class="notes-label">SAY</span><p>Click: so some means one fixed type, known to the compiler and hidden from the caller, used mostly for return types. any can vary; some cannot. Lesson 1.7 explains the generics underneath.</p>
+    <span class="notes-label">CONNECT</span><p>Which brings us to SwiftUI.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Protocols in SwiftUI and DI</h2>
+    <p class="lead">The framework and the architecture</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI is built on protocols, and so is a testable NPay.</p>
+    <span class="notes-label">CONNECT</span><p>SwiftUI first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; SwiftUI (section 12)</p>
+  <h2>View is a protocol</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center">
+      <div class="cw"><div class="ch"><span>DashboardView.swift</span></div><pre class="cb" style="font-size:16px">import SwiftUI
+
+struct DashboardView: View {
+    var body: some View {
+        Text(&quot;NPay&quot;)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">struct DashboardView: View</span><ul style="margin:6px 0 0"><li>A <b>struct</b> conforming to the <b>View</b> protocol (1.5, today)</li></ul></div>
+        <div class="card accent"><span class="label">var body: some View</span><ul style="margin:6px 0 0"><li>An <b>opaque</b> type: one specific view, hidden</li></ul></div>
+        <div class="card accent"><span class="label">Modifiers, composition</span><ul style="margin:6px 0 0"><li>Built on protocols and <b>generics</b> (1.7, Unit 02)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>View is a protocol. DashboardView is a struct that conforms to it, a value type from Lesson 1.5 conforming to a protocol from today. body returns some View, an opaque type: one specific view type, hidden from you. Modifiers and view composition build on protocols and generics.</p>
+    <span class="notes-label">SAY</span><p>These are not arbitrary framework conventions. They are Swift&rsquo;s protocol and generic type system, which is why we learn the language first. Unit 02 builds real screens with them.</p>
+    <span class="notes-label">CONNECT</span><p>Last, protocols in NPay&rsquo;s architecture.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Dependency injection (section 13)</p>
+  <h2>Depend on the protocol, inject the service</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 56" style="max-height:64px" role="img" aria-labelledby="di">
+        <title id="di">DashboardViewModel depends on BalanceProviding; BalanceService and MockBalanceService conform to it</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="260" height="56" rx="12"/><use href="#i-layout" x="14" y="15" width="26" height="26"/><text x="52" y="25">DashboardViewModel</text><text class="sm" x="52" y="43">depends on</text></g>
+        <path class="wire" d="M264 28H306M299 21l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="312" y="0" width="250" height="56" rx="12"/><use href="#i-link" x="326" y="15" width="26" height="26"/><text x="364" y="25">BalanceProviding</text><text class="sm" x="364" y="43">protocol</text></g>
+        <path class="wire dash" d="M614 28H568M575 21l-7 7 7 7"/>
+        <g class="nd"><rect class="sh" x="620" y="0" width="240" height="56" rx="12"/><use href="#i-bank" x="634" y="15" width="26" height="26"/><text x="672" y="25">BalanceService</text><text class="sm" x="672" y="43">real API</text></g>
+        <g class="nd"><rect class="sh" x="876" y="0" width="260" height="56" rx="12"/><use href="#i-check" x="890" y="15" width="26" height="26"/><text x="928" y="25">MockBalanceService</text><text class="sm" x="928" y="43">tests, previews</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>BalanceProviding.swift</span></div><pre class="cb" style="font-size:13px">struct Balance: Sendable { let balanceMinor: Int64 }
+
+protocol BalanceProviding: Sendable {
+    func fetchBalance() async throws -&gt; Balance
+}
+
+struct MockBalanceService: BalanceProviding {
+    func fetchBalance() async throws -&gt; Balance {
+        Balance(balanceMinor: 2_500_000)        // ₹25,000
+    }
+}</pre></div>
+      <div><div class="cw"><div class="ch"><span>DashboardViewModel.swift</span></div><pre class="cb" style="font-size:13px">@MainActor
+final class DashboardViewModel {
+    private let service: any BalanceProviding
+
+    init(service: any BalanceProviding) {
+        self.service = service
+    }
+
+    func loadBalance() async throws -&gt; Balance {
+        try await service.fetchBalance()
+    }
+}</pre></div></div>
+    </div>
+    <div class="gap"></div>
+    <div class="warn step" data-label="Swift 6"><ul style="margin:6px 0 0"><li>Without <code>: Sendable</code>: <b>sending &lsquo;self.service&rsquo; risks causing data races</b> (why: Lesson 1.9)</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay&rsquo;s ViewModel fetches the balance. It should not be tied to one network service. So it depends on the BalanceProviding protocol and receives a service through its initializer: dependency injection. The real BalanceService talks to the bank&rsquo;s API; MockBalanceService returns ₹25,000 for tests and previews. Same names as Lessons 0.8 and 1.1.</p>
+    <span class="notes-label">SAY</span><p>The ViewModel depends on the protocol, not the concrete implementation, so swapping the real service for a mock in a test is one line.</p>
+    <span class="notes-label">SAY</span><p>Click: one correction to the lesson text. Its version of this code does not compile in Swift 6: sending self.service risks causing data races. The ViewModel is on the main actor and the service&rsquo;s async method runs elsewhere, so the service must be safe to share. Marking the protocol Sendable fixes it, and both our services are simple structs, so they qualify. Lesson 1.9 explains Sendable; Unit 04 builds full dependency injection.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.6 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:23px"><b>Protocols are contracts</b><br><span class="muted" style="font-size:19px">structs and classes conform</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p style="font-size:23px"><b>Extensions share code</b><br><span class="muted" style="font-size:19px">declare it to make it overridable</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p style="font-size:23px"><b>Depend on protocols</b><br><span class="muted" style="font-size:19px">inject real or mock services</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A protocol is a contract that any struct, class or enum can conform to, and a type can conform to many. Protocol extensions share code and defaults; declare a method in the protocol if conforming types should be able to customize it. And depend on protocols, not concrete types: that is what makes SwiftUI work and NPay testable.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>8 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does a protocol define?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does a protocol define?</p><ol class="q-opts"><li>A base class with shared stored properties</li><li>Requirements that conforming types must satisfy</li><li>A concrete implementation every type inherits</li><li>A struct&rsquo;s memory layout</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A protocol is a contract: what must be provided, not how. Implementations live in the conforming types (or in defaults).</p>
+          <p class="q-trap"><b>Common trap:</b> Treating a protocol like an abstract base class.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. A protocol is a contract: what must be provided, not how. Implementations live in the conforming types (or in defaults).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can a struct conform to a protocol?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can a <code>struct</code> conform to a protocol?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Structs, classes and enums can all conform, and a type can conform to many protocols.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming protocols need classes, like inheritance.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. Structs, classes and enums can all conform, and a type can conform to many protocols.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can a Swift class have two superclasses?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can a Swift class inherit from two superclasses?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Single class inheritance only. A class can conform to many protocols.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing protocols with superclasses.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. Single class inheritance only. A class can conform to many protocols.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does method.label() return for a CardPayment?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text"><code>label()</code> is defined only in a protocol extension, and <code>CardPayment</code> defines its own.</p><pre class="q-code">let method: any PaymentMethod = CardPayment()
+print(method.label())</pre>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">"payment"</span>
+          <p class="q-why">A method only in an extension is chosen by the static type, <code>any PaymentMethod</code>. Declare it in the protocol to get the card&rsquo;s version.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting dynamic dispatch, as in Java.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say card.</p>
+    <span class="notes-label">SAY</span><p>"payment". A method only in an extension is chosen by the static type, <code>any PaymentMethod</code>. Declare it in the protocol to get the card&rsquo;s version.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can an extension add a stored property?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-cross"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can an extension add a stored property to an existing type?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">&ldquo;Extensions must not contain stored properties.&rdquo; Computed properties are fine.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting extensions to add any member.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. &ldquo;Extensions must not contain stored properties.&rdquo; Computed properties are fine.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which lets one variable hold a UPIPayment, then a CardPayment?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Which declaration lets one variable hold a <code>UPIPayment</code>, then a <code>CardPayment</code>?</p><ol class="q-opts"><li><code>var m: some PaymentMethod</code></li><li><code>var m: any PaymentMethod</code></li><li><code>var m: UPIPayment</code></li><li><code>var m: PaymentMethod.Type</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>any</code> is a box for any conforming type. <code>some</code> fixes one hidden type.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking some and any are interchangeable.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. <code>any</code> is a box for any conforming type. <code>some</code> fixes one hidden type.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does a let property satisfy a { get set } requirement?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">A protocol requires <code>var balanceMinor: Int64 { get set }</code>. Does <code>let balanceMinor: Int64</code> satisfy it?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">A read-write requirement needs a writable property. The compiler reports the type does not conform.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming any property with the right name works.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. A read-write requirement needs a writable property. The compiler reports the type does not conform.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="For two Equatable structs, what does == compare?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Two values of an <code>Equatable</code> struct are compared with <code>==</code>. What is compared?</p><ol class="q-opts"><li>Their memory addresses</li><li>Their values</li><li>Their type names</li><li>Nothing; structs cannot use ==</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>Equatable</code> is itself a protocol: <code>==</code> compares values. Identity (<code>===</code>) is for classes.</p>
+          <p class="q-trap"><b>Common trap:</b> Mixing up == and ===.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 1.5.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. <code>Equatable</code> is itself a protocol: <code>==</code> compares values. Identity (<code>===</code>) is for classes.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.6 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">1.7</td><td><b>Generics &amp; error handling</b></td><td><code>some</code>, constraints, generic functions</td></tr><tr><td class="mono">1.9</td><td><b>Swift concurrency: tasks, actors &amp; Sendable</b></td><td>why <code>BalanceProviding: Sendable</code></td></tr><tr><td class="mono">3.5</td><td><b>Reusable views &amp; environment</b></td><td>View protocol in practice</td></tr><tr><td class="mono">4.5</td><td><b>Dependency injection &amp; composition root</b></td><td>injecting NPay&rsquo;s services</td></tr><tr><td class="mono">9.4</td><td><b>Mocks, fakes &amp; URLProtocol</b></td><td>MockBalanceService in tests</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Protocols run through the course. Lesson 1.7 builds generics on top of them and explains some properly; 1.9 explains why our protocol had to be Sendable; Unit 03 builds reusable views; Unit 04 builds dependency injection with a composition root; and Unit 09 uses mocks like MockBalanceService in tests.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 1.6 &middot; Lab</p>
+  <h2>NPay payment methods</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Build three payment methods on one protocol, then test the dispatch rule.</p><ol class="lab"><li>Write the default <code>validate</code> and a shared <code>log</code> in an extension.</li><li>Add three conforming structs; the card needs at least &#8377;100.</li><li>Run the loop: which methods pay &#8377;50?</li><li>Move <code>validate</code> out of the protocol: what changes, and why?</li><li>Make a mock <code>BalanceProviding</code> and inject it.</li></ol></div>
+    <div><div><div class="cw"><div class="ch"><span>lab.swift</span></div><pre class="cb" style="font-size:13px">protocol PaymentMethod {
+    var name: String { get }
+    func pay(amountMinor: Int64)
+    func validate(amountMinor: Int64) -&gt; Bool
+}
+// TODO: extension with a default validate (&gt; 0) and log(amountMinor:)
+// TODO: UPIPayment, CardPayment (minimum ₹100), BankTransferPayment
+let methods: [any PaymentMethod] = [/* all three */]
+for m in methods where m.validate(amountMinor: 5_000) {
+    m.pay(amountMinor: 5_000)
+}</pre></div><div class="gap"></div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Output before and after step 4, with the reason</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift only: swiftc lab.swift -o lab && ./lab. Reference: extension PaymentMethod { func validate(amountMinor: Int64) -> Bool { amountMinor > 0 }; func log(amountMinor: Int64) { print("\(name): ₹\(amountMinor / 100)") } }. CardPayment overrides validate with amountMinor >= 10_000. Expected output: "UPI: ₹50" and "Bank transfer: ₹50"; the card is skipped because ₹50 is below its ₹100 minimum. Step 4: remove validate from the protocol (keep it in the extension and in CardPayment): now the loop over [any PaymentMethod] calls the extension version, the card passes validation and "Card: ₹50" also prints. That is the dispatch rule from Part 5. Step 5: protocol BalanceProviding: Sendable plus a struct mock returning Balance(balanceMinor: 2_500_000).</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 1.6 complete</p>
+    <h2>Protocols, Extensions &amp;<br>Protocol-Oriented Programming</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 1.7 &mdash; Generics &amp; Error Handling</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now define protocols and make structs and classes conform, use polymorphism through a protocol, compare protocols with class inheritance, share code with extensions and defaults, explain the dispatch rule, compose protocols, tell any from some, and inject protocol-typed dependencies.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 1.7: generics and error handling, the type-system machinery behind some View and the proper alternative to try?.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>
