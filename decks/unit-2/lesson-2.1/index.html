@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.1 — Inside SwiftUI</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.1 — Inside SwiftUI">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.1</p>
+    <h1 style="font-size:54px;line-height:1.05">Inside SwiftUI:<br>State, Identity &amp; Rendering</h1>
+    <p class="lead" style="max-width:760px">When NPay&rsquo;s balance changes, how does SwiftUI update the screen <b>without rebuilding everything</b>?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 02 begins: SwiftUI. Today we look inside it. Views are descriptions, not pixels; so when NPay&rsquo;s balance changes from ₹25,000 to ₹30,000, how does SwiftUI update the interface without rebuilding everything? Everything you will see logged or on a phone screen today came from a small SwiftUI app we ran in the iOS Simulator.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.1 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>What happens when a <b>description changes</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Why and when <code>body</code> <b>runs again</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>How <b>identity</b> keeps or resets state</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p><code>@State</code>, <code>@Binding</code> and <code>@Observable</code>: who owns state</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p>From description to <b>pixels</b>, and what costs time</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Debug it: <code>_printChanges()</code>, identity, Instruments</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.1 &middot; Where we are</p>
+  <h2>Today: how SwiftUI thinks</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.1 of 10</title>
+        <g class="nd lit"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Declarative</text><text x="12" y="68" style="font-size:14px">UI, body</text></g>
+        <g class="nd ghost"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">2.2</text><text x="126.667" y="50" style="font-size:14px">Xcode &amp;</text><text x="126.667" y="68" style="font-size:14px">previews</text></g>
+        <g class="nd ghost"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">2.3</text><text x="241.333" y="50" style="font-size:14px">Text &amp;</text><text x="241.333" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd ghost"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">2.4</text><text x="356" y="50" style="font-size:14px">Stacks &amp;</text><text x="356" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd ghost"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">2.5</text><text x="470.667" y="50" style="font-size:14px">@State &amp;</text><text x="470.667" y="68" style="font-size:14px">@Binding</text></g>
+        <g class="nd ghost"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">2.6</text><text x="585.333" y="50" style="font-size:14px">Controls</text><text x="585.333" y="68" style="font-size:14px">&amp; forms</text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">2.7</text><text x="700" y="50" style="font-size:14px">List &amp;</text><text x="700" y="68" style="font-size:14px">identity</text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">2.8</text><text x="814.667" y="50" style="font-size:14px">Design</text><text x="814.667" y="68" style="font-size:14px">system</text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">2.9</text><text x="929.333" y="50" style="font-size:14px">Access-</text><text x="929.333" y="68" style="font-size:14px">ibility</text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">2.10</text><text x="1044" y="50" style="font-size:14px">Lab:</text><text x="1044" y="68" style="font-size:14px">dashboard</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>Unit 01 (1.10): NPay&rsquo;s engine in plain Swift, tested on any computer.</span><span><b>Today</b>The SwiftUI layer on top: descriptions, state, identity and rendering.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 01 gave us the language and NPay&rsquo;s domain engine. Unit 02 builds the interface on a Mac with Xcode. We start with how SwiftUI works inside, because every later lesson relies on it.</p>
+    <span class="notes-label">CONNECT</span><p>One reminder from Unit 01 first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.1 &middot; Starting point (authored)</p>
+  <h2>A view is a description, not pixels</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center">
+      <div class="cw"><div class="ch"><span>DashboardView.swift</span></div><pre class="cb" style="font-size:15px">struct DashboardView: View {       // 1.5
+    var body: some View {          // 1.6
+        VStack {
+            Text(&quot;NPay&quot;)
+            Text(&quot;₹25,000&quot;)
+            Button(&quot;Send Money&quot;) { }
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">What you write</span><ul style="margin:6px 0 0"><li>A <b>value</b> saying what should appear</li><li>Cheap to create, often recreated</li></ul></div>
+        <div class="card accent"><span class="label">What SwiftUI does</span><ul style="margin:6px 0 0"><li>Keeps <b>state</b> and <b>identity</b></li><li>Works out the <b>smallest</b> update</li><li>Lays out and renders</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The lesson text picks up from a part we did not receive, so here is the starting point, from Unit 01. A SwiftUI view is a struct, a value, as in Lesson 1.5, and body returns some View, one hidden concrete type, as in Lesson 1.6. It describes what should appear; it is not the pixels.</p>
+    <span class="notes-label">SAY</span><p>You write the description. SwiftUI keeps the state and identity, works out what actually changed, and does layout and rendering. Today is about that second column.</p>
+    <span class="notes-label">CONNECT</span><p>So what happens when the description changes?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Reconciliation</h2>
+    <p class="lead">Only what changed</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The balance goes from ₹25,000 to ₹30,000. Everything else stays the same.</p>
+    <span class="notes-label">CONNECT</span><p>Compare the descriptions.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Reconciliation (section 11) &middot; conceptual</p>
+  <h2>Same screen, one value different</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 220" style="max-height:230px" role="img" aria-labelledby="recon">
+        <title id="recon">Previous and new descriptions: NPay and Send Money are the same; the balance changed from 25,000 to 30,000 rupees</title>
+        <text class="mono" x="0" y="14">PREVIOUS DESCRIPTION</text>
+        <text class="mono" x="596" y="14">NEW DESCRIPTION</text>
+        <g class="nd"><rect class="sh" x="0" y="28" width="540" height="52" rx="12"/><text x="16" y="60">NPay</text></g>
+        <g class="nd"><rect class="sh" x="596" y="28" width="540" height="52" rx="12"/><text x="612" y="51">NPay</text><text class="sm" x="612" y="69">same</text></g>
+        <g class="nd"><rect class="sh" x="0" y="92" width="540" height="52" rx="12"/><text x="16" y="124">₹25,000</text></g>
+        <g class="nd" data-lit="1+"><rect class="sh" x="596" y="92" width="540" height="52" rx="12"/><text x="612" y="115">₹30,000</text><text class="sm" x="612" y="133">changed</text></g>
+        <g class="nd"><rect class="sh" x="0" y="156" width="540" height="52" rx="12"/><text x="16" y="188">Send Money</text></g>
+        <g class="nd"><rect class="sh" x="596" y="156" width="540" height="52" rx="12"/><text x="612" y="179">Send Money</text><text class="sm" x="612" y="197">same</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:1.2fr .8fr;gap:24px;align-items:start">
+      <ol class="lab step" style="font-size:18px"><li>The balance <b>state</b> changes</li><li>SwiftUI finds the <b>dependencies</b> on it</li><li>Relevant descriptions may be <b>re-evaluated</b></li><li>It decides what managed UI needs <b>updating</b></li><li><b>Layout</b>, graphics and presentation run as needed</li></ol>
+      <div class="warn step" data-label="Not a virtual DOM"><ul style="margin:6px 0 0"><li>No public, fixed tree-diff algorithm</li><li>Dependency tracking and identity, largely private</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay&rsquo;s dashboard: a heading, the balance and a Send Money button. A transaction completes and the balance becomes ₹30,000. Click: in the new description only the balance differs.</p>
+    <span class="notes-label">SAY</span><p>Click: conceptually, the balance state changes; SwiftUI identifies what depends on it; those descriptions may be re-evaluated; it works out which managed UI needs updating; then layout, graphics and presentation happen as required. Like a restaurant&rsquo;s order display: when one order goes from Preparing to Ready, nobody rebuilds the kitchen; the display updates that line.</p>
+    <span class="notes-label">SAY</span><p>Click: do not teach this as React&rsquo;s virtual DOM diff. SwiftUI does not publish a fixed tree-comparison algorithm; its dependency tracking, identity and update mechanisms are more sophisticated and mostly private. Our evidence next comes from logging, not from reading its internals.</p>
+    <span class="notes-label">CONNECT</span><p>So when exactly does body run again? We measured it.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>When body runs again</h2>
+    <p class="lead">Evaluation is not rendering</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Put a print in body and watch.</p>
+    <span class="notes-label">CONNECT</span><p>A real run.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; body evaluation (section 12)</p>
+  <h2>The balance changed twice; the header didn&rsquo;t care</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DashboardView.swift</span></div><pre class="cb" style="font-size:11.5px">struct DashboardView: View {
+    @State private var balanceMinor: Int64 = 2_500_000
+    var body: some View {
+        let _ = print(&quot;DashboardView body evaluated, balance \(balanceMinor / 100)&quot;)
+        VStack {
+            HeaderView()          // reads nothing
+            Text(&quot;₹\(balanceMinor / 100)&quot;)
+        }
+    }
+}
+struct HeaderView: View {
+    var body: some View {
+        let _ = print(&quot;HeaderView body evaluated&quot;)
+        Text(&quot;NPay&quot;).font(.largeTitle)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">iOS Simulator console (balance +₹1,000 twice)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">DashboardView body evaluated, balance 25000<br>HeaderView body evaluated<br>DashboardView body evaluated, balance 26000<br>DashboardView body evaluated, balance 27000</p></div></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>Operation</th><th>Means</th></tr></thead><tbody><tr><td>View initialization</td><td>a Swift value is built</td></tr><tr><td><code>body</code> evaluation</td><td>a new description is computed</td></tr><tr><td>Rendering</td><td>pixels are prepared and shown</td></tr></tbody></table></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A dashboard with a print in body, and a HeaderView that depends on nothing. We ran it in the iOS Simulator and changed the balance twice, the way a button would.</p>
+    <span class="notes-label">SAY</span><p>Click: the real console. The dashboard&rsquo;s body ran three times: once at first, then after each change. The header&rsquo;s body ran once. SwiftUI only re-evaluated what depended on the balance. The prints are for teaching and debugging; never build app logic on how often body runs.</p>
+    <span class="notes-label">SAY</span><p>Click: keep three operations apart. Initializing a view struct builds a value. Evaluating body computes a new description. Rendering prepares and presents pixels. If body runs ten times, the GPU does not necessarily draw the whole screen ten times.</p>
+    <span class="notes-label">CONNECT</span><p>That is also why views are structs.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Views are structs (section 13)</p>
+  <h2>Cheap values, recreated freely</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center">
+      <div class="cw"><div class="ch"><span>BalanceCard.swift</span></div><pre class="cb" style="font-size:15px">struct BalanceCard: View {
+    let title: String
+    let balanceText: String     // from the ViewModel
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(title)
+            Text(balanceText).font(.largeTitle)
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">A struct (1.5)</span><ul style="margin:6px 0 0"><li>Value semantics: a <b>configuration</b></li><li>Not a permanent on-screen object</li></ul></div>
+        <div class="card accent"><span class="label">SwiftUI owns the rest</span><ul style="margin:6px 0 0"><li>State, identity, rendering</li></ul></div>
+        <div class="rule step" data-label="So"><ul style="margin:6px 0 0"><li>No expensive work or <b>side effects</b> in <code>body</code></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Structs have value semantics, which suits describing a UI configuration. BalanceCard says: a title and a balance, in a vertical stack. It takes balanceText already formatted, as the ViewModel does in NPay.</p>
+    <span class="notes-label">SAY</span><p>A view struct is not a permanent object that represents one element on screen. SwiftUI may recreate view values constantly as part of normal updates; the state, identity and rendering infrastructure live in SwiftUI.</p>
+    <span class="notes-label">SAY</span><p>Click: so keep body pure: no expensive work, no side effects like network calls. Part 6 comes back to this.</p>
+    <span class="notes-label">CONNECT</span><p>If structs come and go, how does state survive? Identity.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>View identity</h2>
+    <p class="lead">How state finds its view</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One of the deepest SwiftUI ideas: state belongs to a view&rsquo;s identity.</p>
+    <span class="notes-label">CONNECT</span><p>Swap two branches.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Structural identity (section 14)</p>
+  <h2>Switch branches, lose the state</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayScreen.swift</span></div><pre class="cb" style="font-size:13px">struct NPayScreen: View {
+    @State private var showPremium = false
+
+    var body: some View {
+        VStack {
+            Toggle(&quot;Premium Mode&quot;, isOn: $showPremium)
+            if showPremium {
+                CounterView(name: &quot;Premium&quot;)  // own @State
+            } else {
+                CounterView(name: &quot;Standard&quot;)
+            }
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="diagram">
+      <svg class="art" viewBox="0 0 844 52" style="max-height:60px" role="img" aria-labelledby="idsw">
+        <title id="idsw">Standard counts to 3; switch to Premium, which starts at 0; switch back, Standard starts at 0 again</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="250" height="52" rx="12"/><use href="#i-layers" x="14" y="13" width="26" height="26"/><text x="52" y="23">Standard branch</text><text class="sm" x="52" y="41">counts to 3</text></g>
+        <path class="wire" data-lit="2" d="M254 26H286M279 19l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="292" y="0" width="250" height="52" rx="12"/><use href="#i-layers" x="306" y="13" width="26" height="26"/><text x="344" y="23">Premium branch</text><text class="sm" x="344" y="41">new identity: 0</text></g>
+        <path class="wire" data-lit="3+" d="M546 26H578M571 19l7 7-7 7"/>
+        <g class="nd" data-lit="3+"><rect class="sh" x="584" y="0" width="260" height="52" rx="12"/><use href="#i-layers" x="598" y="13" width="26" height="26"/><text x="636" y="23">Standard again</text><text class="sm" x="636" y="41">fresh state: 0</text></g>
+      </svg>
+    </div>
+        <div class="step"><div class="card accent"><span class="label">iOS Simulator console</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">StandardCounterView appeared, count = 0<br>Standard counted to 3<br>PremiumCounterView appeared, count = 0<br>Premium counted to 3<br>StandardCounterView appeared, count = 0</p></div></div>
+        <div class="tip step" data-label="View identity"><ul style="margin:6px 0 0"><li>Not object identity: <b>position and structure</b> in the hierarchy</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A Premium Mode toggle chooses between two branches, each a counter with its own @State count. SwiftUI uses view identity to attach state to the right part of the hierarchy, and a branch is a different position in the structure.</p>
+    <span class="notes-label">SAY</span><p>Click through: the standard counter counts to 3. Click: switch to premium; it is a different identity, so it starts at 0. Click: switch back; the standard counter is new again, at 0. Its count of 3 was discarded when its branch was removed.</p>
+    <span class="notes-label">SAY</span><p>Click: the real console from the simulator confirms it: Standard appeared at 0 and counted to 3; Premium appeared at 0; Standard appeared again at 0.</p>
+    <span class="notes-label">SAY</span><p>Click: view identity is not object identity from Lesson 1.5. It is how SwiftUI associates state and updates with a view&rsquo;s position and structure. Lists and navigation, later in this unit, depend on stable identity.</p>
+    <span class="notes-label">CONNECT</span><p>You can also set identity explicitly.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Explicit identity (section 15)</p>
+  <h2>.id() resets state, on purpose</h2>
+  <div class="body">
+    <div class="cw"><div class="ch"><span>ExplicitIdentity.swift</span></div><pre class="cb" style="font-size:17px">BalanceCard(title: &quot;Savings&quot;, balanceText: text)
+    .id(accountId)      // a new account → a new identity</pre></div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch">
+      <div class="card accent"><span class="label">What it does</span><ul style="margin:6px 0 0"><li>A changed <code>id</code> = a different view</li><li>Its <code>@State</code> starts fresh</li></ul></div>
+      <div class="card accent step"><span class="label">Good use</span><ul style="margin:6px 0 0"><li>Switch account A &rarr; B</li><li>Reset account-specific temporary state</li></ul></div>
+      <div class="warn step" data-label="Use deliberately"><ul style="margin:6px 0 0"><li>Not a fix for update bugs</li><li>Destroys state, adds work (Part 8)</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Besides structural identity, SwiftUI supports explicit identity with .id(). If accountId changes, SwiftUI treats this as a different view, and its state resets.</p>
+    <span class="notes-label">SAY</span><p>Click: that is useful when switching from account A to account B should reset temporary, account-specific state, such as a half-typed note.</p>
+    <span class="notes-label">SAY</span><p>Click: but .id() is not a universal fix for UI update problems. Used carelessly it destroys useful state and adds work. Part 8 shows the classic mistake, measured.</p>
+    <span class="notes-label">CONNECT</span><p>Next question: where should state live?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Who owns state</h2>
+    <p class="lead">Lift it; bind to it</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The dashboard and the transaction history both need the selected account.</p>
+    <span class="notes-label">CONNECT</span><p>One owner.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Ownership (sections 16&ndash;17)</p>
+  <h2>One owner; children get a binding</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:24px;align-items:start">
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 460 154" style="max-height:170px" role="img" aria-labelledby="own">
+        <title id="own">A shared owner holds the selected account; DashboardView and TransactionsView both read it</title>
+        <g class="nd lit"><rect class="sh" x="70" y="0" width="320" height="56" rx="12"/><use href="#i-user" x="84" y="15" width="26" height="26"/><text x="122" y="25">Shared owner</text><text class="sm" x="122" y="43">selected account</text></g>
+        <path class="wire" d="M170 60L110 96M103 89l7 7 7-7"/>
+        <path class="wire" d="M290 60L350 96M343 89l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="102" width="220" height="52" rx="12"/><use href="#i-phone" x="14" y="115" width="26" height="26"/><text x="52" y="125">DashboardView</text><text class="sm" x="52" y="143">reads it</text></g>
+        <g class="nd"><rect class="sh" x="240" y="102" width="220" height="52" rx="12"/><use href="#i-file" x="254" y="115" width="26" height="26"/><text x="292" y="125">TransactionsView</text><text class="sm" x="292" y="143">reads it</text></g>
+      </svg>
+    </div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Lift shared state</span><ul style="margin:6px 0 0"><li>Owned at the <b>lowest common</b> level</li><li>No inconsistent copies</li></ul></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>Binding.swift</span></div><pre class="cb" style="font-size:12.5px">struct AccountScreen: View {
+    @State private var balanceMinor: Int64 = 2_500_000   // the owner
+
+    var body: some View {
+        BalanceEditor(balanceMinor: $balanceMinor)         // pass a binding
+    }
+}
+
+struct BalanceEditor: View {
+    @Binding var balanceMinor: Int64                       // reads and writes it
+
+    var body: some View {
+        Button(&quot;Add Demo ₹1,000&quot;) { balanceMinor += 100_000 }
+    }
+}</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">@Binding</span><ul style="margin:6px 0 0"><li>Not a copy: access to state <b>owned elsewhere</b></li><li><code>$balanceMinor</code> creates it</li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The dashboard and the transaction history both need the selected account. If each kept its own copy, they could disagree. So shared state is lifted to an appropriate common owner, and both screens read it from there.</p>
+    <span class="notes-label">SAY</span><p>Click: @State marks the owner. AccountScreen owns the balance, in paise as always. BalanceEditor needs to change it, so it receives a binding: dollar balanceMinor. Inside, @Binding reads and writes the parent&rsquo;s state.</p>
+    <span class="notes-label">SAY</span><p>A binding is not a second, independent copy; it is access to state owned elsewhere. When the editor adds ₹1,000, the parent&rsquo;s value changes. Lesson 2.5 goes deeper into sources of truth.</p>
+    <span class="notes-label">CONNECT</span><p>For app-level state, use a model object.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>@Observable and the main actor</h2>
+    <p class="lead">Reference state for real screens</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Bigger state lives in a model. Unit 01 gave it its shape.</p>
+    <span class="notes-label">CONNECT</span><p>DashboardViewModel.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Observation (sections 18&ndash;19)</p>
+  <h2>An observable model, isolated to the main actor</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DashboardViewModel.swift</span></div><pre class="cb" style="font-size:12px">import Observation
+
+@MainActor @Observable
+final class DashboardViewModel {
+    var balanceMinor: Int64 = 2_500_000
+    var isLoading = false
+
+    var balanceText: String {
+        let rupees = Decimal(balanceMinor) / 100
+        return rupees.formatted(.currency(code: &quot;INR&quot;))
+    }
+    func refresh() async {
+        isLoading = true
+        defer { isLoading = false }
+        // await the BalanceService (1.9)
+    }
+}</pre></div>
+      <div><div class="cw"><div class="ch"><span>DashboardView.swift</span></div><pre class="cb" style="font-size:12px">struct DashboardView: View {
+    @State private var model = DashboardViewModel()
+
+    var body: some View {
+        VStack {
+            Text(model.balanceText)
+            Button(&quot;Refresh balance&quot;) {
+                Task { await model.refresh() }
+            }
+        }
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <div class="cols tight step" style="gap:12px"><div class="card accent"><span class="label">@Observable</span><ul style="margin:6px 0 0"><li>Updates views that <b>read</b> it</li><li><b>Not</b> thread-safe</li></ul></div><div class="card accent"><span class="label">@MainActor</span><ul style="margin:6px 0 0"><li>UI state, main actor</li><li><code>await</code> frees it</li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>For more complex state, NPay uses an observable model: the DashboardViewModel from Unit 00 and 1.9. @Observable lets SwiftUI track which properties a view reads, and update that view when they change. The view owns the model with @State, so the model lives as long as the view&rsquo;s identity.</p>
+    <span class="notes-label">SAY</span><p>The model holds paise and formats balanceText, the canon from Lesson 0.2. The button calls refresh in a task.</p>
+    <span class="notes-label">SAY</span><p>Click: two distinctions. @Observable makes a type observable; it does not make its mutable state thread-safe. That is why it is also @MainActor, which isolates UI-facing state to the main actor. And @MainActor does not mean blocking the main thread: at an await the main actor processes other work, though CPU-heavy synchronous work on it still freezes the UI, as Lesson 1.9 measured.</p>
+    <span class="notes-label">CONNECT</span><p>Finally: how do descriptions become pixels?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Rendering and performance</h2>
+    <p class="lead">From description to frame</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI describes and lays out; Apple&rsquo;s graphics stack draws.</p>
+    <span class="notes-label">CONNECT</span><p>The pipeline, and what slows it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Rendering (section 20) &middot; conceptual</p>
+  <h2>Five stages to a visible frame</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1124 64" style="max-height:80px" role="img" aria-labelledby="pipe">
+        <title id="pipe">View descriptions, dependencies and identity, layout, graphics and compositing, display</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="212" height="64" rx="12"/><use href="#i-code" x="14" y="19" width="26" height="26"/><text x="52" y="29">SwiftUI view descriptions</text><text class="sm" x="52" y="47">what should be displayed</text></g>
+        <path class="wire" d="M214 32H226M219 25l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="228" y="0" width="212" height="64" rx="12"/><use href="#i-link" x="242" y="19" width="26" height="26"/><text x="280" y="29">Dependencies and identity</text><text class="sm" x="280" y="47">what may need updating</text></g>
+        <path class="wire" d="M442 32H454M447 25l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="456" y="0" width="212" height="64" rx="12"/><use href="#i-layout" x="470" y="19" width="26" height="26"/><text x="508" y="29">Layout</text><text class="sm" x="508" y="47">where content belongs</text></g>
+        <path class="wire" d="M670 32H682M675 25l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="684" y="0" width="212" height="64" rx="12"/><use href="#i-layers" x="698" y="19" width="26" height="26"/><text x="736" y="29">Graphics and compositing</text><text class="sm" x="736" y="47">prepare and combine content</text></g>
+        <path class="wire" d="M898 32H910M903 25l7 7-7 7"/>
+        <g class="nd" data-lit="5+"><rect class="sh" x="912" y="0" width="212" height="64" rx="12"/><use href="#i-phone" x="926" y="19" width="26" height="26"/><text x="964" y="29">Display</text><text class="sm" x="964" y="47">a visible frame</text></g>
+      </svg>
+    </div>
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap-lg"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="card accent"><span class="label">Three different costs</span><ul style="margin:6px 0 0"><li>Computing <b>descriptions</b></li><li><b>Layout</b></li><li><b>Rendering</b> and presenting frames</li></ul></div>
+      <div class="rule step" data-label="Avoid teaching"><ul style="margin:6px 0 0"><li>&ldquo;Every SwiftUI view is a <code>CALayer</code>&rdquo;</li><li>The rendering representation is an implementation detail</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through a conceptual pipeline: SwiftUI view descriptions say what should appear; dependency and identity management decide what may need updating; layout decides where things go; Apple&rsquo;s graphics and compositing infrastructure prepares and combines the content; and a visible frame reaches the display, the frame from Lesson 0.5.</p>
+    <span class="notes-label">SAY</span><p>It is conceptual: SwiftUI&rsquo;s private rendering implementation, and the exact role of technologies like Core Animation, can change between OS releases. Each stage can be a separate bottleneck: computing descriptions, layout, and rendering.</p>
+    <span class="notes-label">SAY</span><p>Click: so avoid teaching that every SwiftUI view is a CALayer. SwiftUI manages its own abstractions.</p>
+    <span class="notes-label">CONNECT</span><p>The cost you control most directly is body.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Performance (section 21)</p>
+  <h2>Keep body cheap; do work elsewhere</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Risky.swift</span></div><pre class="cb" style="font-size:15px">var body: some View {
+    let result = expensiveCalculation()  // each time
+    return Text(&quot;\(result)&quot;)
+}</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Risky</span><ul style="margin:6px 0 0"><li><code>body</code> may run many times (Part 2)</li><li>Synchronous work here costs every time</li></ul></div></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>Better.swift</span></div><pre class="cb" style="font-size:15px">@State private var result = 0
+
+var body: some View {
+    Text(&quot;\(result)&quot;)
+        .task {                        // once, owned
+            result = await calculator.run()
+        }
+}</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Better</span><ul style="margin:6px 0 0"><li>Work in a service or <code>.task</code></li><li>The result becomes <b>state</b></li><li>Networking: <b>never</b> as a side effect of <code>body</code></li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Because SwiftUI may re-evaluate body many times, as Part 2 showed, a substantial synchronous calculation inside body is paid on every evaluation, and it harms responsiveness.</p>
+    <span class="notes-label">SAY</span><p>Click: move the work into a service or an asynchronous operation and expose the result as state. Here .task runs it with the view&rsquo;s lifetime, as in Lesson 1.9. calculator stands for whatever service does the work.</p>
+    <span class="notes-label">SAY</span><p>Should a network request start as a side effect of evaluating body? No. body describes the interface; use .task, actions and properly owned models for side effects.</p>
+    <span class="notes-label">CONNECT</span><p>Put the pieces together: NPay&rsquo;s first real dashboard.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>NPay&rsquo;s first dashboard</h2>
+    <p class="lead">A real screen in the simulator</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Composition, formatting, state, a conditional view, modifiers and layout, in one screen.</p>
+    <span class="notes-label">CONNECT</span><p>Run it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Dashboard (section 22)</p>
+  <h2>Before and after one tap</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.25fr) minmax(0,.375fr) minmax(0,.375fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>DashboardView.swift</span></div><pre class="cb" style="font-size:11.5px">struct DashboardView: View {
+    @State private var balanceMinor: Int64 = 2_500_000
+    @State private var showMessage = false
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Text(&quot;NPay&quot;).font(.largeTitle.bold())
+            Text(&quot;Available Balance&quot;).foregroundStyle(.secondary)
+            Text(Decimal(balanceMinor) / 100,
+                 format: .currency(code: &quot;INR&quot;)
+                     .precision(.fractionLength(0)))
+                .font(.system(size: 38, weight: .bold))
+            Button(&quot;Add Demo ₹1,000&quot;) {
+                balanceMinor += 100_000
+                showMessage = true
+            }
+            .buttonStyle(.borderedProminent)
+            if showMessage {
+                Text(&quot;Demo balance updated&quot;).foregroundStyle(.green)
+            }
+            Spacer()
+        }
+        .padding()
+    }
+}</pre></div>
+      <div><div class="shot" style="height:330px"><img src="img/dash.png" alt="Launch"></div><p class="shot-cap">Launch</p></div>
+      <div class="step"><div><div class="shot" style="height:330px"><img src="img/tapped.png" alt="After one tap"></div><p class="shot-cap">After one tap</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay&rsquo;s first dashboard, a demonstration screen, not a real wallet. A vertical stack with the title, a label, the balance formatted as Indian rupees from paise, a button, a message that appears only after a tap, and a spacer pushing everything up.</p>
+    <span class="notes-label">SAY</span><p>These are real iOS Simulator screenshots. At launch: ₹25,000, with grouping and the rupee sign from the currency format. Click: after one tap the balance is ₹26,000 and the conditional message appears.</p>
+    <span class="notes-label">SAY</span><p>It previews almost every topic of this unit: composition, text formatting, state changes, conditional views, modifiers, layout, and Xcode previews, which is Lesson 2.2.</p>
+    <span class="notes-label">LIVE DEMO</span><p>In Xcode: File, New, Project, iOS App. Paste DashboardView into ContentView.swift, rename, add #Preview { DashboardView() }, and run on an iPhone simulator. Tap the button; then add let _ = Self._printChanges() to body and watch the console.</p>
+    <span class="notes-label">CONNECT</span><p>When this misbehaves, how do you debug it?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Debugging SwiftUI</h2>
+    <p class="lead">Measure before you optimize</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>&ldquo;My dashboard&rsquo;s body runs repeatedly. SwiftUI must be inefficient!&rdquo; Is it?</p>
+    <span class="notes-label">CONNECT</span><p>Ask SwiftUI.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; _printChanges (section 24)</p>
+  <h2>Ask SwiftUI why body ran</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Debug.swift</span></div><pre class="cb" style="font-size:14px">struct DashboardView: View {
+    @State private var count = 0
+
+    var body: some View {
+        let _ = Self._printChanges()
+        Text(&quot;Count: \(count)&quot;)
+    }
+}</pre></div>
+        <div class="step" style="margin-top:12px"><div class="card accent"><span class="label">iOS Simulator console (count +1 twice)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">DashboardView: @self, @identity, _count changed.<br>DashboardView: _count changed.<br>DashboardView: _count changed.</p></div></div></div>
+      <div><div class="card accent"><span class="label">Investigate</span><ol class="lab" style="font-size:17px;margin-top:6px"><li>Which state or observable property <b>changed</b>?</li><li>Which views <b>depend</b> on it?</li><li>Is the view&rsquo;s <b>identity stable</b>?</li><li>Is expensive work happening <b>in body</b>?</li><li>Is a side effect <b>repeatedly changing</b> state?</li></ol></div>
+        <div class="gap"></div>
+        <div class="tip step" data-label="Debugging only"><ul style="margin:6px 0 0"><li><code>_printChanges()</code> is a diagnostic, not app logic</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>body running repeatedly is not proof that SwiftUI is inefficient: re-evaluation is how dependency updates work. The useful question is whether unnecessary expensive work is happening.</p>
+    <span class="notes-label">SAY</span><p>Self._printChanges() is a SwiftUI debugging facility that prints why body was evaluated. Click: the real console. First evaluation: @self, @identity and _count, because everything is new. Then, after each increment: _count changed. Exactly the state we expected.</p>
+    <span class="notes-label">SAY</span><p>Investigate in order: which state changed, which views depend on it, whether identity is stable, whether body does expensive work, and whether a side effect keeps changing state. Measure and find the cause before optimizing.</p>
+    <span class="notes-label">SAY</span><p>Click: _printChanges is a diagnostic. Never build app logic on it.</p>
+    <span class="notes-label">CONNECT</span><p>The most common identity bug, measured.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Identity bugs (section 25)</p>
+  <h2>A random id throws state away every time</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Unstable.swift</span></div><pre class="cb" style="font-size:15px">BalanceCard()
+    .id(UUID())     // new every time</pre></div>
+        <div class="step" style="margin-top:12px"><div class="card accent"><span class="label">Parent updates 3 times</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">BalanceCard appeared: fresh state #1<br>BalanceCard appeared: fresh state #2<br>BalanceCard appeared: fresh state #3<br>BalanceCard appeared: fresh state #4</p></div></div></div>
+      <div><div class="cw"><div class="ch"><span>Stable.swift</span></div><pre class="cb" style="font-size:15px">BalanceCard()
+    .id(accountId)  // stable</pre></div>
+        <div class="step" style="margin-top:12px"><div class="card accent"><span class="label">Parent updates 3 times</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">BalanceCard appeared: fresh state #1</p></div></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label=".id() everywhere?"><ul style="margin:6px 0 0"><li>No: structural identity is the default</li><li>Explicit identity only for a reason</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A common mistake: giving a view .id(UUID()). Every evaluation of the parent creates a new UUID, so SwiftUI sees a brand-new view each time.</p>
+    <span class="notes-label">SAY</span><p>Click: we measured it. The parent updated three times; the card appeared four times, each with fresh state, numbers one to four. Any state inside it would reset on every update, and SwiftUI did extra work each time.</p>
+    <span class="notes-label">SAY</span><p>Click: with a stable id, accountId, the same three updates: one appearance, state kept. Use that only when changing accounts should deliberately reset the card.</p>
+    <span class="notes-label">SAY</span><p>Click: should you add .id() to every view? No. SwiftUI already uses structural identity; explicit identity is for specific cases.</p>
+    <span class="notes-label">CONNECT</span><p>Two more debugging angles: the main thread and Instruments.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Main thread and Instruments (sections 26&ndash;27)</p>
+  <h2>Find what blocks the main thread</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Calculate.swift</span></div><pre class="cb" style="font-size:15px">Button(&quot;Calculate&quot;) {
+    result = expensiveCalculation()  // main actor
+}</pre></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Several seconds on the main actor</span><ul style="margin:6px 0 0"><li>No event handling, no new frames: the UI <b>freezes</b> (0.5)</li><li><code>async</code> alone doesn&rsquo;t move CPU work off it (1.9)</li></ul></div></div></div>
+      <div class="step"><table class="tbl"><thead><tr><th>Instrument</th><th>Finds</th></tr></thead><tbody><tr><td>Time Profiler</td><td>CPU-heavy call paths</td></tr><tr><td>Animation / hitches</td><td>frame timing and rendering</td></tr><tr><td>Allocations, Memory Graph</td><td>growth and retention (1.8)</td></tr></tbody></table>
+        <p class="small muted" style="margin:8px 0 0">Available instruments vary with the Xcode version.</p>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Separate the three costs</span><ul style="margin:6px 0 0"><li>Descriptions, layout, rendering (Part 6)</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A Calculate button that runs a several-second calculation directly in its action. Actions run on the main actor, so for those seconds the main thread cannot handle events or produce frames, and the UI freezes, exactly the run loop story from Lesson 0.5. And as Lesson 1.9 measured, adding async to a function does not by itself move CPU work off the main actor; you must know where the work runs.</p>
+    <span class="notes-label">SAY</span><p>Click: Xcode&rsquo;s Instruments helps: Time Profiler for CPU-heavy call paths; animation and hitch tools for frame timing; Allocations and the Memory Graph for growth and retention from Lesson 1.8. The exact set depends on the Xcode version.</p>
+    <span class="notes-label">SAY</span><p>Always separate the three costs from Part 6: computing descriptions, layout, and rendering. They have different bottlenecks. Lessons 3.9 and 8.7 go deep.</p>
+    <span class="notes-label">CONNECT</span><p>Finally, trace one tap all the way to the screen.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Trace a tap (sections 28, 30) &middot; conceptual</p>
+  <h2>From a tap to a pixel</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:1.2fr .8fr;gap:24px;align-items:center">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 640 304" style="max-height:420px" role="img" aria-labelledby="trace">
+        <title id="trace">Tap, state change, dependencies invalidated, body re-evaluated, UI updates, visible frame</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="640" height="44" rx="12"/><use href="#i-tap" x="14" y="9" width="26" height="26"/><text x="52" y="19">User taps the button</text><text class="sm" x="52" y="37">the system delivers the event; SwiftUI runs the action</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="52" width="640" height="44" rx="12"/><use href="#i-diff" x="14" y="61" width="26" height="26"/><text x="52" y="71">State changes</text><text class="sm" x="52" y="89">balanceMinor += 100_000</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="104" width="640" height="44" rx="12"/><use href="#i-link" x="14" y="113" width="26" height="26"/><text x="52" y="123">Dependencies invalidated</text><text class="sm" x="52" y="141">views that read it are marked</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="156" width="640" height="44" rx="12"/><use href="#i-code" x="14" y="165" width="26" height="26"/><text x="52" y="175">body re-evaluated</text><text class="sm" x="52" y="193">a new description</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="208" width="640" height="44" rx="12"/><use href="#i-layout" x="14" y="217" width="26" height="26"/><text x="52" y="227">UI updates</text><text class="sm" x="52" y="245">only what changed; layout as needed</text></g>
+        <g class="nd" data-lit="6+"><rect class="sh" x="0" y="260" width="640" height="44" rx="12"/><use href="#i-phone" x="14" y="269" width="26" height="26"/><text x="52" y="279">Visible frame</text><text class="sm" x="52" y="297">₹26,000 on screen</text></g>
+      </svg>
+    </div>
+      <div><div class="shot" style="height:320px"><img src="img/tapped.png" alt="Step 6: the new frame"></div><p class="shot-cap">Step 6: the new frame</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Trace one tap on the dashboard. Click: the system delivers the touch and SwiftUI runs the button action. Click: the action mutates state. Click: SwiftUI invalidates the views that read that state. Click: their body is re-evaluated into a new description. Click: only the necessary UI is updated, with layout as needed. Click: a visible frame reaches the screen: ₹26,000.</p>
+    <span class="notes-label">SAY</span><p>Event, state mutation, dependency invalidation, view re-evaluation, required UI updates, visible frame. That is a conceptual pipeline, not a claim about the private order of every internal step, and it answers today&rsquo;s question: how a change in Swift state becomes an updated pixel on the iPhone.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.1 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p style="font-size:23px"><b>Views describe</b><br><span class="muted" style="font-size:19px">body is cheap and may run often</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:23px"><b>Identity keeps state</b><br><span class="muted" style="font-size:19px">change it and state resets</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>One owner per state</b><br><span class="muted" style="font-size:19px">@State, @Binding, @Observable</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Views are cheap descriptions: body may run often, only for views whose dependencies changed, and evaluation is not rendering. Identity keeps state attached: switch a branch or change an id and the state starts fresh. And every piece of state has one owner: @State for view state, @Binding to share it, an @Observable, @MainActor model for app state.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>8 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Is a SwiftUI View struct the same as a UIKit UIView?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Is a SwiftUI <code>View</code> struct the same thing as a UIKit <code>UIView</code> object?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">A View is a cheap description value, recreated often; SwiftUI keeps the state, identity and rendering.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating view structs as long-lived objects.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>UIKit developers may say yes.</p>
+    <span class="notes-label">SAY</span><p>No. A View is a cheap description value, recreated often; SwiftUI keeps the state, identity and rendering.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="When the balance changes, which body runs again?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">The balance changes. Which bodies re-run?</p><ol class="q-opts"><li>Every view on the screen</li><li>Views that depend on the balance</li><li>Only <code>HeaderView</code></li><li>None; only rendering runs</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Measured: <code>DashboardView</code> re-ran after each change; <code>HeaderView</code>, which reads nothing, ran once.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming the whole tree is rebuilt.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Measured: <code>DashboardView</code> re-ran after each change; <code>HeaderView</code>, which reads nothing, ran once.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why doesn&#x27;t @State disappear when the View struct is recreated?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why doesn&rsquo;t <code>@State</code> disappear when the view struct is recreated?</p><ol class="q-opts"><li>Structs are reference types</li><li>SwiftUI stores it, tied to the view&rsquo;s identity</li><li>It is saved to disk</li><li>It does disappear</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The struct is a description; the state lives in SwiftUI&rsquo;s storage for that identity, until the identity changes.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the state lives in the struct.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick D.</p>
+    <span class="notes-label">SAY</span><p>B. The struct is a description; the state lives in SwiftUI&rsquo;s storage for that identity, until the identity changes.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Where should a balance fetch start?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Where should a network fetch of the balance start?</p><ol class="q-opts"><li>Inside <code>body</code></li><li>In <code>.task</code> or a button action, via the model</li><li>In the view&rsquo;s <code>init</code></li><li>In a computed property</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>body</code> must stay a pure description; side effects belong to lifecycle-aware places and owned models.</p>
+          <p class="q-trap"><b>Common trap:</b> Starting work wherever the data is needed.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. <code>body</code> must stay a pure description; side effects belong to lifecycle-aware places and owned models.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does @Observable make a ViewModel thread-safe?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>@Observable</code> make a ViewModel thread-safe?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It makes it observable. Isolation, often <code>@MainActor</code>, protects its state.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing observation with synchronization.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It makes it observable. Isolation, often <code>@MainActor</code>, protects its state.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Standard counts to 3; toggle to Premium and back. What is Standard&#x27;s count?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text">The Standard counter counts to 3. Toggle to Premium, then back. What does Standard show?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">0</span>
+          <p class="q-why">Removing the branch discarded its state; coming back is a new identity. The simulator log showed count = 0.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting the count to be remembered.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many say 3.</p>
+    <span class="notes-label">SAY</span><p>0. Removing the branch discarded its state; coming back is a new identity. The simulator log showed count = 0.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="With .id(UUID()), how many fresh states after 3 parent updates?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text">A <code>BalanceCard</code> has <code>.id(UUID())</code>. The parent updates 3 times. How many times does it start with fresh state?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">4</span>
+          <p class="q-why">Once at first, then once per update: each evaluation is a new identity. With a stable id: once.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking a UUID is a stable identity.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say 1.</p>
+    <span class="notes-label">SAY</span><p>4. Once at first, then once per update: each evaluation is a new identity. With a stable id: once.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="In a @MainActor ViewModel, what does await fetchBalance() do to the main thread?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">In a <code>@MainActor</code> ViewModel, <code>await service.fetchBalance()</code>:</p><ol class="q-opts"><li>Blocks the main thread until it returns</li><li>Suspends; the main thread keeps handling events</li><li>Moves the ViewModel to a background thread</li><li>Crashes</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">At an <code>await</code> the main actor is free (1.9). Only synchronous heavy work blocks it.</p>
+          <p class="q-trap"><b>Common trap:</b> Equating MainActor with blocking.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 1.9.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. At an <code>await</code> the main actor is free (1.9). Only synchronous heavy work blocks it.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.1 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.2</td><td><b>Xcode projects, simulator &amp; previews</b></td><td>running today&rsquo;s dashboard yourself</td></tr><tr><td class="mono">2.4</td><td><b>Stacks, layout &amp; geometry</b></td><td>the layout stage, in depth</td></tr><tr><td class="mono">2.5</td><td><b>@State, @Binding &amp; source of truth</b></td><td>ownership, in depth</td></tr><tr><td class="mono">3.1</td><td><b>View identity, lifetime &amp; state reset</b></td><td>identity, in depth</td></tr><tr><td class="mono">3.2</td><td><b>Observation: @Observable &amp; @Bindable</b></td><td>observable models</td></tr><tr><td class="mono">3.9</td><td><b>SwiftUI rendering performance</b></td><td>measuring body, layout and rendering</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Today was the mental model. 2.2 sets up Xcode, the simulator and previews so you can run all of this; 2.4 and 2.5 go deep into layout and state ownership; and Unit 03 returns to identity, observation and rendering performance with real measurements.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.1 &middot; Lab</p>
+  <h2>Make SwiftUI explain itself</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Reproduce today&rsquo;s evidence in your own simulator.</p><ol class="lab"><li>Build the Part 7 dashboard; tap; compare with the screenshots.</li><li>Add prints and <code>_printChanges()</code>; tap twice; read the console.</li><li>Add <code>HeaderView</code>: how often does its body run?</li><li>Toggle two counters; then try <code>.id(UUID())</code> vs a stable id.</li></ol></div>
+    <div><div><div class="cw"><div class="ch"><span>Lab.swift</span></div><pre class="cb" style="font-size:13px">struct HeaderView: View {
+    var body: some View {
+        let _ = print(&quot;HeaderView body evaluated&quot;)
+        Text(&quot;NPay&quot;).font(.largeTitle)
+    }
+}
+// 1. DashboardView from Part 7 + Self._printChanges()
+// 2. Toggle between two CounterViews: watch the count
+// 3. .id(UUID()) vs .id(&quot;NP1001&quot;): count appearances</pre></div><div class="gap"></div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your console logs, each with a one-line explanation</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Needs a Mac with Xcode: File > New > Project > iOS App (Lesson 2.2 covers Xcode properly). Expected, as in our simulator runs: the dashboard body runs on every balance change, HeaderView once; _printChanges prints "@self, @identity, _count changed." then "_count changed."; switching branches resets the counter to 0; .id(UUID()) gives a fresh state on every parent update, a stable id only once. Ask students to explain each result with the words description, dependency and identity.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.1 complete</p>
+    <h2>Inside SwiftUI:<br>State, Identity &amp; Rendering</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 2.2 &mdash; Xcode Projects, Simulator &amp; Previews</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain why SwiftUI is declarative, why body can be re-evaluated and how that differs from rendering, how identity keeps or resets state, who owns state with @State, @Binding and @Observable, how a tap becomes a pixel, and how to debug it.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 2.2: Xcode projects, the simulator and previews: creating the NPay project and exploring targets, schemes, @main, WindowGroup, previews and the build.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

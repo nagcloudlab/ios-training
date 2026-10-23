@@ -1,4 +1,5 @@
-"""Shared helpers for Unit 01 generators. Exec'd after gen02's helpers, with S defined:
+"""Shared helpers for Unit 01+ generators. Exec'd after gen02's helpers, with S defined.
+A generator for another unit sets UNIT_NO, UNIT_TITLE and UNIT_LESSONS before exec'ing this file:
     exec(open(os.path.join(HERE, 'unit1.py')).read())"""
 
 
@@ -76,7 +77,7 @@ TWO = 'grid-template-columns:minmax(0,1fr) minmax(0,1fr)'   # equal columns, so 
 def title_slide(lesson, h1, lead, say):
     S.append(f"""<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
   <div class="body" style="z-index:1;position:relative">
-    <p class="kicker" style="letter-spacing:.2em">Unit 01 &middot; Lesson {lesson}</p>
+    <p class="kicker" style="letter-spacing:.2em">Unit {UNIT_NO} &middot; Lesson {lesson}</p>
     <h1 style="font-size:54px;line-height:1.05">{h1}</h1>
     <p class="lead" style="max-width:760px">{lead}</p>
   </div>
@@ -97,26 +98,29 @@ def outcomes_slide(lesson, outs):
 UNIT1 = [('1.1', 'Swift &amp;', 'compiler'), ('1.2', 'Variables', '&amp; types'), ('1.3', 'Optionals', ''), ('1.4', 'Functions', '&amp; closures'),
          ('1.5', 'Structs', '&amp; classes'), ('1.6', 'Protocols', ''), ('1.7', 'Generics', '&amp; errors'), ('1.8', 'ARC &amp;', 'ownership'),
          ('1.9', 'Concurrency', ''), ('1.10', 'NPay', 'model')]
+UNIT_NO = globals().get('UNIT_NO', '01')
+UNIT_TITLE = globals().get('UNIT_TITLE', 'Swift Language Mastery')
+UNIT_LESSONS = globals().get('UNIT_LESSONS', UNIT1)
 
 
 def progress(lesson, tid='prog'):
-    """Unit 01 progress strip: earlier lessons done, this one teal, later ones ahead (dashed)."""
-    n = [k for k, *_ in UNIT1].index(lesson)
+    """Unit progress strip: earlier lessons done, this one teal, later ones ahead (dashed)."""
+    n = [k for k, *_ in UNIT_LESSONS].index(lesson)
     w, g = 104, (1136 - 10 * 104) / 9
     P = []
-    for i, (k, t1, t2) in enumerate(UNIT1):
+    for i, (k, t1, t2) in enumerate(UNIT_LESSONS):
         x = i * (w + g)
         cls = 'nd lit' if i == n else 'nd ghost' if i > n else 'nd'
         P.append(f'<g class="{cls}"><rect class="sh" x="{x:g}" y="0" width="{w}" height="84" rx="12"/>'
                  f'<text class="sm" x="{x + 12:g}" y="24">{k}</text><text x="{x + 12:g}" y="50" style="font-size:14px">{t1}</text>'
                  f'<text x="{x + 12:g}" y="68" style="font-size:14px">{t2}</text></g>')
-    return svg('0 0 1136 84', f'Unit 01 progress: lesson {lesson} of 10', tid, P, 'max-height:96px')
+    return svg('0 0 1136 84', f'Unit {UNIT_NO} progress: lesson {lesson} of 10', tid, P, 'max-height:96px')
 
 
 def where_slide(lesson, h2, focus, last, today, say, con):
-    """Opening bridge: where this lesson sits in Unit 01, and what came last time. (`focus` kept for call compatibility.)"""
+    """Opening bridge: where this lesson sits in its unit, and what came last time. (`focus` kept for call compatibility.)"""
     S.append(slide(f"Lesson {lesson} &middot; Where we are", h2, f"""  <div class="body">
-    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 01 &middot; Swift Language Mastery</p>
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit {UNIT_NO} &middot; {UNIT_TITLE}</p>
     {progress(lesson)}
     <div class="gap-lg"></div>
     <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>{last}</span><span><b>Today</b>{today}</span></div>
@@ -161,7 +165,7 @@ def write_deck(out_path, lesson, title, deck_name):
 <title>Lesson {lesson} — {title}</title>
 <link rel="stylesheet" href="../../../shared/deck.css">
 </head>
-<body data-deck="Unit 01 · Lesson {lesson} — {deck_name}">
+<body data-deck="Unit {UNIT_NO} · Lesson {lesson} — {deck_name}">
 <div class="deck">
 
 {''.join(S)}</div>

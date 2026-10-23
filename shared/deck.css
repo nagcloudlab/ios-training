@@ -633,6 +633,11 @@ em { font-style: italic; }
 .bridge span:last-child > b:first-child { color: var(--teal); }
 
 /* lab steps */
+/* simulator screenshot: phone-shaped frame, shows the top of the screen */
+.shot { border: 1px solid var(--line-2); border-radius: 26px; overflow: hidden; background: #fff; box-shadow: 0 8px 24px rgba(15,23,42,.08); }
+.shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.shot-cap { font-size: 15px; color: var(--muted); text-align: center; margin: 8px 0 0; }
+
 /* compact cards: a row of short point-cards under code */
 .cols.tight .card { padding: 14px 20px; }
 .cols.tight .card li { margin-bottom: 2px; }
