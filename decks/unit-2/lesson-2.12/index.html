@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.12 — NPay Payment Flow</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.12 — NPay Payment Flow">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.12</p>
+    <h1 style="font-size:54px;line-height:1.05">Build a Complete<br>NPay Payment Flow</h1>
+    <p class="lead" style="max-width:760px">Send <b>₹1,500</b> to ravi@npay: the balance drops to ₹23,500 and the payment appears in the history. Unit 2&rsquo;s pieces, <b>connected</b>.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The Unit 2 capstone. NPay has a balance card, an editor, a payment form, quick actions and a history, but they do not talk to each other: Continue Demo only prints. Today we connect them into one flow: the form asks, ContentView decides, the balance and the history change, and SwiftUI updates the screen. Money moves to integer paise. We ran the lesson&rsquo;s complete code unchanged in the simulator and drove it as a user would.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.12 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>How a child <b>asks</b> its parent to act: an <code>onSend</code> closure</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p>Why money is <b>integer paise</b>, parsed safely</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>One action, two state changes, <b>one</b> consistent update</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Run and <b>verify</b> the whole flow</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>The Unit 2 <b>architecture</b>, end to end</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>What a prototype is <b>not</b></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.12 &middot; Where we are</p>
+  <h2>Today: the Unit 2 capstone</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.12 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Text</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">2.2</text><text x="107.364" y="50" style="font-size:14px">Image &amp;</text><text x="107.364" y="68" style="font-size:14px">SF Symbols</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">2.3</text><text x="202.727" y="50" style="font-size:14px">VStack &amp;</text><text x="202.727" y="68" style="font-size:14px">@ViewBuilder</text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">2.4</text><text x="298.091" y="50" style="font-size:14px">HStack &amp;</text><text x="298.091" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">2.5</text><text x="393.455" y="50" style="font-size:14px">ZStack &amp;</text><text x="393.455" y="68" style="font-size:14px">layers</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">2.6</text><text x="488.818" y="50" style="font-size:14px">View</text><text x="488.818" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">2.7</text><text x="584.182" y="50" style="font-size:14px">Button &amp;</text><text x="584.182" y="68" style="font-size:14px">events</text></g>
+        <g class="nd"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">2.8</text><text x="679.545" y="50" style="font-size:14px">@State</text><text x="679.545" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">2.9</text><text x="774.909" y="50" style="font-size:14px">@Binding</text><text x="774.909" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">2.10</text><text x="870.273" y="50" style="font-size:14px">ForEach</text><text x="870.273" y="68" style="font-size:14px">&amp; List</text></g>
+        <g class="nd"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">2.11</text><text x="965.636" y="50" style="font-size:14px">TextField</text><text x="965.636" y="68" style="font-size:14px">&amp; focus</text></g>
+        <g class="nd lit"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">2.12</text><text x="1061" y="50" style="font-size:14px">Payment</text><text x="1061" y="68" style="font-size:14px">flow</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.11: a validated form that only printed.</span><span><b>Today</b>A working payment flow: form &rarr; parent &rarr; balance + history.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Eleven lessons built the parts. This one connects them, and then we look back over the whole unit before Unit 3.</p>
+    <span class="notes-label">CONNECT</span><p>The goal.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The goal</h2>
+    <p class="lead">From form to history</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Continue Demo only printed. Now a payment changes the app.</p>
+    <span class="notes-label">CONNECT</span><p>The flow.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; What we&rsquo;re building (section 1)</p>
+  <h2>Send ₹1,500; watch two things change</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 112" style="max-height:130px" role="img" aria-labelledby="flow">
+        <title id="flow">Enter, validate, simulate, balance updates, transaction recorded, SwiftUI updates</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="176" height="112" rx="14"/><use href="#i-tap" x="74" y="14" width="28" height="28"/><text x="88" y="76" text-anchor="middle">Enter payment</text><text class="sm" x="88" y="96" text-anchor="middle">recipient, amount</text></g>
+        <path class="wire" d="M178 56H190M183 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="192" y="0" width="176" height="112" rx="14"/><use href="#i-check" x="266" y="14" width="28" height="28"/><text x="280" y="76" text-anchor="middle">Validate</text><text class="sm" x="280" y="96" text-anchor="middle">recipient, amount, balance</text></g>
+        <path class="wire" d="M370 56H382M375 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="384" y="0" width="176" height="112" rx="14"/><use href="#i-gear" x="458" y="14" width="28" height="28"/><text x="472" y="76" text-anchor="middle">Simulate</text><text class="sm" x="472" y="96" text-anchor="middle">local logic, no transfer</text></g>
+        <path class="wire" d="M562 56H574M567 49l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="576" y="0" width="176" height="112" rx="14"/><use href="#i-db" x="650" y="14" width="28" height="28"/><text x="664" y="76" text-anchor="middle">Balance updates</text><text class="sm" x="664" y="96" text-anchor="middle">@State changes</text></g>
+        <path class="wire" d="M754 56H766M759 49l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="768" y="0" width="176" height="112" rx="14"/><use href="#i-file" x="842" y="14" width="28" height="28"/><text x="856" y="76" text-anchor="middle">Transaction recorded</text><text class="sm" x="856" y="96" text-anchor="middle">a new identifiable row</text></g>
+        <path class="wire" d="M946 56H958M951 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="960" y="0" width="176" height="112" rx="14"/><use href="#i-eye" x="1034" y="14" width="28" height="28"/><text x="1048" y="76" text-anchor="middle">SwiftUI updates</text><text class="sm" x="1048" y="96" text-anchor="middle">card and history</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 170px 170px 170px;gap:20px;align-items:start">
+      <div class="card accent"><span class="label">Try it</span><ul style="margin:6px 0 0"><li>ravi@npay, ₹1,500</li><li>Balance: ₹25,000 &rarr; <b>₹23,500</b></li><li>History: <b>Sent to ravi@npay</b></li><li>Local simulation only</li></ul></div>
+      <div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/before.png" alt="Before: 2.11"></div><p class="shot-cap">Before: 2.11</p></div>
+      <div class="step"><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/paidtop.png" alt="After: ₹23,500.00"></div><p class="shot-cap">After: ₹23,500.00</p></div></div>
+      <div class="step"><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/paidbottom.png" alt="New row on top"></div><p class="shot-cap">New row on top</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The flow we are building: the user enters a payment; NPay validates the recipient, the amount and the balance; the payment is simulated locally, no real transfer; the balance state changes; a transaction is recorded with its own identity; SwiftUI updates the card and the history.</p>
+    <span class="notes-label">SAY</span><p>The text&rsquo;s demo: send ₹1,500 to ravi@npay. On the left, where 2.11 ended. Click: our run of today&rsquo;s complete code after the payment: ₹23,500.00. Click: and scrolled down: "Sent to ravi@npay", minus ₹1,500, at the top of the history, with "Demo payment recorded." above it.</p>
+    <span class="notes-label">CONNECT</span><p>The design problem: the form has the input, ContentView has the money.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Who processes the payment?</h2>
+    <p class="lead">The form asks; the parent decides</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentForm owns the input. ContentView owns the balance.</p>
+    <span class="notes-label">CONNECT</span><p>Connect them with a closure.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; The action contract (sections 2&ndash;3, 7)</p>
+  <h2>Data down, a request up</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>PaymentForm and its caller</span></div><pre class="cb" style="font-size:12.5px">struct PaymentForm: View {
+    let availableBalancePaise: Int
+    let onSend: (String, Int) -&gt; Bool   // recipient, paise → accepted?
+
+    @State private var recipient = &quot;&quot;
+    @State private var amountText = &quot;&quot;
+    // body: fields, validation, Send Demo Payment
+}
+
+PaymentForm(availableBalancePaise: balancePaise) { recipient, amountPaise in
+    sendDemoPayment(to: recipient, amountPaise: amountPaise)
+}</pre></div></div>
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 420 180" style="max-height:170px" role="img" aria-labelledby="own">
+        <title id="own">ContentView passes the balance down; PaymentForm calls onSend up</title>
+        <g class="nd lit"><rect class="sh" x="0" y="0" width="420" height="56" rx="12"/><use href="#i-layers" x="14" y="15" width="26" height="26"/><text x="52" y="25">ContentView</text><text class="sm" x="52" y="43">owns balancePaise, transactions</text></g>
+        <path class="wire" d="M150 60V118M143 111l7 7 7-7"/>
+        <path class="wire dash" d="M270 118V60M263 71l7-7 7 7"/>
+        <g class="nd"><rect class="sh" x="0" y="124" width="420" height="56" rx="12"/><use href="#i-file" x="14" y="139" width="26" height="26"/><text x="52" y="149">PaymentForm</text><text class="sm" x="52" y="167">balance in · onSend(recipient, paise) out</text></g>
+      </svg>
+    </div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Why not do it in the form?</span><ul style="margin:6px 0 0"><li>Form: <b>input</b> and <b>feedback</b></li><li>Parent: <b>application state</b></li><li>A step toward MVVM (Unit 4)</li></ul></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">type(of: onSend)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">(String, Int) -&gt; Bool</p></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentForm owns recipient and amountText; ContentView owns the balance and the transactions. How does the form request a payment without owning or touching the money? With a closure, as QuickAction did in 2.7. The form receives the available balance as a value and an onSend closure that takes a recipient and an amount in paise and returns whether the request was accepted.</p>
+    <span class="notes-label">SAY</span><p>ContentView creates the form with a trailing closure that calls its own sendDemoPayment. The form never sees the transaction array; it sends a request, and the parent decides. Data flows down, requests flow up.</p>
+    <span class="notes-label">SAY</span><p>Why not put the logic in the form? Because the form&rsquo;s job is collecting input and showing validation feedback, while the parent coordinates application state. That split is a step toward MVVM and services in Unit 4. Click: the closure&rsquo;s type, printed: (String, Int) -> Bool.</p>
+    <span class="notes-label">CONNECT</span><p>Int for the amount: why?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Money in paise</h2>
+    <p class="lead">Exact integers, parsed safely</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>No Double, no force unwrap.</p>
+    <span class="notes-label">CONNECT</span><p>Parse text into paise.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Convert input to paise safely (sections 3&ndash;4)</p>
+  <h2><code>parsePaise</code>: syntax, then exact integers</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Money.parsePaise</span></div><pre class="cb" style="font-size:11.5px">static func parsePaise(_ text: String) -&gt; Int? {
+    let pattern = #&quot;^[0-9]+(\.[0-9]{1,2})?$&quot;#
+    guard text.range(of: pattern, options: .regularExpression)
+          != nil else { return nil }
+    let parts = text.split(separator: &quot;.&quot;,
+                           omittingEmptySubsequences: false)
+    guard let rupees = Int(parts[0]) else { return nil }
+    let fraction = parts.count &gt; 1 ? String(parts[1]) : &quot;&quot;
+    let padded = fraction.padding(toLength: 2, withPad: &quot;0&quot;,
+                                  startingAt: 0)
+    guard let paise = Int(padded) else { return nil }
+    let (rupeePaise, o1) = rupees.multipliedReportingOverflow(by: 100)
+    guard !o1 else { return nil }
+    let (total, o2) = rupeePaise.addingReportingOverflow(paise)
+    guard !o2 else { return nil }
+    return total
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Input</th><th>Paise (Mac run)</th></tr></thead><tbody><tr><td>"1"</td><td>100</td></tr><tr><td>"10.50"</td><td>1050</td></tr><tr><td>"1500"</td><td>150000</td></tr><tr><td>"0.5"</td><td>50</td></tr><tr><td>"12.345"</td><td>nil</td></tr><tr><td>"-500"</td><td>nil</td></tr><tr><td>"92233720368547759"</td><td>nil (× 100 overflows)</td></tr></tbody></table></div>
+        <div class="rule step" data-label="Instead of"><ul style="margin:6px 0 0"><li><code>Double(amountText)!</code>: crashes on bad input, inexact</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The amount travels as an Int of paise, the smallest INR unit: ₹1 is 100, ₹10.50 is 1,050, ₹1,500 is 150,000. Integers are exact, so no floating-point rounding, as 2.11 showed, and it matches the paise model from Unit 01.</p>
+    <span class="notes-label">SAY</span><p>parsePaise checks the syntax with the regex first, splits rupees and fraction, pads the fraction to two digits, and combines them with overflow-reporting arithmetic, returning nil instead of crashing. Click: we ran it on a Mac: "1" is 100, "10.50" is 1050, "1500" is 150000, "0.5" is 50; "12.345" and "-500" fail the regex; and "92233720368547759" passes the regex and fits an Int, but times 100 overflows, so the overflow check returns nil.</p>
+    <span class="notes-label">SAY</span><p>Click: compare Double(amountText)!: a crash on bad input, and an inexact number on good input. Still a teaching implementation; production money needs a full domain model.</p>
+    <span class="notes-label">CONNECT</span><p>Paise in, but people read rupees.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Paise everywhere (section 5)</p>
+  <h2>Store paise and dates; format at the edge</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Model and formatting</span></div><pre class="cb" style="font-size:12.5px">struct Transaction: Identifiable {
+    let id: UUID
+    let title: String
+    let amountPaise: Int
+    let date: Date          // a value; &quot;24 Oct&quot; is presentation
+}
+
+@State private var balancePaise = 2_500_000   // ₹25,000
+
+enum Money {
+    static func display(_ paise: Int) -&gt; String {
+        (Decimal(paise) / Decimal(100)).formatted(
+            .currency(code: &quot;INR&quot;).locale(Locale(identifier: &quot;en_IN&quot;)))
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Paise</th><th>Money.display (Mac run)</th></tr></thead><tbody><tr><td>2_500_000</td><td>₹25,000.00</td></tr><tr><td>2_350_000</td><td>₹23,500.00</td></tr><tr><td>-25_000</td><td>-₹250.00</td></tr><tr><td>1_050</td><td>₹10.50</td></tr><tr><td>12_345_678_900</td><td>₹12,34,56,789.00</td></tr></tbody></table></div>
+        <div class="rule step" data-label="en_IN"><ul style="margin:6px 0 0"><li>Indian grouping: <b>12,34,56,789</b></li><li>Domain values in, text only at display</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The balance becomes balancePaise, 2,500,000 for ₹25,000, and Transaction stores amountPaise and a real Date. "Today" or "24 Oct" is a presentation decision, not domain data: domain values in the model, formatting at the edge.</p>
+    <span class="notes-label">SAY</span><p>Money.display divides by 100 as a Decimal, exact, and formats it as INR in the en_IN locale. Click: our Mac run: ₹25,000.00, ₹23,500.00, minus ₹250.00, ₹10.50, and for 12,345,678,900 paise, ₹12,34,56,789.00: the en_IN locale uses Indian digit grouping, lakhs and crores.</p>
+    <span class="notes-label">CONNECT</span><p>Now the operation itself.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>The payment operation</h2>
+    <p class="lead">Validate, then change both</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One function changes the balance and the history.</p>
+    <span class="notes-label">CONNECT</span><p>sendDemoPayment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Implement the demo payment (section 6)</p>
+  <h2>The parent validates again, then updates</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>ContentView.sendDemoPayment</span></div><pre class="cb" style="font-size:12.5px">private func sendDemoPayment(to recipient: String,
+                             amountPaise: Int) -&gt; Bool {
+    let trimmed = recipient.trimmingCharacters(
+        in: .whitespacesAndNewlines)
+
+    guard !trimmed.isEmpty,
+          amountPaise &gt; 0,
+          amountPaise &lt;= balancePaise else {
+        statusMessage = &quot;Invalid payment request.&quot;
+        return false
+    }
+
+    balancePaise -= amountPaise
+    transactions.insert(
+        Transaction(id: UUID(), title: &quot;Sent to \(trimmed)&quot;,
+                    amountPaise: -amountPaise, date: .now),
+        at: 0)
+    statusMessage = &quot;Demo payment recorded.&quot;
+    return true
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Two mutations, one action</span><ul style="margin:6px 0 0"><li><code>balancePaise</code> and <code>transactions</code></li><li>In one synchronous call: <b>consistent</b> on screen</li></ul></div>
+        <div class="rule step" data-label="Not a database"><ul style="margin:6px 0 0"><li>No durability across crashes or devices</li><li>SwiftUI coordinates UI, it isn&rsquo;t a transaction engine</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>sendDemoPayment is the only place money changes. It validates again on the parent&rsquo;s side: a trimmed, non-empty recipient, an amount above zero and not above the balance. The form checked too, but the owner of the state does not trust the caller blindly, a habit we keep all the way to the backend. If valid, it subtracts from the balance, inserts a "Sent to" transaction with a negative amount and the current date, sets a status message, and returns true; otherwise it sets an error status and returns false.</p>
+    <span class="notes-label">SAY</span><p>Both the balance and the transaction list change in one synchronous call, so the screen never shows one without the other. Click: but this is not a database transaction: nothing is durable across a crash or another device. SwiftUI coordinates UI updates; it is not a financial transaction engine. Authoritative transactions belong on the backend, later in the course.</p>
+    <span class="notes-label">CONNECT</span><p>Follow one ₹1,500 payment end to end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Trace a ₹1,500 payment (section 8) &middot; conceptual</p>
+  <h2>Seven steps, one tap</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 620 316" style="max-height:340px" role="img" aria-labelledby="tr">
+        <title id="tr">Input, form validation, onSend, parent validation, state mutation, form clears, SwiftUI updates</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="620" height="40" rx="12"/><use href="#i-tap" x="14" y="7" width="26" height="26"/><text x="52" y="17">TextFields receive input</text><text class="sm" x="52" y="35">recipient and amount via bindings</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="46" width="620" height="40" rx="12"/><use href="#i-check" x="14" y="53" width="26" height="26"/><text x="52" y="63">PaymentForm validates</text><text class="sm" x="52" y="81">parsePaise, isValid: button enabled</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="92" width="620" height="40" rx="12"/><use href="#i-link" x="14" y="99" width="26" height="26"/><text x="52" y="109">Button calls onSend</text><text class="sm" x="52" y="127">("ravi@npay", 150000)</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="138" width="620" height="40" rx="12"/><use href="#i-gear" x="14" y="145" width="26" height="26"/><text x="52" y="155">ContentView validates</text><text class="sm" x="52" y="173">and decides to accept</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="184" width="620" height="40" rx="12"/><use href="#i-db" x="14" y="191" width="26" height="26"/><text x="52" y="201">State mutates</text><text class="sm" x="52" y="219">balancePaise, transactions</text></g>
+        <g class="nd" data-lit="6"><rect class="sh" x="0" y="230" width="620" height="40" rx="12"/><use href="#i-file" x="14" y="237" width="26" height="26"/><text x="52" y="247">Form clears on true</text><text class="sm" x="52" y="265">recipient, amount, focus</text></g>
+        <g class="nd" data-lit="7+"><rect class="sh" x="0" y="276" width="620" height="40" rx="12"/><use href="#i-eye" x="14" y="283" width="26" height="26"/><text x="52" y="293">SwiftUI updates</text><text class="sm" x="52" y="311">BalanceCard, TransactionHistory</text></g>
+      </svg>
+    </div>
+      <div class="step"><div class="card accent"><span class="label">Driven in the simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">before: ₹25,000.00<br>Send Demo Payment enabled: false<br>… ravi@npay, 1500 …<br>Send Demo Payment enabled: true<br>[activate]<br>after: ₹23,500.00<br>Demo payment recorded.<br>fields now: "", ""</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Only stage 1 was in the text&rsquo;s widget; the rest is our trace, conceptual. Click: the text fields receive input through their bindings. Click: the form parses and validates; the button becomes enabled. Click: the button calls onSend with "ravi@npay" and 150,000 paise. Click: ContentView validates and accepts. Click: the balance and the transactions mutate. Click: onSend returned true, so the form clears its fields and focus. Click: SwiftUI updates the card and the history.</p>
+    <span class="notes-label">SAY</span><p>Click: our run: the balance read ₹25,000.00 and the button was disabled; after entering ravi@npay and 1500 it was enabled; after the activation the balance read ₹23,500.00, the status said "Demo payment recorded.", and both fields were empty again.</p>
+    <span class="notes-label">CONNECT</span><p>Now the text&rsquo;s whole verification table.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Run and verify</h2>
+    <p class="lead">The text&rsquo;s test table, run</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Every row of the verification table, in the simulator.</p>
+    <span class="notes-label">CONNECT</span><p>Results.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Verify the complete flow (final section 3)</p>
+  <h2>Every test, run</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) 190px;gap:24px;align-items:start">
+      <div><table class="tbl compact"><thead><tr><th>Test</th><th>Expected</th><th>Simulator</th></tr></thead><tbody><tr><td>Starting balance</td><td>₹25,000.00</td><td>₹25,000.00</td></tr><tr><td>ravi@npay, 1500</td><td>Send enabled</td><td>enabled</td></tr><tr><td>Send Demo Payment</td><td>₹23,500.00</td><td>₹23,500.00</td></tr><tr><td>History</td><td>Sent to ravi@npay</td><td>on top, -₹1,500.00</td></tr><tr><td>0</td><td>disabled</td><td>disabled</td></tr><tr><td>Above balance (25000.01)</td><td>disabled</td><td>disabled</td></tr><tr><td>12.345</td><td>disabled</td><td>disabled</td></tr><tr><td>+ ₹1,000</td><td>+₹1,000</td><td>₹26,000.00; 25000.01 now enabled</td></tr><tr><td>Request</td><td>status message</td><td>Request feature coming soon.</td></tr></tbody></table>
+        <p class="small muted" style="margin:6px 0 0">The complete code ran unchanged; local simulation only.</p></div>
+      <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/paidbottom.png" alt="After the payment"></div><p class="shot-cap">After the payment</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s verification table, every row run against the complete code. Starting balance ₹25,000.00. ravi@npay and 1500: Send enabled. After sending: ₹23,500.00, and "Sent to ravi@npay", minus ₹1,500.00, on top of the history, as the screenshot shows. 0, an amount just above the balance, 25,000.01, and 12.345: disabled. Plus ₹1,000: ₹26,000.00, and the same 25,000.01 became valid, because the form re-validates against the new balance. Request: the status message "Request feature coming soon."</p>
+    <span class="notes-label">SAY</span><p>All of it local: no bank, no network, no real money.</p>
+    <span class="notes-label">CONNECT</span><p>Step back: what did Unit 2 build?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Architecture review</h2>
+    <p class="lead">What we built, what it isn&rsquo;t</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One file, six components, one owner of state.</p>
+    <span class="notes-label">CONNECT</span><p>The tree.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Architecture review (final sections 4&ndash;5)</p>
+  <h2>Nearly every Unit 2 idea, in one flow</h2>
+  <div class="body">
+    <div class="cw"><div class="ch"><span>NPay after Unit 2</span></div><pre class="cb" style="font-size:13.5px">ContentView        @State balancePaise, transactions, statusMessage
+├── BalanceCard        let balancePaise           read only
+├── BalanceEditor      @Binding balancePaise      teaching control
+├── QuickAction × 3    action: () -&gt; Void
+├── PaymentForm        input, validation, focus · onSend ↑
+└── TransactionHistory ForEach + stable identity
+    └── TransactionRow
+sendDemoPayment        validates, updates balance, inserts row</pre></div>
+    <div class="gap"></div>
+    <div class="rule" data-label="The flow"><ul style="margin:6px 0 0"><li>TextField &rarr; Binding &rarr; @State &rarr; Button &rarr; onSend &rarr; validation &rarr; state mutation &rarr; SwiftUI update</li></ul></div>
+    <div class="gap"></div>
+    <div class="step"><div class="card accent"><span class="label">Not production-ready, on purpose</span><ul style="margin:6px 0 0"><li>Payment rules in <b>ContentView</b>; nothing <b>persisted</b>; mock records</li><li>No auth, networking, server authority or tests</li><li>A real app never lets the user <b>edit</b> the balance</li></ul></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The whole app: ContentView owns the balance, the transactions and the status. BalanceCard reads a value; BalanceEditor has a binding; QuickActions take closures; PaymentForm owns input, validation and focus and sends requests up; TransactionHistory uses ForEach with stable identity; sendDemoPayment is the single place money changes.</p>
+    <span class="notes-label">SAY</span><p>The flow connects nearly every idea in the unit: TextField, binding, @State, a button action, the onSend closure, validation in the owner, state mutation, and SwiftUI updating the card and the history.</p>
+    <span class="notes-label">SAY</span><p>Click: the honest review. It is a learning prototype. Payment rules live in a view; nothing is persisted; the records are mock data; there is no authentication, networking, server authority or test suite. And the balance editor is a teaching control: a real banking app must never let the user change an authoritative balance. Each of these limits is addressed by a later unit.</p>
+    <span class="notes-label">CONNECT</span><p>One last look back over the unit.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Unit 2 in one picture</h2>
+    <p class="lead">Twelve lessons, one app</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Where each lesson lives in today&rsquo;s NPay.</p>
+    <span class="notes-label">CONNECT</span><p>The map.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Unit 2 review (authored)</p>
+  <h2>Every lesson is somewhere on this screen</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start">
+      <table class="tbl compact"><thead><tr><th></th><th>Lesson</th><th>In NPay today</th></tr></thead><tbody><tr><td>2.1</td><td>Text</td><td>a view is a description; <code>some View</code></td></tr><tr><td>2.2</td><td>Image</td><td>SF Symbols resolved at run time</td></tr><tr><td>2.3</td><td>VStack</td><td><code>@ViewBuilder</code>, generic content</td></tr><tr><td>2.4</td><td>HStack</td><td>width negotiation, Spacer</td></tr><tr><td>2.5</td><td>ZStack</td><td>layers; background vs overlay</td></tr><tr><td>2.6</td><td>Modifiers</td><td>wrappers; order; environment</td></tr></tbody></table>
+      <table class="tbl compact"><thead><tr><th></th><th>Lesson</th><th>In NPay today</th></tr></thead><tbody><tr><td>2.7</td><td>Button</td><td>action closures: QuickAction</td></tr><tr><td>2.8</td><td>@State</td><td>state lives with identity</td></tr><tr><td>2.9</td><td>@Binding</td><td>BalanceEditor writes through</td></tr><tr><td>2.10</td><td>ForEach</td><td>stable IDs: TransactionHistory</td></tr><tr><td>2.11</td><td>TextField</td><td>input, validation, focus: PaymentForm</td></tr><tr><td>2.12</td><td>Payment flow</td><td>onSend up, paise, one owner</td></tr></tbody></table>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Twelve lessons, one screen. 2.1: the NPay title is a Text, a description, returned as some View. 2.2: the card symbol, resolved at run time. 2.3 and 2.4: the stacks and their layout negotiation. 2.5: layering, and why the card uses a background. 2.6: modifiers as wrappers, order, and the environment that carries fonts and colours down.</p>
+    <span class="notes-label">SAY</span><p>2.7: QuickAction&rsquo;s closures. 2.8: @State, kept with the view&rsquo;s identity. 2.9: BalanceEditor&rsquo;s binding. 2.10: the history&rsquo;s stable IDs. 2.11: the form&rsquo;s input, validation and focus. 2.12: the onSend request, paise, and one owner of state. If you can point at each and explain it, you are ready for Unit 3.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.12 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:23px"><b>Requests go up</b><br><span class="muted" style="font-size:19px">onSend closure; the parent decides</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p style="font-size:23px"><b>Paise, exactly</b><br><span class="muted" style="font-size:19px">parse safely; format at display</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>One owner of state</b><br><span class="muted" style="font-size:19px">consistent updates; not a database</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A child asks, its parent decides: PaymentForm collects input and calls onSend; ContentView validates and changes its own state. Money is integer paise, parsed with syntax and overflow checks, and formatted only for display. And keeping state in one owner lets one action update the balance and the history together, though that is UI consistency, not a durable financial transaction.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Who owns the balance and the transactions?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">In the final NPay, who owns <code>balancePaise</code> and <code>transactions</code>?</p><ol class="q-opts"><li><code>PaymentForm</code></li><li><code>ContentView</code></li><li><code>TransactionHistory</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The form only receives the balance and calls <code>onSend</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Giving state to whoever edits it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The form only receives the balance and calls <code>onSend</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does PaymentForm change balancePaise directly?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>PaymentForm</code> change <code>balancePaise</code> directly?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It calls <code>onSend(recipient, paise)</code>; ContentView decides and mutates its own state.</p>
+          <p class="q-trap"><b>Common trap:</b> Passing a binding to everything.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It calls <code>onSend(recipient, paise)</code>; ContentView decides and mutates its own state.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does onSend&#x27;s Bool mean?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does the <code>Bool</code> returned by <code>onSend</code> tell the form?</p><ol class="q-opts"><li>Whether the request was accepted</li><li>Whether the keyboard is visible</li><li>Whether the app is online</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">On true the form clears its fields and focus; on false it keeps them.</p>
+          <p class="q-trap"><b>Common trap:</b> Ignoring the result.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. On true the form clears its fields and focus; on false it keeps them.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="parsePaise(&quot;10.50&quot;) returns…?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">What does <code>Money.parsePaise("10.50")</code> return?</p><ol class="q-opts"><li><code>10</code></li><li><code>1050</code></li><li><code>10.5</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Rupees × 100 plus the padded fraction: exactly 1,050 paise.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking in rupees or Double.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick C.</p>
+    <span class="notes-label">SAY</span><p>B. Rupees × 100 plus the padded fraction: exactly 1,050 paise.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="parsePaise(&quot;92233720368547759&quot;)?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>"92233720368547759"</code> passes the regex and fits in an <code>Int</code>. What does <code>parsePaise</code> return?</p><ol class="q-opts"><li>A huge number</li><li><code>nil</code></li><li>A crash</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">× 100 overflows; <code>multipliedReportingOverflow</code> catches it.</p>
+          <p class="q-trap"><b>Common trap:</b> Forgetting arithmetic can overflow.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick C.</p>
+    <span class="notes-label">SAY</span><p>B. × 100 overflows; <code>multipliedReportingOverflow</code> catches it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Money.display(12_345_678_900) in en_IN shows…?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text"><code>Money.display(12_345_678_900)</code> with the en_IN locale shows:</p><ol class="q-opts"><li>₹123,456,789.00</li><li>₹12,34,56,789.00</li><li>₹12345678900</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">en_IN groups in lakhs and crores; the value is paise ÷ 100.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming Western grouping.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. en_IN groups in lakhs and crores; the value is paise ÷ 100.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Are two @State changes a durable, atomic transaction?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Is changing <code>balancePaise</code> and <code>transactions</code> in one action a durable, atomic transaction?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It is consistent on screen; nothing survives a crash or syncs devices.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating UI state as a database.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It is consistent on screen; nothing survives a crash or syncs devices.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should a production app let users edit the balance?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should a production banking app keep a balance editor like ours?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The balance is authoritative on the backend; the editor is a teaching control.</p>
+          <p class="q-trap"><b>Common trap:</b> Shipping demo controls.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. The balance is authoritative on the backend; the editor is a teaching control.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.11: what does .decimalPad guarantee?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 2.11: what does <code>.keyboardType(.decimalPad)</code> guarantee?</p><ol class="q-opts"><li>Only digits and a point can be entered</li><li>Nothing: it is a keyboard hint</li><li>The value is a valid amount</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A paste delivered any text; validation must check the value.</p>
+          <p class="q-trap"><b>Common trap:</b> Trusting the keyboard.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.11.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. A paste delivered any text; validation must check the value.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.12 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">Unit 3</td><td><b>Advanced SwiftUI &amp; navigation</b></td><td>separate files and screens instead of one ContentView</td></tr><tr><td class="mono">Unit 4</td><td><b>Application architecture &amp; MVVM</b></td><td>payment rules out of the view, into models and services</td></tr><tr><td class="mono">Later units</td><td><b>Networking, persistence, security, tests</b></td><td>server authority, saved data, authentication, a test suite</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 3 splits NPay into files and screens with navigation. Unit 4 moves the payment rules out of ContentView into a ViewModel and services. Later units add the backend that owns the balance, persistence, authentication and tests: every limitation from the review has a place in the course.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.12 &middot; Lab</p>
+  <h2>Ship the Unit 2 NPay</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Build the complete code and run the verification table.</p><ol class="lab"><li>Replace ContentView.swift; keep NPayApp.swift.</li><li>Send ₹1,500 to ravi@npay; check card and history.</li><li>Try 0, 12.345 and above the balance.</li><li>+ ₹1,000, then re-try an amount just above the old balance.</li><li>Tap Request, Send, History: read the status.</li><li>Explain each Unit 2 lesson&rsquo;s place on screen.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your completed verification table</li><li>A screenshot after one payment</li><li>One sentence per Unit 2 lesson</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: ₹25,000.00 → ₹23,500.00 with "Sent to ravi@npay" on top and the form cleared; 0, 12.345 and 25000.01 keep Send disabled; after + ₹1,000 the balance is ₹26,000.00 and 25000.01 is accepted; the quick actions show their status messages. For the last step, use the Unit 2 map slide.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.12 complete</p>
+    <h2>Build a Complete<br>NPay Payment Flow</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Unit 03 &mdash; Advanced SwiftUI &amp; Navigation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 2 is complete. You can explain how a child requests an action through a closure while its parent owns the state, why money is integer paise parsed with overflow checks and formatted only for display, how one action keeps the balance and history consistent, and how every lesson from Text to TextField fits into one working NPay.</p>
+    <span class="notes-label">SAY</span><p>Next, Unit 03: advanced SwiftUI and navigation. NPay is split into files and screens, with navigation between them.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

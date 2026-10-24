@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.6 — View Modifiers</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.6 — View Modifiers">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.6</p>
+    <h1 style="font-size:54px;line-height:1.05">SwiftUI View Modifiers:<br>How They Really Work</h1>
+    <p class="lead" style="max-width:760px">What actually happens when you write <code>.padding()</code>, <code>.frame()</code> or <code>.background()</code>, and why does <b>order</b> change the result?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay is built from Text, Image and three kinds of stack, and the balance card works, but the interface still looks basic. Today: one of SwiftUI&rsquo;s most powerful ideas, view modifiers. What happens to a view when you write .padding, .frame, .background or .foregroundStyle, and why does their order change the result? Swift internals, experiments in the simulator, and a cleaner NPay.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.6 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>A modifier <b>returns a new view</b>; the type changes</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Why modifier <b>order</b> changes the result</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p>What <code>.frame</code> really sizes</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Which modifiers <b>flow down</b> the environment</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p>Write your own <code>ViewModifier</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Reusable views vs reusable <b>modifiers</b></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.6 &middot; Where we are</p>
+  <h2>Today: modifiers, deliberately</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.6 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Text</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">2.2</text><text x="107.364" y="50" style="font-size:14px">Image &amp;</text><text x="107.364" y="68" style="font-size:14px">SF Symbols</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">2.3</text><text x="202.727" y="50" style="font-size:14px">VStack &amp;</text><text x="202.727" y="68" style="font-size:14px">@ViewBuilder</text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">2.4</text><text x="298.091" y="50" style="font-size:14px">HStack &amp;</text><text x="298.091" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">2.5</text><text x="393.455" y="50" style="font-size:14px">ZStack &amp;</text><text x="393.455" y="68" style="font-size:14px">layers</text></g>
+        <g class="nd lit"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">2.6</text><text x="488.818" y="50" style="font-size:14px">View</text><text x="488.818" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">2.7</text><text x="584.182" y="50" style="font-size:14px">Button &amp;</text><text x="584.182" y="68" style="font-size:14px">events</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">2.8</text><text x="679.545" y="50" style="font-size:14px">@State</text><text x="679.545" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">2.9</text><text x="774.909" y="50" style="font-size:14px">@Binding</text><text x="774.909" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">2.10</text><text x="870.273" y="50" style="font-size:14px">ForEach</text><text x="870.273" y="68" style="font-size:14px">&amp; List</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">2.11</text><text x="965.636" y="50" style="font-size:14px">TextField</text><text x="965.636" y="68" style="font-size:14px">&amp; focus</text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">2.12</text><text x="1061" y="50" style="font-size:14px">Payment</text><text x="1061" y="68" style="font-size:14px">flow</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.5: a <code>ZStack</code> balance card.</span><span><b>Today</b>Modifiers: types, order, environment, custom ones.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson NPay got its balance card from a ZStack. We have been using modifiers since 2.1 without looking closely; today we look closely, and use what we learn to restyle NPay with reusable components.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The milestone</h2>
+    <p class="lead">Composition, not a new screen</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Same content, better styled, better structured.</p>
+    <span class="notes-label">CONNECT</span><p>Before and after.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our NPay milestone (section 1)</p>
+  <h2>Milestone 2.6: a styled, reusable NPay</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px 190px;gap:36px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Change</span><ul style="margin:6px 0 0"><li>A styled <b>BalanceCard</b></li><li>Quick actions as <b>tiles</b></li><li>Shared <b>card style</b></li></ul></div>
+        <div class="card accent"><span class="label">How</span><ul style="margin:6px 0 0"><li><b>Composition</b> and <b>modifiers</b></li><li>Not a new screen architecture</li></ul></div>
+      </div>
+      <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/before.png" alt="Before: Lesson 2.5"></div><p class="shot-cap">Before: Lesson 2.5</p></div>
+      <div class="step"><div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/final.png" alt="After: Milestone 2.6"></div><p class="shot-cap">After: Milestone 2.6</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>On the left of the phones, NPay at the end of 2.5. Click: where we finish today: the same content, with the balance card as its own component and the quick actions as tiles. We get there through composition and modifiers, not a new screen architecture.</p>
+    <span class="notes-label">CONNECT</span><p>First: what is a modifier?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>What a modifier is</h2>
+    <p class="lead">A new value, a new type</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Each call returns something new.</p>
+    <span class="notes-label">CONNECT</span><p>Follow a chain.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What is a view modifier? (section 2)</p>
+  <h2>A chain of method calls</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:17px">Text(&quot;NPay&quot;)
+    .font(.largeTitle)
+    .foregroundStyle(.blue)
+    .padding()</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">One view, three calls</span><ul style="margin:6px 0 0"><li>Each returns a <b>new</b> view description</li><li>The original is <b>not mutated</b></li></ul></div></div>
+      <div><div class="cw"><div class="ch"><span>Method chaining (Unit 01)</span></div><pre class="cb" style="font-size:16px">let title = Text(&quot;NPay&quot;)
+let styled = title.font(.largeTitle)
+let padded = styled.padding()</pre></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="So"><ul style="margin:6px 0 0"><li>Each result is the next <b>receiver</b></li><li>Types can <b>change</b> along the chain: generics</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One initial view value and three modifier calls. A modifier generally returns a new view description; it does not mutate the original value. Text, then font, then foregroundStyle, then padding: a final composed view.</p>
+    <span class="notes-label">SAY</span><p>This is ordinary Swift method-call syntax, from Unit 01. Written out with names: title, then styled from title, then padded from styled. Each call&rsquo;s result becomes the receiver of the next call.</p>
+    <span class="notes-label">SAY</span><p>Click: and the types can change along the chain. That is where generics come in.</p>
+    <span class="notes-label">CONNECT</span><p>Print the types.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What .padding() returns (sections 3, 13, 19)</p>
+  <h2>Each wrapper is a new generic type</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Experiment.swift</span></div><pre class="cb" style="font-size:15px">let card = Text(&quot;NPay&quot;)
+let padded = card.padding()
+let decorated = padded.background(.blue)
+
+print(type(of: card))
+print(type(of: padded))
+print(type(of: decorated))</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">Also printed</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Text(…).font(.largeTitle):  Text<br>Text(…).foregroundStyle(.blue):  Text</p></div></div></div>
+      <div>
+        <div class="step"><div class="card accent"><span class="label">Simulator console</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Text<br>ModifiedContent&lt;Text, _PaddingLayout&gt;<br>ModifiedContent&lt;ModifiedContent&lt;Text,<br>    _PaddingLayout&gt;, _BackgroundStyleModifier&lt;Color&gt;&gt;</p></div></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">ModifiedContent</span><ul style="margin:6px 0 0"><li>A public generic struct: <b>content</b> + <b>modifier</b></li><li>Still a <code>View</code></li><li><code>_PaddingLayout</code>: internal, may change</li></ul></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Not always"><ul style="margin:6px 0 0"><li>Text-specific modifiers can return <b>Text</b></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s experiment, from Sections 3, 13 and 19 together: a Text, the same Text padded, then that wrapped in a blue background, and print each type. Predict first.</p>
+    <span class="notes-label">SAY</span><p>Click: the simulator console. Text. Then ModifiedContent of Text and _PaddingLayout. Then ModifiedContent of that, with a background-style modifier for Color: a wrapper around a wrapper. The text&rsquo;s conceptual name PaddingModifier is really _PaddingLayout here; underscore types are SwiftUI internals and may change between versions.</p>
+    <span class="notes-label">SAY</span><p>ModifiedContent is a public generic struct that combines a content view and a modifier, and it is still a View, so you can keep chaining. Swift type-checks the whole chain at compile time; SwiftUI interprets the layout and styling at run time.</p>
+    <span class="notes-label">SAY</span><p>Click: not every modifier returns ModifiedContent. Click: the text-specific ones on Text, such as font and foregroundStyle, return Text, as we saw in 2.1. And no, a modifier does not create a new UIKit view; there is no one-to-one mapping.</p>
+    <span class="notes-label">CONNECT</span><p>Why can every kind of view use .padding?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Why almost every view has .padding() (section 4)</p>
+  <h2>Modifiers come from the View API</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 288" style="max-height:300px" role="img" aria-labelledby="shared">
+        <title id="shared">Text, Image and VStack conform to View and so share padding, frame, background and overlay</title>
+        <g class="nd lit"><rect class="sh" x="400" y="0" width="336" height="56" rx="12"/><use href="#i-layers" x="414" y="15" width="26" height="26"/><text x="452" y="25">View protocol</text><text class="sm" x="452" y="43">Text, Image, stacks conform</text></g>
+        <path class="wire" d="M480 60V90H130V118M123 111l7 7 7-7"/>
+        <path class="wire" d="M568 60V118M561 111l7 7 7-7"/>
+        <path class="wire" d="M656 60V90H1006V118M999 111l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="124" width="260" height="52" rx="12"/><use href="#i-file" x="14" y="137" width="26" height="26"/><text x="52" y="156">Text</text></g>
+        <g class="nd"><rect class="sh" x="438" y="124" width="260" height="52" rx="12"/><use href="#i-frame" x="452" y="137" width="26" height="26"/><text x="490" y="156">Image</text></g>
+        <g class="nd"><rect class="sh" x="876" y="124" width="260" height="52" rx="12"/><use href="#i-layers" x="890" y="137" width="26" height="26"/><text x="928" y="156">VStack</text></g>
+        <path class="wire faint" d="M130 180V206H568V230M561 223l7 7 7-7"/>
+        <path class="wire faint" d="M1006 180V206H568"/>
+        <path class="wire faint" d="M568 180V206"/>
+        <g class="nd"><rect class="sh" x="338" y="236" width="460" height="52" rx="12"/><use href="#i-gear" x="352" y="249" width="26" height="26"/><text x="390" y="259">Shared modifiers</text><text class="sm" x="390" y="277">padding · frame · background · overlay</text></g>
+      </svg>
+    </div>
+    <div class="rule step" data-label="Composable" style="margin-top:14px"><ul style="margin:6px 0 0"><li>Conform to <code>View</code> &rarr; get every View modifier</li><li>Including <code>ContentView</code> and your own views</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>.padding is part of SwiftUI&rsquo;s View API: it is declared in an extension on View. Text, Image, VStack, HStack and ZStack all conform to View, and so does every struct you write with ": View". Conforming gives them all the common modifiers: padding, frame, background, overlay.</p>
+    <span class="notes-label">SAY</span><p>Click: that is one of the reasons SwiftUI is so composable. Your own ContentView and BalanceCard get the same modifiers for free; Part 7 adds our own modifier to that list.</p>
+    <span class="notes-label">CONNECT</span><p>Now the most important experiment: order.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Modifier order</h2>
+    <p class="lead">Wrappers inside wrappers</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Same modifiers, different order.</p>
+    <span class="notes-label">CONNECT</span><p>Run both.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; The most important experiment (section 5)</p>
+  <h2>Order decides what wraps what</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr) 280px;gap:22px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>A: padding → background</span></div><pre class="cb" style="font-size:15px">Text(&quot;NPay&quot;)
+    .padding(24)
+    .background(.yellow)</pre></div>
+        <div class="step" style="margin-top:10px"><div class="cw"><div class="ch"><span>A, conceptually</span></div><pre class="cb" style="font-size:14px">Background(
+    Padding(
+        Text(&quot;NPay&quot;)))</pre></div></div></div>
+      <div><div class="cw"><div class="ch"><span>B: background → padding</span></div><pre class="cb" style="font-size:15px">Text(&quot;NPay&quot;)
+    .background(.yellow)
+    .padding(24)</pre></div>
+        <div class="step" style="margin-top:10px"><div class="cw"><div class="ch"><span>B, conceptually</span></div><pre class="cb" style="font-size:14px">Padding(
+    Background(
+        Text(&quot;NPay&quot;)))</pre></div></div></div>
+      <div style="width:280px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/order.png" alt="A above, B below (.title)"></div><p class="shot-cap">A above, B below (.title)</p></div>
+    </div>
+    <div class="rule step" data-label="Measured" style="margin-top:10px"><ul style="margin:6px 0 0"><li>Both <b>112.0 × 89.7 pt</b>: same size, different composition</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The experiment we first met in 2.1, now with padding 24, run at title size: on the right, A on top, B below. Both compile; the result differs.</p>
+    <span class="notes-label">SAY</span><p>Click: why? Each modifier operates on the result of the previous expression. A is a background around padding around the text, so the yellow covers the padded region. Click: B is padding around a background around the text, so the yellow hugs the word and the padding is clear space outside. These nested names are conceptual, not real SwiftUI code.</p>
+    <span class="notes-label">SAY</span><p>Click: both measured 112 by 89.7 points: the layout size is the same, the composition is not.</p>
+    <span class="notes-label">CONNECT</span><p>Order also matters for layout modifiers. The balance card has three.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Order and the layout engine (section 14)</p>
+  <h2>Frame, padding, background: three orders</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.75fr) 290px;gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>The card&rsquo;s order (top)</span></div><pre class="cb" style="font-size:13px">VStack(alignment: .leading, spacing: 12) {
+    Text(&quot;Available Balance&quot;)
+    Text(&quot;₹25,000&quot;)
+    Text(&quot;NPay Demo Account&quot;)
+}
+.frame(maxWidth: .infinity, alignment: .leading)
+.padding(24)
+.background(.blue)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">All three measured</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">370.0 × 145.0 pt</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">What we saw</span><ul style="margin:6px 0 0"><li>frame &harr; padding: <b>no change</b> here</li><li>bg before padding: blue <b>shrinks</b></li></ul></div></div>
+        <div class="rule step" data-label="Layout"><ul style="margin:6px 0 0"><li><b>Transformations</b>, not properties</li></ul></div></div>
+      <div style="width:290px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/framepad.png" alt="frame→padding→bg · padding→frame→bg · frame→bg→padding"></div><p class="shot-cap">frame→padding→bg · padding→frame→bg · frame→bg→padding</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The card&rsquo;s content with three layout-related modifiers. Layout modifiers change how size proposals and chosen sizes flow through the composition. On the right, three orders in the simulator: frame then padding then background, which is our code; padding then frame then background; and frame then background then padding.</p>
+    <span class="notes-label">SAY</span><p>Click: all three take 370 by 145 points. Click: and the first two look identical: in this parent, the flexible frame takes the full width either way and the leading alignment plus padding put the text in the same place. The text&rsquo;s toggle hinted at a difference; with this parent there is none, which is exactly its caveat that differences depend on the parent proposal. The third one does differ: the background comes before the padding, so the blue no longer includes the padding.</p>
+    <span class="notes-label">SAY</span><p>Click: the lesson is the model, not the pixels: SwiftUI layout is a composition of transformations, not a list of style properties on one mutable object. Check order by running it, with a border or background.</p>
+    <span class="notes-label">CONNECT</span><p>Frames deserve a closer look.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Frames</h2>
+    <p class="lead">A layout region, not the content</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>.frame(width: 200): is the text now 200 points wide?</p>
+    <span class="notes-label">CONNECT</span><p>Measure it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Understanding .frame() (sections 6&ndash;7)</p>
+  <h2>The frame changes the region, not the text</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 300px;gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Frames.swift (blue borders added)</span></div><pre class="cb" style="font-size:13.5px">Text(&quot;NPay&quot;)
+    .frame(width: 200, height: 100)
+
+Text(&quot;NPay&quot;)
+    .frame(maxWidth: .infinity)
+
+Text(&quot;NPay&quot;)
+    .frame(maxWidth: .infinity, alignment: .leading)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Measured (.title)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">frame: 200.0 × 100.0 pt<br>the Text inside: 64.0 × 41.7 pt<br>maxWidth .infinity: 370.0 pt wide</p></div></div>
+        <div class="rule step" data-label=".infinity"><ul style="margin:6px 0 0"><li>An <b>unbounded maximum</b></li><li>Grows to what the parent offers</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">.leading</span><ul style="margin:6px 0 0"><li>Aligns content <b>within</b> the region</li></ul></div></div></div>
+      <div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/frame.png" alt="iPhone 17 simulator, iOS 26.5"></div><p class="shot-cap">iPhone 17 simulator, iOS 26.5</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>.frame adds a layout container that proposes and reports dimensions by its own rules. It does not resize the glyphs. On the right, the text&rsquo;s three frames with blue borders, run at title size in place of the text&rsquo;s slider.</p>
+    <span class="notes-label">SAY</span><p>Click: measured. The frame is exactly 200 by 100; the Text inside it is still 64 by 41.7, its own size, centred. So .frame(width: 200) does not make the text 200 points wide; it makes the region 200 wide. With maxWidth .infinity the frame took the full 370 points the parent offered.</p>
+    <span class="notes-label">SAY</span><p>Click: .infinity is an unbounded maximum in the layout API, not physical infinite width; negotiation decides the real size. Click: and a view can occupy a wide frame while its visible content stays small, which is why alignment .leading is useful: it places the content within the larger region, as the third row shows.</p>
+    <span class="notes-label">CONNECT</span><p>Next: two modifiers that sound alike.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Style and the environment</h2>
+    <p class="lead">Some modifiers flow down</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Foreground or background? And which modifiers reach the children?</p>
+    <span class="notes-label">CONNECT</span><p>Compare.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Foreground style vs background (section 8)</p>
+  <h2>Two different roles</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Two modifiers</span></div><pre class="cb" style="font-size:17px">Text(&quot;NPay&quot;)
+    .foregroundStyle(.blue)
+
+Text(&quot;NPay&quot;)
+    .background(.blue)</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">.blue</span><ul style="margin:6px 0 0"><li>Inferred from the <b>expected</b> style type</li><li>No full type name needed</li></ul></div></div>
+      <div><div style="width:440px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/fgbg.png" alt="Left: foregroundStyle. Right: background (.largeTitle)"></div><p class="shot-cap">Left: foregroundStyle. Right: background (.largeTitle)</p></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">Different roles</span><ul style="margin:6px 0 0"><li><code>foregroundStyle</code>: the <b>foreground</b> (the glyphs)</li><li><code>background</code>: a view <b>behind</b></li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>foregroundStyle(.blue) colours the foreground, the glyphs; background(.blue) puts a blue view behind the text. On the right, both at largeTitle size. In both, .blue is inferred from the type the API expects, so you do not repeat the full type name; 2.2 showed the ShapeStyle extension behind it.</p>
+    <span class="notes-label">SAY</span><p>Click: different roles, even though both just say blue.</p>
+    <span class="notes-label">CONNECT</span><p>Some modifiers do more than style one view: they reach its children.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Environment-driven modifiers (sections 9, 15)</p>
+  <h2>Set it on the parent; children inherit</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 290px;gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Environment.swift</span></div><pre class="cb" style="font-size:13.5px">VStack {
+    Text(&quot;NPay&quot;)
+    Text(&quot;Payments made simple&quot;)
+}
+.font(.title)
+
+VStack {
+    Text(&quot;Available Balance&quot;)
+        .foregroundStyle(.yellow)
+    Text(&quot;₹25,000&quot;)
+}
+.foregroundStyle(.white)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Flows down</span><ul style="margin:6px 0 0"><li><code>.font</code>, <code>.foregroundStyle</code></li><li>Through the <b>environment</b></li><li>A child can <b>override</b></li></ul></div>
+        <div class="rule step" data-label="Stays put"><ul style="margin:6px 0 0"><li><code>.padding()</code>: only around the view it is on</li></ul></div></div>
+      <div style="width:290px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/env.png" alt="Middle: .padding() on the stack only. Bottom: on blue to show white"></div><p class="shot-cap">Middle: .padding() on the stack only. Bottom: on blue to show white</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Top on the right: .font(.title) on the VStack reaches both texts. The parent does not mutate each child; SwiftUI propagates environment values down the hierarchy, and each Text reads the font.</p>
+    <span class="notes-label">SAY</span><p>Bottom: .foregroundStyle(.white) on the stack, with the first Text overriding it with yellow. The first is yellow, the second inherits white. We added a blue background so white is visible. That is how a reusable component sets default styles high up while specific children override them.</p>
+    <span class="notes-label">SAY</span><p>Click: not every modifier propagates. The middle example puts .padding() on the stack: the blue border shows space around the stack only; the grey-bordered children got no padding of their own. Knowing which modifiers flow down matters when you build reusable components.</p>
+    <span class="notes-label">CONNECT</span><p>Which brings us to building them.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Reusable views</h2>
+    <p class="lead">BalanceCard and QuickAction</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Extract the card and the actions into their own views.</p>
+    <span class="notes-label">CONNECT</span><p>The card first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; A reusable balance card (section 10)</p>
+  <h2>BalanceCard: order on purpose</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>BalanceCard.swift</span></div><pre class="cb" style="font-size:12.5px">struct BalanceCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(&quot;Available Balance&quot;)
+                .font(.subheadline)
+            Text(&quot;₹25,000&quot;)
+                .font(.largeTitle.bold())
+            Text(&quot;NPay Demo Account&quot;)
+                .font(.caption)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(24)
+        .background(.blue, in: RoundedRectangle(cornerRadius: 20))
+    }
+}</pre></div>
+      <div><table class="tbl compact"><thead><tr><th></th><th>Step</th><th>Why</th></tr></thead><tbody><tr><td>1</td><td>content</td><td>three texts</td></tr><tr><td>2</td><td><code>foregroundStyle</code></td><td>flows to all</td></tr><tr><td>3</td><td><code>frame(maxWidth:)</code></td><td>full width</td></tr><tr><td>4</td><td><code>padding(24)</code></td><td>inner space</td></tr><tr><td>5</td><td><code>background(_:in:)</code></td><td>behind it all</td></tr></tbody></table>
+        <div class="rule step" data-label="Deliberate" style="margin-top:12px"><ul style="margin:6px 0 0"><li>Content &rarr; style &rarr; size &rarr; space &rarr; backdrop</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We extract the card into its own view, BalanceCard. Instead of a ZStack it uses .background with a rounded rectangle, as in 2.5&rsquo;s Experiment C.</p>
+    <span class="notes-label">SAY</span><p>Read the modifier order as a recipe. First build the content. Then the foreground style, which flows to all three texts. Then let the region expand horizontally, leading-aligned. Then pad it. Finally draw the blue rounded background behind the padded region. Click: deliberate composition: each step wraps the one before.</p>
+    <span class="notes-label">CONNECT</span><p>The quick actions get the same treatment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Complete NPay code (sections 11, 21)</p>
+  <h2>ContentView assembles; components draw</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.6fr) 170px;gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>QuickAction.swift</span></div><pre class="cb" style="font-size:12.5px">struct QuickAction: View {
+    let symbol: String
+    let title: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.title2)
+            Text(title)
+                .font(.caption)
+        }
+        .foregroundStyle(.blue)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Color.blue.opacity(0.08),
+                    in: RoundedRectangle(cornerRadius: 12))
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">ContentView</span><ul style="margin:6px 0 0"><li>Header: icon, title, subtitle</li><li><code>BalanceCard()</code></li><li><code>HStack(spacing: 30)</code> of 3 <code>QuickAction</code>s</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Checkpoint 2.6</span><ul style="margin:6px 0 0"><li>Reusable components</li><li>Consistent spacing and style</li></ul></div></div></div>
+      <div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/final.png" alt="Milestone 2.6"></div><p class="shot-cap">Milestone 2.6</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>QuickAction takes a symbol name and a title, and stacks the symbol over the label. Then the same recipe: blue foreground, flexible width so the three tiles share the row equally, vertical padding, and a pale blue rounded background. Note .frame(maxWidth: .infinity): that is the equal-widths technique from 2.4.</p>
+    <span class="notes-label">SAY</span><p>ContentView now only assembles: the header, BalanceCard(), and an HStack of three QuickActions for Send, Request and History. The full code is in the lesson text. On the right, the real screen.</p>
+    <span class="notes-label">SAY</span><p>Click: the Section 21 checkpoint: a branded header, a styled balance card, reusable quick actions, consistent spacing, and next, a custom modifier for shared styling.</p>
+    <span class="notes-label">CONNECT</span><p>What does SwiftUI do when it meets BalanceCard() inside ContentView.body?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Evaluating BalanceCard (section 12) &middot; conceptual</p>
+  <h2>Constructing a view &ne; evaluating its body</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 560 304" style="max-height:330px" role="img" aria-labelledby="eval">
+        <title id="eval">Parent body evaluated, BalanceCard constructed, its body evaluated, modifiers wrap, layout, rendering</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="560" height="44" rx="12"/><use href="#i-code" x="14" y="9" width="26" height="26"/><text x="52" y="19">Parent body evaluated</text><text class="sm" x="52" y="37">ContentView.body runs</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="52" width="560" height="44" rx="12"/><use href="#i-diff" x="14" y="61" width="26" height="26"/><text x="52" y="71">BalanceCard() constructed</text><text class="sm" x="52" y="89">a Swift value</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="104" width="560" height="44" rx="12"/><use href="#i-eye" x="14" y="113" width="26" height="26"/><text x="52" y="123">BalanceCard.body evaluated</text><text class="sm" x="52" y="141">when SwiftUI needs it</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="156" width="560" height="44" rx="12"/><use href="#i-layers" x="14" y="165" width="26" height="26"/><text x="52" y="175">Modifiers wrap the VStack</text><text class="sm" x="52" y="193">a nested description</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="208" width="560" height="44" rx="12"/><use href="#i-layout" x="14" y="217" width="26" height="26"/><text x="52" y="227">Layout</text><text class="sm" x="52" y="245">sizes proposed and chosen</text></g>
+        <g class="nd" data-lit="6+"><rect class="sh" x="0" y="260" width="560" height="44" rx="12"/><use href="#i-frame" x="14" y="269" width="26" height="26"/><text x="52" y="279">Rendering</text><text class="sm" x="52" y="297">text and the rounded blue card</text></g>
+      </svg>
+    </div>
+      <div><div class="cw"><div class="ch"><span>Trace.swift (excerpt)</span></div><pre class="cb" style="font-size:12px">struct TracedCard: View {
+    init() { print(&quot;2. TracedCard value constructed&quot;) }
+    var body: some View {
+        let _ = print(&quot;3. TracedCard.body evaluated&quot;)
+        BalanceCard()
+    }
+}
+// parent body: let _ = print(&quot;1. … body evaluated&quot;)</pre></div>
+        <div class="step" style="margin-top:10px"><div class="card accent"><span class="label">Simulator console, at launch</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">1. TraceView.body evaluated<br>2. TracedCard value constructed<br>3. TracedCard.body evaluated</p></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A conceptual walk; only the final stage, rendering, was in the text&rsquo;s widget. Click: the parent&rsquo;s body is evaluated. Click: inside it, BalanceCard() constructs a Swift value, nothing more. Click: SwiftUI evaluates BalanceCard&rsquo;s body when it needs it. Click: the modifiers wrap the VStack into a nested description. Click: layout. Click: rendering produces the text and the rounded blue card.</p>
+    <span class="notes-label">SAY</span><p>We made steps 1 to 3 visible: a print in the parent&rsquo;s body, in the card&rsquo;s init and in the card&rsquo;s body. At launch the console shows exactly that order: parent body, card constructed, card body.</p>
+    <span class="notes-label">SAY</span><p>The point: constructing a view value and evaluating its body are separate operations. SwiftUI can evaluate bodies selectively; it does not necessarily run every body on every update. Prints like these are for learning, never for app logic.</p>
+    <span class="notes-label">CONNECT</span><p>Reusable views are one tool. Reusable modifiers are the other.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Custom modifiers</h2>
+    <p class="lead">Reusable styling</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay wants one consistent card style everywhere.</p>
+    <span class="notes-label">CONNECT</span><p>Write a ViewModifier.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; A custom ViewModifier (sections 16&ndash;17)</p>
+  <h2>NPayCardStyle, and a View extension</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 250px minmax(0,.7fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayCardStyle.swift</span></div><pre class="cb" style="font-size:12.5px">struct NPayCardStyle: ViewModifier {
+    func body(content: Content) -&gt; some View {
+        content
+            .padding(20)
+            .background(
+                Color.blue.opacity(0.08),
+                in: RoundedRectangle(cornerRadius: 16)
+            )
+    }
+}
+
+extension View {
+    func npayCardStyle() -&gt; some View {
+        modifier(NPayCardStyle())
+    }
+}</pre></div>
+      <div style="width:250px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/custom.png" alt="plain · .modifier · .npayCardStyle()"></div><p class="shot-cap">plain · .modifier · .npayCardStyle()</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">type(of:), both forms</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">ModifiedContent&lt;Text,<br>  NPayCardStyle&gt;</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Unit 01, again</span><ul style="margin:6px 0 0"><li>A <b>protocol</b>, no UIKit subclass</li><li>Extension on <code>View</code>: every view gets it</li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI defines a ViewModifier protocol. NPayCardStyle conforms to it: its body receives the content being modified and returns a composed view, here padded with a pale blue rounded background. Apply it with .modifier(NPayCardStyle()).</p>
+    <span class="notes-label">SAY</span><p>Then a View extension adds npayCardStyle(), so you can write it like any built-in modifier. On the right: plain, with .modifier, and with .npayCardStyle(). Click: both forms print the same type, ModifiedContent of Text and NPayCardStyle: our own type sits exactly where _PaddingLayout sat earlier.</p>
+    <span class="notes-label">SAY</span><p>Click: no UIKit subclass: a struct conforming to a protocol. And because the extension is on View, every conforming view can call it: protocol extensions from Unit 01, and one consistent NPay design language without repeated styling code.</p>
+    <span class="notes-label">CONNECT</span><p>So when do you write a view, and when a modifier?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Custom modifier or reusable view? (section 18)</p>
+  <h2>Component or styling rule?</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th></th><th>Reusable view</th><th>Custom ViewModifier</th></tr></thead><tbody><tr><td>Encapsulates</td><td>content and structure</td><td>a transformation or styling</td></tr><tr><td>Example</td><td><code>BalanceCard</code></td><td><code>NPayCardStyle</code></td></tr><tr><td>Can</td><td>own state or receive models</td><td>decorate or modify content</td></tr><tr><td>Represents</td><td>a meaningful UI component</td><td>reusable presentation behaviour</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">A view when</span><ul style="margin:6px 0 0"><li>It is a <b>recognisable UI element</b></li><li>with its own content and behaviour</li></ul></div>
+      <div class="card accent"><span class="label">A modifier when</span><ul style="margin:6px 0 0"><li>It is a <b>styling rule</b></li><li>for many unrelated views</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An architecture decision. A reusable view encapsulates content and structure, like BalanceCard; it can own state or receive models, and it represents a meaningful UI component. A custom ViewModifier encapsulates a transformation or styling behaviour, like NPayCardStyle; it decorates content and represents reusable presentation behaviour.</p>
+    <span class="notes-label">SAY</span><p>Click: the rule of thumb. If it is a recognisable UI element with its own content and behaviour, make a view. If it is a styling rule you would apply to many unrelated views, make a modifier.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.6 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p style="font-size:23px"><b>Modifiers wrap</b><br><span class="muted" style="font-size:19px">a new value and often a new type</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p style="font-size:23px"><b>Order is structure</b><br><span class="muted" style="font-size:19px">what wraps what decides the result</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Some flow down</b><br><span class="muted" style="font-size:19px">font and style via the environment</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A modifier returns a new view, usually a ModifiedContent wrapping the old one, sometimes the same type, as Text&rsquo;s own modifiers do. Order is structure: each modifier wraps the result of the one before, so changing the order changes the composition. And some modifiers, like font and foregroundStyle, flow down the environment to children, while others, like padding, stay on the view they are applied to.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>8 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does every modifier mutate the original view?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does a SwiftUI modifier mutate the original view?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It returns a new value: <code>card</code> stayed <code>Text</code> while <code>padded</code> became a <code>ModifiedContent</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Picturing a mutable UI object.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It returns a new value: <code>card</code> stayed <code>Text</code> while <code>padded</code> became a <code>ModifiedContent</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does every modifier return ModifiedContent?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does every modifier return a <code>ModifiedContent</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why"><code>Text(…).font(…)</code> and <code>.foregroundStyle(…)</code> printed <code>Text</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Generalising from <code>.padding()</code>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. <code>Text(…).font(…)</code> and <code>.foregroundStyle(…)</code> printed <code>Text</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why can Text, Image and VStack use padding?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why can <code>Text</code>, <code>Image</code> and <code>VStack</code> all use <code>.padding()</code>?</p><ol class="q-opts"><li>They inherit from <code>UIView</code></li><li>They conform to <code>View</code></li><li>They are all classes</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>.padding</code> is declared on the <code>View</code> protocol&rsquo;s API; conforming types get it.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking in class inheritance.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. <code>.padding</code> is declared on the <code>View</code> protocol&rsquo;s API; conforming types get it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does modifier order affect the result?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does modifier order affect the result?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">padding&rarr;background colours the padded area; background&rarr;padding only the text.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating modifiers as a set of properties.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. padding&rarr;background colours the padded area; background&rarr;padding only the text.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can parent styling influence descendant views?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can styling on a parent influence its descendant views?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why"><code>.font(.title)</code> on a VStack reached both texts; a child can still override.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming every modifier stays on its view.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. <code>.font(.title)</code> on a VStack reached both texts; a child can still override.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does a ViewModifier represent?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does a <code>ViewModifier</code> represent?</p><ol class="q-opts"><li>A reusable view transformation</li><li>A UIKit subclass</li><li>A new Swift thread</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why"><code>NPayCardStyle</code> takes content and returns it padded with a background.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting UIKit underneath.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. <code>NPayCardStyle</code> takes content and returns it padded with a background.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Type of Text(&quot;NPay&quot;).padding().background(.blue)?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the output</span>
+        <p class="q-text">What does <code>type(of:)</code> print for <code>Text("NPay").padding().background(.blue)</code>?</p><ol class="q-opts"><li><code>Text</code></li><li><code>ModifiedContent&lt;Text, &hellip;&gt;</code> with one wrapper</li><li><code>ModifiedContent&lt;ModifiedContent&lt;Text, &hellip;&gt;, &hellip;&gt;</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Each modifier wraps the result of the previous one: two wrappers.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting one flat wrapper.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>C. Each modifier wraps the result of the previous one: two wrappers.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.5: does an overlay grow its primary view?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 2.5: does an oversized <code>.overlay</code> make its primary view bigger?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The shape stayed 240 &times; 120 pt while the overlay text spilled over.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting overlays to take part in sizing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.5.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. The shape stayed 240 &times; 120 pt while the overlay text spilled over.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.6 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.7</td><td><b>Button, closures &amp; event handling</b></td><td>NPay becomes interactive: tap &rarr; Button &rarr; action closure</td></tr><tr><td class="mono">Later</td><td><b>State-driven NPay</b></td><td>the balance card fed by real state</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Next lesson makes NPay interactive for the first time: the full event path from a finger tap through iOS input handling to a SwiftUI Button and its action closure, plus button styles, hit testing, accessibility, and keeping business logic out of the view. It is the first step toward state-driven NPay.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.6 &middot; Lab</p>
+  <h2>Modifiers under the microscope</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Predict, run, explain.</p><ol class="lab"><li>Print the three types of Section 19.</li><li>Swap <code>.padding(24)</code> and <code>.background(.yellow)</code>.</li><li>Border a <code>.frame(width: 200, height: 100)</code>; measure the Text.</li><li><code>.font</code> on a VStack; override one child.</li><li>Write <code>NPayCardStyle</code> and <code>.npayCardStyle()</code>.</li><li>Refactor to <code>BalanceCard</code> and <code>QuickAction</code>.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your printed types, each explained</li><li>One screenshot per experiment</li><li>A one-line reason: view or modifier?</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our simulator runs: Text, ModifiedContent&lt;Text, _PaddingLayout&gt;, then a ModifiedContent of that with _BackgroundStyleModifier&lt;Color&gt;; both orders take the same size but colour different regions; the frame is 200 x 100 while the Text keeps its own size; the font reaches every child unless one overrides; the custom modifier prints ModifiedContent&lt;Text, NPayCardStyle&gt;.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.6 complete</p>
+    <h2>SwiftUI View Modifiers:<br>How They Really Work</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 2.7 &mdash; Button, Closures &amp; Event Handling</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain that a modifier returns a new, often differently typed view, why order changes the composition, what .frame really sizes, which modifiers flow down the environment, how to write your own ViewModifier with a View extension, and when to choose a reusable view instead. NPay has reusable, consistently styled components.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 2.7: Button, closures and event handling. NPay becomes interactive: the event path from a finger tap to an action closure, button styles, hit testing, accessibility, and business logic out of the view.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

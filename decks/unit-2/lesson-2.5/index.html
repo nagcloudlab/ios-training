@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.5 — ZStack &amp; Layering</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.5 — ZStack &amp; Layering">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.5</p>
+    <h1 style="font-size:54px;line-height:1.05">ZStack: Layering, Backgrounds<br>&amp; SwiftUI Rendering</h1>
+    <p class="lead" style="max-width:760px">NPay&rsquo;s first balance card. How does SwiftUI put one view <b>on top of</b> another, size them, and decide which is <b>in front</b>?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We have built NPay&rsquo;s welcome screen from Text, Image, VStack and HStack. Today it gets something that looks like a real payment app: a balance card. The deeper goal: how SwiftUI places views on top of other views, how it sizes them, and how it decides which one is in front. ZStack, Z-order, sizing, alignment, backgrounds, overlays and rendering, all checked in the iOS Simulator.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.5 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>What <code>ZStack</code> does on the <b>depth</b> axis</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Which view is <b>in front</b>, and <code>.zIndex</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></span><p>How a ZStack <b>sizes</b> itself</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p><code>Alignment</code> inside a ZStack</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>ZStack vs <code>.background</code> vs <code>.overlay</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>NPay&rsquo;s <b>balance card</b>, step by step</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.5 &middot; Where we are</p>
+  <h2>Today: the balance card</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.5 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Text</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">2.2</text><text x="107.364" y="50" style="font-size:14px">Image &amp;</text><text x="107.364" y="68" style="font-size:14px">SF Symbols</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">2.3</text><text x="202.727" y="50" style="font-size:14px">VStack &amp;</text><text x="202.727" y="68" style="font-size:14px">@ViewBuilder</text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">2.4</text><text x="298.091" y="50" style="font-size:14px">HStack &amp;</text><text x="298.091" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd lit"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">2.5</text><text x="393.455" y="50" style="font-size:14px">ZStack &amp;</text><text x="393.455" y="68" style="font-size:14px">layers</text></g>
+        <g class="nd ghost"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">2.6</text><text x="488.818" y="50" style="font-size:14px">View</text><text x="488.818" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">2.7</text><text x="584.182" y="50" style="font-size:14px">Button &amp;</text><text x="584.182" y="68" style="font-size:14px">events</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">2.8</text><text x="679.545" y="50" style="font-size:14px">@State</text><text x="679.545" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">2.9</text><text x="774.909" y="50" style="font-size:14px">@Binding</text><text x="774.909" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">2.10</text><text x="870.273" y="50" style="font-size:14px">ForEach</text><text x="870.273" y="68" style="font-size:14px">&amp; List</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">2.11</text><text x="965.636" y="50" style="font-size:14px">TextField</text><text x="965.636" y="68" style="font-size:14px">&amp; focus</text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">2.12</text><text x="1061" y="50" style="font-size:14px">Payment</text><text x="1061" y="68" style="font-size:14px">flow</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.4: an <code>HStack</code> of quick actions under the title.</span><span><b>Today</b>A <code>ZStack</code>: text layered over a card.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson NPay got a row of quick actions. Today we add the first card: text layered over a coloured shape. VStack and HStack arranged views next to each other; ZStack puts them on top of each other.</p>
+    <span class="notes-label">CONNECT</span><p>The target.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>A balance card</h2>
+    <p class="lead">Layers, not rows</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay needs a balance card between the title and the actions.</p>
+    <span class="notes-label">CONNECT</span><p>Before and after.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; NPay needs a balance card (section 1)</p>
+  <h2>Milestone 2.5: the balance card</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px 190px;gap:36px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Add</span><ul style="margin:6px 0 0"><li>A <b>card</b>: label, balance, account name</li><li>Text <b>on top of</b> a coloured shape</li></ul></div>
+        <div class="card accent"><span class="label">For now</span><ul style="margin:6px 0 0"><li>A fixed demo balance: <b>₹25,000</b></li><li>Real balance and state: later</li></ul></div>
+      </div>
+      <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/before.png" alt="Before: Lesson 2.4"></div><p class="shot-cap">Before: Lesson 2.4</p></div>
+      <div class="step"><div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/final.png" alt="After: Milestone 2.5"></div><p class="shot-cap">After: Milestone 2.5</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Our app has a payment icon, the NPay title, a subtitle and three quick actions. Now we want a balance card: "Available Balance", the amount, and the account name, on a blue card.</p>
+    <span class="notes-label">SAY</span><p>Click: the result we build today. The balance is a fixed demonstration value, ₹25,000; real balance updates and state management come later.</p>
+    <span class="notes-label">CONNECT</span><p>The new tool: ZStack.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>ZStack</h2>
+    <p class="lead">The depth axis</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>VStack: vertical. HStack: horizontal. ZStack: depth.</p>
+    <span class="notes-label">CONNECT</span><p>The smallest ZStack.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What exactly is ZStack? (section 2)</p>
+  <h2>Children share the same space</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:15px">ZStack {
+    Color.blue
+
+    Text(&quot;NPay&quot;)
+        .foregroundStyle(.white)
+}
+.frame(width: 240, height: 140)</pre></div>
+        <div class="gap"></div>
+        <div style="width:380px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/basic.png" alt="240 × 140 pt, measured"></div><p class="shot-cap">240 × 140 pt, measured</p></div></div>
+      <div>
+        <div class="step"><div class="cw"><div class="ch"><span>Interface excerpt, iOS 26.5 SDK (body omitted)</span></div><pre class="cb" style="font-size:13.5px">@frozen public struct ZStack&lt;Content&gt; : View
+        where Content : View {
+    public init(alignment: Alignment = .center,
+                @ViewBuilder content: () -&gt; Content)
+}</pre></div></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">type(of:) in the simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">ZStack&lt;TupleView&lt;(Color, Text)&gt;&gt;</p></div></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="The difference"><ul style="margin:6px 0 0"><li>Same <code>@ViewBuilder</code> closure as VStack</li><li>Children are <b>aligned in overlapping</b> space</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>VStack arranges children vertically, HStack horizontally; ZStack overlays them along the depth axis. Here Color.blue fills the frame as a background layer, and the white text sits above it. On the left, the simulator: 240 by 140 points.</p>
+    <span class="notes-label">SAY</span><p>Click: like the other stacks, ZStack is a generic struct conforming to View. Its initializer takes an Alignment, a full two-dimensional alignment, defaulting to .center, and the same @ViewBuilder content closure. Click: the printed type is ZStack of a TupleView of Color and Text: Color is a View too.</p>
+    <span class="notes-label">SAY</span><p>Click: the difference is layout. Instead of placing children one after another, ZStack aligns them within overlapping space.</p>
+    <span class="notes-label">CONNECT</span><p>If they overlap, which one is in front?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Z-order</h2>
+    <p class="lead">Who is in front</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three children in one ZStack.</p>
+    <span class="notes-label">CONNECT</span><p>Change the order.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Which view appears in front? (section 3)</p>
+  <h2>Later children are drawn on top</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:16px">ZStack {
+    Color.blue
+    Color.green
+    Text(&quot;NPay&quot;)
+}
+.frame(width: 240, height: 140)</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Source order = drawing order</span><ul style="margin:6px 0 0"><li>Green covers blue</li><li>The text, last, is on top</li></ul></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Reverse it"><ul style="margin:6px 0 0"><li><code>Text</code> first: <b>hidden</b> under both colours</li><li>Source order changes the layering</li></ul></div></div>
+      <div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/order.png" alt="Middle: Text, Blue, Green"></div><p class="shot-cap">Middle: Text, Blue, Green</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Blue, then green, then the text. In a ZStack, later children are normally drawn above earlier ones: green covers blue completely, and the text is on top. That is the top card on the right; it replaces the text&rsquo;s layer explorer.</p>
+    <span class="notes-label">SAY</span><p>Click: the middle card has the same three children with the text first. It is drawn first, so both colours cover it: the text is still there, but you cannot see it. Changing the source order changes the layering, unless you adjust it explicitly. The bottom card shows how.</p>
+    <span class="notes-label">CONNECT</span><p>The explicit adjustment: zIndex.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; What is .zIndex()? (section 4)</p>
+  <h2><code>.zIndex</code> changes drawing order only</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:16px">ZStack {
+    Text(&quot;Behind&quot;)
+        .zIndex(0)
+
+    Text(&quot;In Front&quot;)
+        .zIndex(1)
+}</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Higher zIndex</span><ul style="margin:6px 0 0"><li>Drawn <b>above</b> siblings with lower values</li></ul></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Rescue the hidden text</span><ul style="margin:6px 0 0"><li><code>Text("NPay").zIndex(1)</code>, still written <b>first</b></li><li>Visible again: bottom card, previous slide</li></ul></div></div>
+        <div class="rule step" data-label="It does not"><ul style="margin:6px 0 0"><li>Change size, position or layout priority</li><li>Create a window or process</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Observed</span><ul style="margin:6px 0 0"><li>Works on the stack&rsquo;s <b>direct</b> child</li><li>Wrapped in another modifier, it had no effect</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>.zIndex controls relative drawing order: a larger value generally places a view above siblings with lower values in the same stacking context.</p>
+    <span class="notes-label">SAY</span><p>Click: our bottom card on the previous slide: the text still comes first in the source, but with zIndex(1) it is drawn above both colours.</p>
+    <span class="notes-label">SAY</span><p>Click: zIndex only changes visual stacking. It does not change a view&rsquo;s size, position or layout priority, and it does not create a separate window or process.</p>
+    <span class="notes-label">SAY</span><p>Click: something we hit while measuring: when we put another modifier after .zIndex, so that zIndex was no longer on the outermost layer of the ZStack&rsquo;s child, it had no effect. Put .zIndex last on the child.</p>
+    <span class="notes-label">CONNECT</span><p>Drawing order is settled. Now size: how big is a ZStack?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>ZStack sizing</h2>
+    <p class="lead">Overlap, don&rsquo;t add</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A 300 × 180 rectangle and a small text.</p>
+    <span class="notes-label">CONNECT</span><p>ZStack vs VStack.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; How does ZStack calculate its size? (section 5)</p>
+  <h2>Same children, different sizes</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 280px;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Sizes.swift</span></div><pre class="cb" style="font-size:13.5px">ZStack {
+    Rectangle().fill(.blue)
+        .frame(width: 300, height: 180)
+    Text(&quot;NPay&quot;)
+}
+
+VStack {   // same children
+    Rectangle().fill(.blue)
+        .frame(width: 300, height: 180)
+    Text(&quot;NPay&quot;)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Measured (red border)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">ZStack: 300.0 × 180.0 pt<br>VStack: 300.0 × 212.9 pt</p></div></div>
+        <div class="rule step" data-label="Careful"><ul style="margin:6px 0 0"><li>Here, the size of the <b>largest</b> child</li><li>Not a rule: proposals and flexibility decide</li></ul></div></div>
+      <div style="width:280px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/size.png" alt="Top: ZStack. Bottom: VStack"></div><p class="shot-cap">Top: ZStack. Bottom: VStack</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A blue rectangle requesting 300 by 180 points and a small text, once in a ZStack and once in a VStack, each with a red border. Under ordinary conditions a ZStack considers its children&rsquo;s sizes and alignment, but it does not add their heights.</p>
+    <span class="notes-label">SAY</span><p>Click: measured. The ZStack is 300 by 180, the rectangle&rsquo;s size; the text sits inside it. The VStack is 212.9 tall: the rectangle, the default spacing and the text, one after another. That replaces the text&rsquo;s toggle.</p>
+    <span class="notes-label">SAY</span><p>Click: in this case the ZStack took the size of its largest child, but do not turn that into a rule. ZStack sizing depends on proposals, child flexibility and alignment; a flexible child like Color takes whatever it is offered.</p>
+    <span class="notes-label">CONNECT</span><p>Inside that space, where does each child go? Alignment.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>ZStack alignment</h2>
+    <p class="lead">Two axes at once</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>ZStack centres its children by default.</p>
+    <span class="notes-label">CONNECT</span><p>Move the text.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Alignment inside ZStack (section 6)</p>
+  <h2><code>.topLeading</code>: top <b>and</b> leading</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:15px">ZStack(alignment: .topLeading) {
+    Color.blue
+
+    Text(&quot;NPay&quot;)
+        .foregroundStyle(.white)
+        .padding()
+}
+.frame(width: 300, height: 180)</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">An Alignment value</span><ul style="margin:6px 0 0"><li>Vertical <b>and</b> horizontal: <code>.topLeading</code>, <code>.center</code>, <code>.bottomTrailing</code>, &hellip;</li><li><code>alignment:</code> expects <code>Alignment</code>, so the shorthand is inferred</li></ul></div></div>
+      <div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/align.png" alt="Run at 300 × 150 to fit all three"></div><p class="shot-cap">Run at 300 × 150 to fit all three</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>ZStack centres by default. With alignment .topLeading the text goes to the top-leading corner; its padding keeps it off the edge. Unlike VStack&rsquo;s HorizontalAlignment or HStack&rsquo;s VerticalAlignment, a ZStack has both axes free, so it takes an Alignment: a vertical and a horizontal part together.</p>
+    <span class="notes-label">SAY</span><p>The shorthand works because alignment: expects an Alignment value, contextual type inference again. On the right, .topLeading, .center and .bottomTrailing in the simulator, run at 150 points tall so all three fit; the text&rsquo;s buttons showed the same idea conceptually.</p>
+    <span class="notes-label">CONNECT</span><p>ZStack is not the only way to layer. Two modifiers do it too.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>ZStack, background, overlay</h2>
+    <p class="lead">Three ways to layer</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>All three layer views. Their size rules differ.</p>
+    <span class="notes-label">CONNECT</span><p>Compare.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; ZStack vs .background() vs .overlay() (section 7)</p>
+  <h2>Who decides the size?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 250px;gap:28px;align-items:start">
+      <div><table class="tbl compact"><thead><tr><th></th><th>ZStack</th><th>.background</th><th>.overlay</th></tr></thead><tbody><tr><td>Purpose</td><td>general overlapping layout</td><td>content <b>behind</b> a view</td><td>content <b>over</b> a view</td></tr><tr><td>Size</td><td>considers participating children</td><td>follows the primary view</td><td>follows the primary view</td></tr><tr><td>Typical use</td><td>complex layered composition</td><td>card backgrounds</td><td>badges, labels, decoration</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">Measured (pt)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">ZStack 240 × 120 · background 110.3 × 92.3<br>overlay 240 × 120 · oversized overlay 240 × 120</p></div></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Choose"><ul style="margin:6px 0 0"><li>Layers that <b>share</b> a layout: ZStack</li><li>Visual <b>attached</b> to one view: background / overlay</li></ul></div></div>
+      <div style="width:250px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/layering.png" alt="Bottom: the overlay spills"></div><p class="shot-cap">Bottom: the overlay spills</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three ways to get layered visuals. A ZStack: its children take part in one layout together. .background: the background is attached to the modified view, behind it, and its size follows that view&rsquo;s layout region. .overlay: content laid out relative to the primary view, over it, and it generally does not decide the primary view&rsquo;s size.</p>
+    <span class="notes-label">SAY</span><p>On the right, top to bottom: the ZStack, the padded text with a blue background, the rounded rectangle with a text overlay, and the same rectangle with an overlay that is far too big. Click: the measurements. The background version is exactly the padded text, 110 by 92: the background followed the text. Both overlay versions are 240 by 120: the oversized text spills over the edges, drawn in black so you can see it, and the shape does not grow.</p>
+    <span class="notes-label">SAY</span><p>Click: the decision. Use ZStack when several layers should participate in one layered layout; use background and overlay when the visual naturally belongs to one primary view.</p>
+    <span class="notes-label">CONNECT</span><p>Now build NPay&rsquo;s card, one step at a time.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Build the balance card</h2>
+    <p class="lead">Shape, text, structure</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three steps from a blue shape to a balance card.</p>
+    <span class="notes-label">CONNECT</span><p>Step A.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Build the card incrementally (section 8)</p>
+  <h2>Step A, B, C</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.7fr) 250px;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Step C</span></div><pre class="cb" style="font-size:12.5px">ZStack {
+    RoundedRectangle(cornerRadius: 20)
+        .fill(.blue)
+
+    VStack(alignment: .leading, spacing: 12) {
+        Text(&quot;Available Balance&quot;)
+            .font(.subheadline)
+        Text(&quot;₹25,000&quot;)
+            .font(.largeTitle.bold())
+        Text(&quot;NPay Demo Account&quot;)
+            .font(.caption)
+    }
+    .foregroundStyle(.white)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(24)
+}
+.frame(height: 180)</pre></div>
+      <div class="step"><div class="card accent"><span class="label">Step C</span><ul style="margin:6px 0 0"><li><b>Shape</b>: the background layer</li><li><b>VStack</b>: the text, top to bottom</li><li><b>Padding</b>: away from the edges</li></ul></div></div>
+      <div style="width:250px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/steps.png" alt="Steps A, B (150 pt) and C"></div><p class="shot-cap">Steps A, B (150 pt) and C</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Step A: a RoundedRectangle, a SwiftUI shape, filled blue; .fill(.blue) describes its fill style and the frame constrains its height. Step B: put it in a ZStack with the balance on top: the text appears over the card. On the right, the top two cards; in the simulator we ran them 150 points tall so all three steps fit on one screen.</p>
+    <span class="notes-label">SAY</span><p>Step C, the code on the left: a label, the balance and the account name in a VStack aligned leading, white, stretched to the full width with leading alignment, and padded by 24. Click: the ZStack creates the overlapping layers, the RoundedRectangle is the background, the VStack organises the text, and the padding keeps it away from the card edges.</p>
+    <span class="notes-label">CONNECT</span><p>What does SwiftUI actually create for this?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; How SwiftUI composes the card (section 9) &middot; conceptual</p>
+  <h2>One description, rendered by SwiftUI</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1060 302" style="max-height:300px" role="img" aria-labelledby="comp">
+        <title id="comp">The ZStack has a RoundedRectangle background layer and a VStack text layer; SwiftUI does layout and rendering</title>
+        <g class="nd lit"><rect class="sh" x="380" y="0" width="300" height="56" rx="12"/><use href="#i-layers" x="394" y="15" width="26" height="26"/><text x="432" y="25">ZStack</text><text class="sm" x="432" y="43">the card</text></g>
+        <path class="wire" d="M450 60V92H170V120M163 113l7 7 7-7"/>
+        <path class="wire" d="M610 60V92H890V120M883 113l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="20" y="126" width="300" height="56" rx="12"/><use href="#i-frame" x="34" y="141" width="26" height="26"/><text x="72" y="151">RoundedRectangle</text><text class="sm" x="72" y="169">background layer</text></g>
+        <g class="nd"><rect class="sh" x="740" y="126" width="300" height="56" rx="12"/><use href="#i-file" x="754" y="141" width="26" height="26"/><text x="792" y="151">VStack</text><text class="sm" x="792" y="169">text content layer</text></g>
+        <path class="wire faint" d="M170 186V216H530V240M523 233l7 7 7-7"/>
+        <path class="wire faint" d="M890 186V216H530"/>
+        <g class="nd"><rect class="sh" x="380" y="246" width="300" height="56" rx="12"/><use href="#i-gear" x="394" y="261" width="26" height="26"/><text x="432" y="271">Layout + rendering</text><text class="sm" x="432" y="289">SwiftUI, internally</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">One CALayer per child?</span><ul style="margin:6px 0 0"><li><b>Not necessarily</b></li><li>SwiftUI manages rendering internally</li></ul></div>
+      <div class="card accent"><span class="label">What the API promises</span><ul style="margin:6px 0 0"><li>The declarative <b>layout</b> and <b>drawing</b></li><li>Not a one-to-one map to layers</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Conceptually the card is a ZStack with two children: the RoundedRectangle as the background layer and the VStack as the text layer, then layout and rendering. The word layer here is about drawing order, not a specific object.</p>
+    <span class="notes-label">SAY</span><p>Click: does SwiftUI create a separate CALayer for each child? Not necessarily. SwiftUI manages its rendering representations internally. The public API guarantees the declarative layout and drawing behaviour, not a fixed one-to-one mapping to Core Animation layers. That is the same caution as Lesson 2.1&rsquo;s "does every Text create a UILabel?".</p>
+    <span class="notes-label">CONNECT</span><p>Put the card into NPay.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>NPay with its card</h2>
+    <p class="lead">Milestone 2.5</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The card goes between the subtitle and the quick actions.</p>
+    <span class="notes-label">CONNECT</span><p>The final screen.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Complete NPay code (section 10)</p>
+  <h2>Milestone 2.5: the welcome screen with a card</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 200px;gap:32px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">The screen, top to bottom</span><ul style="margin:6px 0 0"><li><code>VStack(spacing: 28)</code></li><li>Icon (now 48 pt), title, subtitle</li><li><b>New</b>: the Step C card, 180 pt tall</li><li>Quick actions, <code>HStack(spacing: 30)</code></li><li><code>.padding()</code></li></ul></div>
+        <div class="rule step" data-label="One new component"><ul style="margin:6px 0 0"><li>Everything from 2.1&ndash;2.4 kept</li><li>The card: a ZStack inside the VStack</li></ul></div>
+      </div>
+      <div style="width:200px;max-width:100%;margin:0 auto"><div class="shot" style="height:435px"><img src="img/final.png" alt="Milestone 2.5"></div><p class="shot-cap">Milestone 2.5</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The complete code is in the lesson text and is long, so here is its structure. The outer VStack now has spacing 28. The symbol is 48 points instead of 64, then the title and subtitle. Then the new part: Step C&rsquo;s ZStack card, 180 points tall. Then the quick actions, now with spacing 30. The whole stack is padded. On the right, the real screen.</p>
+    <span class="notes-label">SAY</span><p>Click: we preserved every feature from the earlier lessons and added exactly one component: the balance card, a ZStack nested in the screen&rsquo;s VStack.</p>
+    <span class="notes-label">CONNECT</span><p>Three experiments from the text, run for real.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Experiments to run (section 11)</p>
+  <h2>The same card with <code>.background(_:in:)</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr) 260px;gap:22px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Experiment C</span></div><pre class="cb" style="font-size:12.5px">VStack(alignment: .leading, spacing: 12) {
+    Text(&quot;Available Balance&quot;)
+    Text(&quot;₹25,000&quot;)
+    Text(&quot;NPay Demo Account&quot;)
+}
+.foregroundStyle(.white)
+.padding(24)
+.frame(maxWidth: .infinity, alignment: .leading)
+.frame(height: 180)
+.background(.blue, in: RoundedRectangle(cornerRadius: 20))</pre></div>
+        <div class="step" style="margin-top:10px"><div class="card accent"><span class="label">Measured</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">ZStack card: 370.0 × 180.0 pt<br>background card: 370.0 × 180.0 pt</p></div></div></div>
+      <div class="card accent"><span class="label">Experiments A and B</span><ul style="margin:6px 0 0"><li><b>A</b>: shape after the text: it <b>covers</b> it (Part 3)</li><li><b>B</b>: <code>.topLeading</code>: <b>no visible change</b>; the VStack already fills the card</li></ul></div>
+      <div style="width:260px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/compare.png" alt="Top: ZStack. Bottom: background"></div><p class="shot-cap">Top: ZStack. Bottom: background</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text suggests three experiments. A: reverse the layers; the shape drawn after the text covers it, exactly what we saw in Part 3. B: give the card&rsquo;s ZStack .topLeading alignment; because the inner VStack already stretches to the full width and is padded, the difference is subtle to invisible.</p>
+    <span class="notes-label">SAY</span><p>C: build the card without a ZStack, using .background with a shape: background(.blue, in: RoundedRectangle). On the right, both versions, run with plain text so the comparison is fair. Click: same size, 370 by 180, and the same look.</p>
+    <span class="notes-label">SAY</span><p>For a card, whose shape is just the backdrop of its content, .background is the natural tool; a ZStack earns its place when several layers each take part in the layout.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.5 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Later is in front</b><br><span class="muted" style="font-size:19px">source order; .zIndex when needed</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></span><p style="font-size:23px"><b>ZStack overlaps</b><br><span class="muted" style="font-size:19px">sizes don&rsquo;t add; proposals decide</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p style="font-size:23px"><b>Attach or compose</b><br><span class="muted" style="font-size:19px">background/overlay vs ZStack</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. In a ZStack later children are drawn in front; .zIndex changes only that drawing order. A ZStack overlaps its children instead of adding their sizes, and its exact size depends on proposals and flexibility. And background and overlay attach a visual to one primary view, whose size wins, while a ZStack composes layers that take part in one layout.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>7 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="In a ZStack, is a later child drawn above an earlier one?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">In a <code>ZStack</code>, is a later child normally drawn above an earlier one?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Blue, then green, then the text: green covered blue and the text was on top.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the first child is the front.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. Blue, then green, then the text: green covered blue and the text was on top.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="ZStack { Text; Color.blue; Color.green }: what do you see?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">What do you see?</p><pre class="q-code">ZStack { Text("NPay"); Color.blue; Color.green }</pre><ol class="q-opts"><li>Green, with NPay on top</li><li>Only green</li><li>Blue and green side by side</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The text is drawn first, so both colours cover it.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting text to float above colours automatically.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The text is drawn first, so both colours cover it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does .zIndex(1) make a view larger?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>.zIndex(1)</code> change a view&rsquo;s size or position?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It only changes drawing order among siblings; layout is untouched.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing zIndex with layoutPriority.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It only changes drawing order among siblings; layout is untouched.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="ZStack { 300 × 180 rectangle; Text }: how tall?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text"><code>ZStack</code> with a 300 &times; 180 pt rectangle and a small Text. How tall is it?</p><ol class="q-opts"><li>180 pt</li><li>180 pt + the text&rsquo;s height</li><li>The whole screen</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Measured 300 &times; 180 pt; the same children in a VStack measured 212.9 pt tall.</p>
+          <p class="q-trap"><b>Common trap:</b> Adding heights as a VStack does.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. Measured 300 &times; 180 pt; the same children in a VStack measured 212.9 pt tall.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which follows the primary view&#x27;s size?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Which layering tool lets the <b>primary view</b> decide the size?</p><ol class="q-opts"><li><code>ZStack</code></li><li><code>.background</code> and <code>.overlay</code></li><li><code>.zIndex</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">An oversized overlay spilled over the edges; the shape stayed 240 &times; 120 pt.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting an overlay to grow its view.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. An oversized overlay spilled over the edges; the shape stayed 240 &times; 120 pt.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does every ZStack child get its own CALayer?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does SwiftUI create a separate <code>CALayer</code> for every child of a ZStack?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Not necessarily</span>
+          <p class="q-why">Rendering is internal; the API promises layout and drawing, not a layer per view.</p>
+          <p class="q-trap"><b>Common trap:</b> Mapping SwiftUI views one-to-one onto Core Animation objects.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>Not necessarily. Rendering is internal; the API promises layout and drawing, not a layer per view.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.4: does HStack give children equal widths?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 2.4: does a plain <code>HStack</code> give its children equal widths?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Plain Texts kept their own widths (39.3, 62.7, 54.7 pt); only flexible frames shared equally.</p>
+          <p class="q-trap"><b>Common trap:</b> Imagining equal columns.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.4.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Plain Texts kept their own widths (39.3, 62.7, 54.7 pt); only flexible frames shared equally.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.5 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">Later</td><td><b>State management</b></td><td>a real, changing balance instead of ₹25,000</td></tr><tr><td class="mono">2.6</td><td><b>SwiftUI view modifiers</b></td><td>background, overlay and the environment in depth</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The lesson text points ahead to real balance updates and state management, which replace today&rsquo;s fixed ₹25,000. Next lesson, 2.6, looks at modifiers in depth: background, overlay, order and the environment.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.5 &middot; Lab</p>
+  <h2>Layer the card yourself</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Run the text&rsquo;s three experiments. Predict first.</p><ol class="lab"><li><b>A</b>: move the shape before, then after, the VStack.</li><li><b>B</b>: <code>ZStack(alignment: .topLeading)</code>.</li><li><b>C</b>: rebuild the card with <code>.background(_:in:)</code>.</li><li>Hide a Text behind a colour; bring it back with <code>.zIndex</code>.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>A screenshot per experiment</li><li>One sentence: when you&rsquo;d choose ZStack over background</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our simulator runs: with the shape last it covers the text; .topLeading makes no visible difference because the VStack already fills the card; the background version measures the same 370 x 180 pt; zIndex(1) brings the hidden text forward, as long as it is the last modifier on that child.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.5 complete</p>
+    <h2>ZStack: Layering, Backgrounds<br>&amp; SwiftUI Rendering</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 2.6 &mdash; SwiftUI View Modifiers</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain what ZStack does on the depth axis, which child is in front and what zIndex changes, how a ZStack sizes itself, how its two-axis alignment works, when to use background or overlay instead, and how NPay&rsquo;s balance card is composed.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 2.6: SwiftUI view modifiers, how they really work: what .padding, .frame and .background return, why order matters, and the environment.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

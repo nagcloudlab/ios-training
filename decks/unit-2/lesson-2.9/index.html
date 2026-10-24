@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.9 — @Binding</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.9 — @Binding">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.9</p>
+    <h1 style="font-size:54px;line-height:1.05">@Binding: How Two<br>SwiftUI Views Share State</h1>
+    <p class="lead" style="max-width:760px">A child view needs to <b>change</b> a value its <b>parent</b> owns. Without a second copy. How?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In 2.8 NPay&rsquo;s balance became @State in ContentView. Now a separate view, a balance editor, needs to change that balance. Passing a value is not enough, and giving the child its own state creates a second copy. The answer is @Binding: what it is, how it writes through, how to build one by hand, and where it belongs in NPay. Console output and screenshots came from the iOS Simulator, with buttons activated through accessibility as before.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.9 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Why passing an <code>Int</code> can&rsquo;t <b>change</b> the parent</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p><code>@Binding</code> and <code>$balance</code>: read and <b>write</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p>How a binding writes through: <b>nonmutating set</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p><b>One source of truth</b>, not two</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Custom bindings: <code>Binding(get:set:)</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Value or binding: give <b>only the access needed</b></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.9 &middot; Where we are</p>
+  <h2>Today: a child edits parent state</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.9 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Text</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">2.2</text><text x="107.364" y="50" style="font-size:14px">Image &amp;</text><text x="107.364" y="68" style="font-size:14px">SF Symbols</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">2.3</text><text x="202.727" y="50" style="font-size:14px">VStack &amp;</text><text x="202.727" y="68" style="font-size:14px">@ViewBuilder</text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">2.4</text><text x="298.091" y="50" style="font-size:14px">HStack &amp;</text><text x="298.091" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">2.5</text><text x="393.455" y="50" style="font-size:14px">ZStack &amp;</text><text x="393.455" y="68" style="font-size:14px">layers</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">2.6</text><text x="488.818" y="50" style="font-size:14px">View</text><text x="488.818" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">2.7</text><text x="584.182" y="50" style="font-size:14px">Button &amp;</text><text x="584.182" y="68" style="font-size:14px">events</text></g>
+        <g class="nd"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">2.8</text><text x="679.545" y="50" style="font-size:14px">@State</text><text x="679.545" y="68" style="font-size:14px"></text></g>
+        <g class="nd lit"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">2.9</text><text x="774.909" y="50" style="font-size:14px">@Binding</text><text x="774.909" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">2.10</text><text x="870.273" y="50" style="font-size:14px">ForEach</text><text x="870.273" y="68" style="font-size:14px">&amp; List</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">2.11</text><text x="965.636" y="50" style="font-size:14px">TextField</text><text x="965.636" y="68" style="font-size:14px">&amp; focus</text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">2.12</text><text x="1061" y="50" style="font-size:14px">Payment</text><text x="1061" y="68" style="font-size:14px">flow</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.8: <code>@State balance</code> in ContentView; BalanceCard reads it.</span><span><b>Today</b>A <code>BalanceEditor</code> that changes it, through a binding.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson ContentView came to own the balance and BalanceCard displayed it. Today a second child, a balance editor, changes it: the first time a child writes state it does not own.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>A balance editor</h2>
+    <p class="lead">One balance, two views</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A card shows the balance; an editor changes it.</p>
+    <span class="notes-label">CONNECT</span><p>The target.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; NPay needs a balance editor (section 1)</p>
+  <h2>Milestone 2.9: an editor sharing one balance</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px 190px;gap:36px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Want</span><ul style="margin:6px 0 0"><li>A <b>Demo Balance Editor</b>: − ₹1,000 / + ₹1,000</li><li>The card shows the <b>same</b> balance</li></ul></div>
+        <div class="card accent"><span class="label">Don&rsquo;t want</span><ul style="margin:6px 0 0"><li>Two independent balance variables</li><li>Instead: <b>one source of truth</b></li></ul></div>
+      </div>
+      <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/before.png" alt="Before: Lesson 2.8"></div><p class="shot-cap">Before: Lesson 2.8</p></div>
+      <div class="step"><div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/taps.png" alt="+, +, − : ₹26,000"></div><p class="shot-cap">+, +, − : ₹26,000</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>ContentView owns the demo balance with @State and BalanceCard displays it; that works because the card only reads. Now we want a separate component, a Demo Balance Editor, that adds or subtracts ₹1,000.</p>
+    <span class="notes-label">SAY</span><p>Click: where we finish: the editor below the card. We activated plus, plus, minus, and the card shows ₹26,000. One balance, shown by one view and changed by another; not two balances that can drift apart.</p>
+    <span class="notes-label">CONNECT</span><p>First, try passing the balance as an Int.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Passing an Int</h2>
+    <p class="lead">A copy can&rsquo;t write back</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Give the editor the balance as a value.</p>
+    <span class="notes-label">CONNECT</span><p>Predict.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Why passing an Int is not enough (section 2)</p>
+  <h2>A value is a copy</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>BalanceEditor.swift</span></div><pre class="cb" style="font-size:15px">struct BalanceEditor: View {
+    let balance: Int
+
+    var body: some View {
+        Button(&quot;Add ₹1,000&quot;) {
+            balance += 1000
+        }
+    }
+}</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;left side of mutating operator isn&rsquo;t mutable: &lsquo;balance&rsquo; is a &lsquo;let&rsquo; constant</span></div>
+        <div class="step"><p style="margin:0;font-size:16px"><b>With <code>var</code> instead:</b></p><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;left side of mutating operator isn&rsquo;t mutable: &lsquo;self&rsquo; is immutable</span><p class="small muted" style="margin:4px 0 0">Both from swiftc, iOS 26.5 SDK</p></div>
+        <div class="rule step" data-label="Unit 01"><ul style="margin:6px 0 0"><li>An <code>Int</code> parameter is a <b>copy</b></li><li>Changing a copy can&rsquo;t update the parent</li><li>The child needs access to the parent&rsquo;s <b>storage</b></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The editor receives the balance as a let and tries to add 1,000. Predict: does it compile?</p>
+    <span class="notes-label">SAY</span><p>Click: no: balance is a let constant. Click: change it to var and it still fails, with 2.8&rsquo;s error: self is immutable. And even if it compiled, it would be the wrong pattern.</p>
+    <span class="notes-label">SAY</span><p>Click: value semantics from Unit 01. Passing an Int passes a copy. Changing an independent copy can never update the parent&rsquo;s state. The child needs access to the parent&rsquo;s state storage itself.</p>
+    <span class="notes-label">CONNECT</span><p>That access is a binding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>@Binding</h2>
+    <p class="lead">Access to someone else&rsquo;s state</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The child declares @Binding; the parent passes $balance.</p>
+    <span class="notes-label">CONNECT</span><p>Two small changes.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Introducing @Binding (section 3)</p>
+  <h2>Child: <code>@Binding</code>. Parent: <code>$balance</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>The child</span></div><pre class="cb" style="font-size:15px">struct BalanceEditor: View {
+    @Binding var balance: Int
+
+    var body: some View {
+        Button(&quot;Add ₹1,000&quot;) {
+            balance += 1000
+        }
+    }
+}</pre></div></div>
+      <div><div class="cw"><div class="ch"><span>The parent</span></div><pre class="cb" style="font-size:15px">struct ContentView: View {
+    @State private var balance = 25000
+
+    var body: some View {
+        BalanceEditor(balance: $balance)
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">What is happening</span><ul style="margin:6px 0 0"><li>ContentView <b>owns</b> the state</li><li>BalanceEditor gets a <b>binding</b> to it</li><li>It reads and writes <b>through</b> the binding</li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Change the child&rsquo;s let to @Binding var balance: Int. Now it compiles: the child can modify a value owned elsewhere. The parent provides access by passing $balance, with a dollar sign.</p>
+    <span class="notes-label">SAY</span><p>Click: ContentView still owns the state. BalanceEditor receives a binding to it, and reads and writes through that binding.</p>
+    <span class="notes-label">CONNECT</span><p>balance and $balance: the most important distinction today.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; balance versus $balance (section 4)</p>
+  <h2>The value, or a binding to it</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 186" style="max-height:170px" role="img" aria-labelledby="proj">
+        <title id="proj">balance is the Int value; $balance is the projected value, a Binding of Int</title>
+        <g class="nd lit"><rect class="sh" x="384" y="0" width="368" height="56" rx="12"/><use href="#i-layers" x="398" y="15" width="26" height="26"/><text x="436" y="25">@State balance</text><text class="sm" x="436" y="43">owned by ContentView</text></g>
+        <path class="wire" d="M480 60V96H184V124M177 117l7 7 7-7"/>
+        <path class="wire" d="M656 60V96H952V124M945 117l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="130" width="368" height="56" rx="12"/><use href="#i-code" x="14" y="145" width="26" height="26"/><text x="52" y="155">balance</text><text class="sm" x="52" y="173">the Int value</text></g>
+        <g class="nd"><rect class="sh" x="768" y="130" width="368" height="56" rx="12"/><use href="#i-link" x="782" y="145" width="26" height="26"/><text x="820" y="155">$balance</text><text class="sm" x="820" y="173">Binding&lt;Int&gt;: the projected value</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="step"><div class="card accent"><span class="label">type(of:) in the simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">parent  $balance:  Binding&lt;Int&gt;<br>child   balance:   Int<br>child   _balance:  Binding&lt;Int&gt;</p></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>Why the $</span></div><pre class="cb" style="font-size:12.5px">// iOS 26.5 SDK (excerpts)
+@propertyWrapper public struct State&lt;Value&gt; {
+    public var projectedValue: Binding&lt;Value&gt; { get }
+}
+@propertyWrapper public struct Binding&lt;Value&gt; {
+    public var wrappedValue: Value { get nonmutating set }
+}</pre></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>balance gives the wrapped value, an Int. $balance gives the projected value of @State, a Binding of Int.</p>
+    <span class="notes-label">SAY</span><p>Click: printed in the simulator. In the parent, $balance is Binding of Int. In the child, balance reads as a plain Int, and its hidden storage, _balance, is a Binding of Int: the child stores the binding the parent passed.</p>
+    <span class="notes-label">SAY</span><p>Click: why the dollar sign? A Swift property wrapper can expose a projectedValue, and $name is how you reach it. The SDK shows State&rsquo;s projectedValue is a Binding. So $ is a Swift language feature, not special SwiftUI syntax. Notice Binding&rsquo;s wrappedValue: get, nonmutating set. That is the next slide.</p>
+    <span class="notes-label">CONNECT</span><p>How can a binding change something it does not own?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>How a binding works</h2>
+    <p class="lead">It forwards the write</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A binding holds no balance of its own.</p>
+    <span class="notes-label">CONNECT</span><p>A teaching model.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; How does Binding work? (sections 5, 13)</p>
+  <h2>A getter, a setter, and <code>nonmutating set</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>SimpleBinding.swift (Mac, swiftc)</span></div><pre class="cb" style="font-size:12.5px">// Teaching approximation, not Apple&#x27;s implementation
+struct SimpleBinding&lt;Value&gt; {
+    let get: () -&gt; Value
+    let set: (Value) -&gt; Void
+
+    var wrappedValue: Value {
+        get { get() }
+        nonmutating set { set(newValue) }
+    }
+}
+
+final class Storage { var balance = 25000 }
+let storage = Storage()
+let binding = SimpleBinding(get: { storage.balance },
+                            set: { storage.balance = $0 })
+binding.wrappedValue += 1000     // binding is a let!
+print(binding.wrappedValue, storage.balance)</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Output</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">through the binding: 26000<br>the storage itself:  26000</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">nonmutating set</span><ul style="margin:6px 0 0"><li><b>Forwards</b> the write elsewhere</li><li>Works on a <code>let</code>, inside a view</li></ul></div></div>
+        <div class="rule step" data-label="Ownership"><ul style="margin:6px 0 0"><li>A binding <b>owns nothing</b></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A teaching model of a binding, not Apple&rsquo;s implementation: two closures, one that gets a value and one that sets it, and a wrappedValue whose setter is nonmutating. We added a tiny class to stand in for SwiftUI&rsquo;s state storage, made a SimpleBinding to it, stored the binding in a let, and added 1,000 through it.</p>
+    <span class="notes-label">SAY</span><p>Click: we compiled and ran it on a Mac: 26,000 through the binding, and 26,000 in the storage itself. Click: that worked on a let because the setter is nonmutating: writing does not change the binding&rsquo;s own fields, it forwards the write to storage elsewhere. That is exactly why a child view, whose self is immutable, can still write through @Binding. The real Binding&rsquo;s wrappedValue is declared get nonmutating set, as we saw in the SDK.</p>
+    <span class="notes-label">SAY</span><p>Click: so a binding does not own the value. It is a read and write connection to state owned elsewhere. Value is generic; for NPay it is Binding of Int.</p>
+    <span class="notes-label">CONNECT</span><p>Follow one write from the editor to the screen.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; One write, start to finish (sections 6, 13) &middot; conceptual</p>
+  <h2>From the editor&rsquo;s button to the card</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:28px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 620 216" style="max-height:240px" role="img" aria-labelledby="wf">
+        <title id="wf">The editor writes, the binding forwards, the parent state updates, dependent views re-evaluate</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="620" height="48" rx="12"/><use href="#i-tap" x="14" y="11" width="26" height="26"/><text x="52" y="21">Editor: balance += 1000</text><text class="sm" x="52" y="39">the child writes its bound property</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="56" width="620" height="48" rx="12"/><use href="#i-link" x="14" y="67" width="26" height="26"/><text x="52" y="77">Binding.wrappedValue setter</text><text class="sm" x="52" y="95">the write is forwarded</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="112" width="620" height="48" rx="12"/><use href="#i-layers" x="14" y="123" width="26" height="26"/><text x="52" y="133">ContentView&rsquo;s @State storage</text><text class="sm" x="52" y="151">the parent&rsquo;s state gets the new value</text></g>
+        <g class="nd" data-lit="4+"><rect class="sh" x="0" y="168" width="620" height="48" rx="12"/><use href="#i-eye" x="14" y="179" width="26" height="26"/><text x="52" y="189">Dependency update</text><text class="sm" x="52" y="207">views that read balance are re-evaluated</text></g>
+      </svg>
+    </div>
+      <div class="step"><div class="card accent"><span class="label">Simulator: +, +, − in NPay</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">BalanceCard body: 25000<br>BalanceEditor body: 25000<br>BalanceCard body: 26000<br>BalanceEditor body: 26000<br>… 27000 … 27000<br>… 26000 … 26000</p></div></div>
+    </div>
+    <div class="rule step" data-label="Parent @State &harr; child @Binding" style="margin-top:10px"><ul style="margin:6px 0 0"><li>Read and write both ways; <b>ownership</b> stays with the parent</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A conceptual walk; only step 1 of the text&rsquo;s widget was shared, and SwiftUI&rsquo;s binding storage is private. Click: in the editor, balance += 1000 writes the bound property. Click: the binding&rsquo;s setter forwards the write. Click: ContentView&rsquo;s @State storage receives the new value. Click: SwiftUI re-evaluates the views that read balance.</p>
+    <span class="notes-label">SAY</span><p>Click: our run in NPay with prints in both bodies: after each activation, both the card and the editor were evaluated with the same new number: 26,000, 27,000, then 26,000 again. One value, two consumers.</p>
+    <span class="notes-label">SAY</span><p>Click: the relationship: parent @State, child @Binding, with reads and writes in both directions, but ownership stays with the parent.</p>
+    <span class="notes-label">CONNECT</span><p>Why not just give the editor its own @State?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>One source of truth</h2>
+    <p class="lead">Not two copies</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What if the child owns its own balance?</p>
+    <span class="notes-label">CONNECT</span><p>We tried it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Why the child needs no @State of its own (section 7)</p>
+  <h2>Two sources of truth drift apart</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 320px;gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>BalanceEditor.swift</span></div><pre class="cb" style="font-size:15px">struct BalanceEditor: View {   // incorrect design
+    @State private var balance = 25000
+
+    var body: some View {
+        Button(&quot;Add ₹1,000&quot;) {
+            balance += 1000
+        }
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">One activation</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">child balance now 26000<br>parent still shows ₹25,000</p></div></div></div>
+      <div><div style="width:320px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/twosources.png" alt="Parent and child disagree"></div><p class="shot-cap">Parent and child disagree</p></div>
+        <div class="rule step" data-label="Principle" style="margin-top:12px"><ul style="margin:6px 0 0"><li>Make ownership <b>explicit</b></li><li>Shared state lives at a <b>shared level</b></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The incorrect design: the editor declares its own @State balance, starting at 25,000, next to the parent&rsquo;s. We activated Add once.</p>
+    <span class="notes-label">SAY</span><p>Click: the child&rsquo;s balance became 26,000; the parent still shows ₹25,000. Two sources of truth, and they have already diverged.</p>
+    <span class="notes-label">SAY</span><p>Click: the principle: make state ownership explicit. When several views read or change the same local state, put it at a shared level, here ContentView, and pass values or bindings down.</p>
+    <span class="notes-label">CONNECT</span><p>Build the real editor.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>NPay&rsquo;s BalanceEditor</h2>
+    <p class="lead">Milestone 2.9</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An editor with − and +, wired to ContentView&rsquo;s state.</p>
+    <span class="notes-label">CONNECT</span><p>The code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Create BalanceEditor (section 8)</p>
+  <h2>Two buttons, one binding</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:28px;align-items:start">
+      <div class="cw"><div class="ch"><span>BalanceEditor.swift</span></div><pre class="cb" style="font-size:12.5px">struct BalanceEditor: View {
+    @Binding var balance: Int
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Text(&quot;Demo Balance Editor&quot;)
+                .font(.headline)
+            HStack(spacing: 12) {
+                Button(&quot;− ₹1,000&quot;) {
+                    balance = max(0, balance - 1000)
+                }
+                .buttonStyle(.bordered)
+                Button(&quot;+ ₹1,000&quot;) {
+                    balance += 1000
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">max(0, balance - 1000)</span><ul style="margin:6px 0 0"><li>The demo balance never goes <b>negative</b></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Started at ₹500: − , −</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">BalanceEditor body: 0<br>balance now 0<br>(second −: still 0, no new update)</p></div></div>
+        <div class="rule step" data-label="Real payments"><ul style="margin:6px 0 0"><li>Validation belongs in trusted <b>domain and backend</b> logic</li><li>Not only in UI controls</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The real editor: a headline, then an HStack with a bordered minus button and a prominent plus button, both writing through the binding. Minus uses max(0, balance - 1000) so the demo balance never goes below zero.</p>
+    <span class="notes-label">SAY</span><p>Click: we started an editor at ₹500 and activated minus twice. The first press clamped to 0. The second asked for max(0, -1000), which is 0 again: the value did not change, and no further update was printed.</p>
+    <span class="notes-label">SAY</span><p>Click: a production note. A UI clamp is a convenience. In a real payment system, validation belongs in trusted domain and backend logic, never only in a button.</p>
+    <span class="notes-label">CONNECT</span><p>Wire it into ContentView.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Integrate and run (sections 9&ndash;10, 17)</p>
+  <h2>A value to the card, a binding to the editor</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 180px 180px;gap:24px;align-items:start">
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 680 172" style="max-height:200px" role="img" aria-labelledby="int">
+        <title id="int">ContentView passes a value to BalanceCard and a binding to BalanceEditor</title>
+        <g class="nd lit"><rect class="sh" x="190" y="0" width="300" height="52" rx="12"/><use href="#i-layers" x="204" y="13" width="26" height="26"/><text x="242" y="23">ContentView</text><text class="sm" x="242" y="41">@State balance</text></g>
+        <path class="wire" d="M270 56V84H160V110M153 103l7 7 7-7"/>
+        <path class="wire" d="M410 56V84H520V110M513 103l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="116" width="320" height="56" rx="12"/><use href="#i-file" x="14" y="131" width="26" height="26"/><text x="52" y="141">BalanceCard</text><text class="sm" x="52" y="159">balance · Int, read only</text></g>
+        <g class="nd"><rect class="sh" x="360" y="116" width="320" height="56" rx="12"/><use href="#i-link" x="374" y="131" width="26" height="26"/><text x="412" y="141">BalanceEditor</text><text class="sm" x="412" y="159">$balance · Binding, read + write</text></g>
+      </svg>
+    </div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">ContentView now</span><ul style="margin:6px 0 0"><li><code>ScrollView</code> around the <code>VStack</code></li><li>Header, card, <b>editor</b>, quick actions</li></ul></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Verify"><ul style="margin:6px 0 0"><li>+ updates the card; − decreases it, never below 0</li></ul></div></div>
+      <div style="width:180px;max-width:100%;margin:0 auto"><div class="shot" style="height:391px"><img src="img/final.png" alt="Launch: ₹25,000"></div><p class="shot-cap">Launch: ₹25,000</p></div>
+      <div class="step"><div style="width:180px;max-width:100%;margin:0 auto"><div class="shot" style="height:391px"><img src="img/taps.png" alt="+, +, −: ₹26,000"></div><p class="shot-cap">+, +, −: ₹26,000</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>ContentView already owns @State balance and passes balance, the value, to BalanceCard. Now it also passes $balance, a binding, to BalanceEditor. One source of truth, two consumers: the card reads, the editor reads and writes.</p>
+    <span class="notes-label">SAY</span><p>The complete code wraps the screen&rsquo;s VStack in a ScrollView so the growing interface stays usable on smaller iPhones; the next lesson looks at scrolling containers. The full code is in the lesson text. On the right, the real app at launch, and click, after plus, plus, minus: ₹26,000.</p>
+    <span class="notes-label">SAY</span><p>That is the text&rsquo;s final checkpoint: plus updates the card, minus decreases it without going below zero.</p>
+    <span class="notes-label">CONNECT</span><p>Bindings can also be built by hand.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Custom bindings</h2>
+    <p class="lead">Binding(get:set:)</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A binding is just a read and a write. Write them yourself.</p>
+    <span class="notes-label">CONNECT</span><p>By hand.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Build a binding manually (sections 11, 14)</p>
+  <h2>Explicit get and set, with validation</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Like $balance</span></div><pre class="cb" style="font-size:13.5px">BalanceEditor(
+    balance: Binding(
+        get: {
+            balance
+        },
+        set: { newValue in
+            balance = newValue
+        }
+    )
+)</pre></div>
+        <div class="step" style="margin-top:10px"><div class="card accent"><span class="label">+ through it</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">manual binding set 26000<br>BalanceCard body: 26000</p></div></div></div>
+      <div><div class="cw"><div class="ch"><span>Validating binding</span></div><pre class="cb" style="font-size:13px">private var safeBalance: Binding&lt;Int&gt; {
+    Binding(
+        get: {
+            balance
+        },
+        set: { newValue in
+            balance = max(0, newValue)
+        }
+    )
+}
+// BalanceEditor(balance: safeBalance)</pre></div>
+        <div class="step" style="margin-top:10px"><div class="card accent"><span class="label">A child that doesn&rsquo;t clamp, from ₹500: − , −</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">safeBalance set: asked -500, storing 0<br>safeBalance set: asked -1000, storing 0</p></div></div></div>
+    </div>
+    <div class="rule step" data-label="Use sparingly" style="margin-top:10px"><ul style="margin:6px 0 0"><li>Prefer plain <code>$balance</code>; UI validation &ne; financial validation</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A binding is a read and a write, so you can build one with Binding(get:set:): get returns the parent&rsquo;s balance, set stores the new value. That is conceptually the same as passing $balance. Click: we activated plus through it: our set closure ran with 26,000 and the card showed 26,000. It printed Binding of Int, the same type as $balance.</p>
+    <span class="notes-label">SAY</span><p>Custom bindings can also transform or validate. safeBalance clamps every write to zero or above. We gave it to a deliberately naive child that subtracts 1,000 with no check, starting from ₹500. Click: the child asked for -500, the binding stored 0; asked for -1,000, stored 0. The child never knew about the rule; the binding intercepted the write.</p>
+    <span class="notes-label">SAY</span><p>Click: two cautions. Do not add custom bindings where $balance is enough. And this is UI behaviour, not financial security: real payment rules are enforced by trusted domain and backend systems.</p>
+    <span class="notes-label">CONNECT</span><p>Last: how much access should each child get?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Access and debugging</h2>
+    <p class="lead">Only the access needed</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Value for readers; binding for writers.</p>
+    <span class="notes-label">CONNECT</span><p>Compare.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Read-only value vs binding (sections 15&ndash;16)</p>
+  <h2>Give a child only the access it needs</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Two children</span></div><pre class="cb" style="font-size:13.5px">struct BalanceCard: View {      // reads
+    let balance: Int
+    var body: some View {
+        Text(&quot;₹\(balance)&quot;)
+    }
+}
+
+struct BalanceEditor: View {    // reads and writes
+    @Binding var balance: Int
+    var body: some View {
+        Button(&quot;Add ₹1,000&quot;) {
+            balance += 1000
+        }
+    }
+}</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Rule</span><ul style="margin:6px 0 0"><li>Only <b>displays</b> it: pass a <b>value</b></li><li>Must <b>modify</b> parent state: pass a <b>binding</b></li><li>Data flow stays understandable</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">In Xcode</span><ul style="margin:6px 0 0"><li>Breakpoint on <code>balance += 1000</code> in the editor</li><li>Tap + ₹1,000; inspect; continue</li><li>The card shows the new amount</li></ul></div></div>
+        <div class="rule step" data-label="Observe"><ul style="margin:6px 0 0"><li>The <b>parent&rsquo;s</b> state changed</li><li>No copy in the child</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two children, intentionally different. BalanceCard only displays, so it gets a let value. BalanceEditor modifies parent-owned state, so it gets a @Binding.</p>
+    <span class="notes-label">SAY</span><p>The rule: give a child only the access it needs. If it only displays information, pass a value; if it must change parent-owned local state, pass a binding. That keeps ownership and data flow easy to follow.</p>
+    <span class="notes-label">SAY</span><p>Click: the debugging check from Section 15: a breakpoint on balance += 1000 in the editor, tap plus, inspect, continue, and the card updates. Click: what you are confirming is what our console showed: the child wrote through the binding, the parent&rsquo;s state changed, and no separate copy exists in the child.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.9 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:23px"><b>$balance is a Binding</b><br><span class="muted" style="font-size:19px">the projected value of @State</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p style="font-size:23px"><b>Bindings forward writes</b><br><span class="muted" style="font-size:19px">nonmutating set; no ownership</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>One owner, right access</b><br><span class="muted" style="font-size:19px">value to readers, binding to writers</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. $balance is @State&rsquo;s projected value, a Binding of Int, and a child declares @Binding to receive it. A binding owns nothing: its nonmutating setter forwards each write to the parent&rsquo;s storage, which is why it works inside a view struct. And keep one owner for each piece of state, passing a value to children that only read and a binding to children that write.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Who owns the balance in our NPay design?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Who owns the balance in our NPay design?</p><ol class="q-opts"><li><code>ContentView</code></li><li><code>BalanceEditor</code></li><li>Both, independently</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">ContentView&rsquo;s @State; the editor only has a binding to it.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking whoever writes, owns.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. ContentView&rsquo;s @State; the editor only has a binding to it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is the type of $balance?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the type of <code>$balance</code>?</p><ol class="q-opts"><li><code>Int</code></li><li><code>Binding&lt;Int&gt;</code></li><li><code>State&lt;Int&gt;</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Printed in the simulator; it is State&rsquo;s projectedValue.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing it with the wrapper, State.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick C.</p>
+    <span class="notes-label">SAY</span><p>B. Printed in the simulator; it is State&rsquo;s projectedValue.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does @Binding own the underlying value?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>@Binding</code> own the underlying value?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It forwards reads and writes to storage owned elsewhere.</p>
+          <p class="q-trap"><b>Common trap:</b> Picturing a copy inside the child.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It forwards reads and writes to storage owned elsewhere.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What happens when BalanceEditor changes balance?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What happens when <code>BalanceEditor</code> changes <code>balance</code>?</p><ol class="q-opts"><li>Only the child updates</li><li>The parent-owned state changes</li><li>A new independent balance is created</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Both BalanceCard and BalanceEditor re-evaluated with the same new value.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting a local change.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Both BalanceCard and BalanceEditor re-evaluated with the same new value.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why can @Binding work inside a view struct?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why can <code>@Binding</code> work inside a SwiftUI struct?</p><ol class="q-opts"><li>Its setter is nonmutating and writes through</li><li>It turns the struct into a class</li><li>It disables type checking</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">SDK: <code>wrappedValue { get nonmutating set }</code>; our SimpleBinding wrote through a <code>let</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the struct must become mutable.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. SDK: <code>wrappedValue { get nonmutating set }</code>; our SimpleBinding wrote through a <code>let</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Main risk of @State in both parent and child?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the main risk of duplicating <code>@State</code> in parent and child?</p><ol class="q-opts"><li>Two inconsistent sources of truth</li><li>A compiler crash</li><li>Automatic database writes</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Child ₹26,000, parent ₹25,000 after one tap.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking SwiftUI keeps them in sync.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. Child ₹26,000, parent ₹25,000 after one tap.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does Binding(get:set:) provide?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>Binding(get:set:)</code> provide?</p><ol class="q-opts"><li>Explicit read and write closures</li><li>A new process</li><li>Automatic persistence</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">safeBalance&rsquo;s setter clamped −500 to 0 before storing.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking bindings are magic.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. safeBalance&rsquo;s setter clamped −500 to 0 before storing.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should a display-only child get a @Binding?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Should a child receive <code>@Binding</code> if it only displays a value?</p><ol class="q-opts"><li>Always</li><li>Usually no</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Pass a value: give only the access needed.</p>
+          <p class="q-trap"><b>Common trap:</b> Handing out write access by default.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Pass a value: give only the access needed.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Balance ₹500, tap − ₹1,000 twice: result?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">The balance is ₹500. You tap <b>− ₹1,000</b> twice (it uses <code>max(0, balance - 1000)</code>). What does it show?</p><ol class="q-opts"><li>−₹1,500</li><li>₹0</li><li>−₹500</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">First press clamps to 0; the second stays 0.</p>
+          <p class="q-trap"><b>Common trap:</b> Forgetting the clamp.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. First press clamps to 0; the second stays 0.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.8: does @State survive app termination?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 2.8: does the <code>@State</code> balance survive if NPay is terminated?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">@State is in-memory UI state; persistence comes later.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing &ldquo;survives updates&rdquo; with &ldquo;saved&rdquo;.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.8.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. @State is in-memory UI state; persistence comes later.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.9 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.10</td><td><b>ForEach, List &amp; collection identity</b></td><td>a transaction model and NPay&rsquo;s first history: Identifiable, stable IDs</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Next lesson introduces a real transaction model and NPay&rsquo;s first transaction history: ForEach, List, Identifiable, stable IDs, view reuse, collection updates, and why unstable identity causes SwiftUI bugs, which connects straight back to 2.8&rsquo;s identity experiment.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.9 &middot; Lab</p>
+  <h2>Share one balance</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Predict, run, verify.</p><ol class="lab"><li>Try <code>let balance</code>, then <code>var</code>, in the child; read both errors.</li><li>Switch to <code>@Binding</code>; pass <code>$balance</code>.</li><li>Give the child its own <code>@State</code>; watch them diverge.</li><li>Build NPay&rsquo;s <code>BalanceEditor</code>; tap +, +, −.</li><li>Pass <code>safeBalance</code> to a child that doesn&rsquo;t clamp.</li><li>Breakpoint on <code>balance += 1000</code>; inspect.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Both compiler errors, explained</li><li>A screenshot of the diverged copies</li><li>Console output for safeBalance</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our runs: "&lsquo;balance&rsquo; is a &lsquo;let&rsquo; constant", then "&lsquo;self&rsquo; is immutable"; with its own @State the child shows 26,000 while the parent shows 25,000; +, +, − leaves ₹26,000 on the card; safeBalance turns −500 into 0; at the breakpoint the editor is about to write through the binding and the card updates after you continue.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.9 complete</p>
+    <h2>@Binding: How Two<br>SwiftUI Views Share State</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 2.10 &mdash; ForEach, List &amp; Collection Identity</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain why a passed value cannot change its parent, what @Binding and $balance are, how a binding forwards writes through a nonmutating setter without owning anything, why duplicated @State breaks the single source of truth, how to build and validate a binding by hand, and how to give each child only the access it needs.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 2.10: ForEach, List and collection identity. A transaction model and NPay&rsquo;s first transaction history, and why stable identity matters.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

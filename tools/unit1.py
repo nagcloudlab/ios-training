@@ -106,7 +106,9 @@ UNIT_LESSONS = globals().get('UNIT_LESSONS', UNIT1)
 def progress(lesson, tid='prog'):
     """Unit progress strip: earlier lessons done, this one teal, later ones ahead (dashed)."""
     n = [k for k, *_ in UNIT_LESSONS].index(lesson)
-    w, g = 104, (1136 - 10 * 104) / 9
+    count = len(UNIT_LESSONS)
+    w = 104 if count <= 10 else (1136 - (count - 1) * 8) // count   # boxes shrink to fit more than ten lessons
+    g = (1136 - count * w) / (count - 1)
     P = []
     for i, (k, t1, t2) in enumerate(UNIT_LESSONS):
         x = i * (w + g)
@@ -114,7 +116,7 @@ def progress(lesson, tid='prog'):
         P.append(f'<g class="{cls}"><rect class="sh" x="{x:g}" y="0" width="{w}" height="84" rx="12"/>'
                  f'<text class="sm" x="{x + 12:g}" y="24">{k}</text><text x="{x + 12:g}" y="50" style="font-size:14px">{t1}</text>'
                  f'<text x="{x + 12:g}" y="68" style="font-size:14px">{t2}</text></g>')
-    return svg('0 0 1136 84', f'Unit {UNIT_NO} progress: lesson {lesson} of 10', tid, P, 'max-height:96px')
+    return svg('0 0 1136 84', f'Unit {UNIT_NO} progress: lesson {lesson} of {count}', tid, P, 'max-height:96px')
 
 
 def where_slide(lesson, h2, focus, last, today, say, con):

@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.7 — Button &amp; Events</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.7 — Button &amp; Events">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.7</p>
+    <h1 style="font-size:54px;line-height:1.05">SwiftUI Button, Closures<br>&amp; Event Handling</h1>
+    <p class="lead" style="max-width:760px">A user touches <b>Send</b>. How does iOS know which <b>Swift closure</b> to run?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Until now NPay has been static: a header, a balance card and three quick actions. Today it becomes interactive. We follow a tap from the screen to a Swift closure, see when a button&rsquo;s closure runs and when it does not, look at hit testing, styles and accessibility, and turn QuickAction into a reusable button. Everything printed today came from the iOS Simulator; we activated the buttons through accessibility, the same path VoiceOver uses.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.7 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p><code>Button</code>&rsquo;s initializers and its <b>action closure</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Why evaluating <code>body</code> doesn&rsquo;t <b>run</b> the action</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-tap"/></svg></span><p>The path from a <b>tap</b> to your closure</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p>Hit testing, <code>contentShape</code>, styles, <b>disabled</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>A reusable button that takes a <b>closure</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Captures, ARC and a <b>responsive</b> main thread</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.7 &middot; Where we are</p>
+  <h2>Today: NPay responds</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.7 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Text</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">2.2</text><text x="107.364" y="50" style="font-size:14px">Image &amp;</text><text x="107.364" y="68" style="font-size:14px">SF Symbols</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">2.3</text><text x="202.727" y="50" style="font-size:14px">VStack &amp;</text><text x="202.727" y="68" style="font-size:14px">@ViewBuilder</text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">2.4</text><text x="298.091" y="50" style="font-size:14px">HStack &amp;</text><text x="298.091" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">2.5</text><text x="393.455" y="50" style="font-size:14px">ZStack &amp;</text><text x="393.455" y="68" style="font-size:14px">layers</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">2.6</text><text x="488.818" y="50" style="font-size:14px">View</text><text x="488.818" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd lit"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">2.7</text><text x="584.182" y="50" style="font-size:14px">Button &amp;</text><text x="584.182" y="68" style="font-size:14px">events</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">2.8</text><text x="679.545" y="50" style="font-size:14px">@State</text><text x="679.545" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">2.9</text><text x="774.909" y="50" style="font-size:14px">@Binding</text><text x="774.909" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">2.10</text><text x="870.273" y="50" style="font-size:14px">ForEach</text><text x="870.273" y="68" style="font-size:14px">&amp; List</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">2.11</text><text x="965.636" y="50" style="font-size:14px">TextField</text><text x="965.636" y="68" style="font-size:14px">&amp; focus</text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">2.12</text><text x="1061" y="50" style="font-size:14px">Payment</text><text x="1061" y="68" style="font-size:14px">flow</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.6: reusable <code>BalanceCard</code> and <code>QuickAction</code>, still static.</span><span><b>Today</b>Buttons: the quick actions run closures.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson NPay got reusable, styled components, but nothing responds to a tap. Today the quick actions become buttons. They only print for now; 2.8 makes them change what is on screen.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The milestone</h2>
+    <p class="lead">Quick actions that respond</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Same screen; now the actions do something.</p>
+    <span class="notes-label">CONNECT</span><p>Before and after.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our next NPay milestone (sections 1, 21)</p>
+  <h2>Milestone 2.7: three working quick actions</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px 190px;gap:36px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Today</span><ul style="margin:6px 0 0"><li>Send, Request, History become <b>buttons</b></li><li>Each runs a <b>closure</b> from ContentView</li></ul></div>
+        <div class="card accent"><span class="label">Not yet</span><ul style="margin:6px 0 0"><li>Actions <b>print</b>; the balance stays ₹25,000</li><li>Changing the screen: <b>2.8</b>, @State</li></ul></div>
+      </div>
+      <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/before.png" alt="Before: Lesson 2.6"></div><p class="shot-cap">Before: Lesson 2.6</p></div>
+      <div class="step"><div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/final.png" alt="After: Milestone 2.7"></div><p class="shot-cap">After: Milestone 2.7</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay so far: header, balance card, three quick actions that do nothing when tapped. Click: today they become buttons. The difference on screen is small, tighter spacing and taller tiles, but each one now runs a closure supplied by ContentView.</p>
+    <span class="notes-label">SAY</span><p>For this lesson the actions only print to the console, and the balance stays a hard-coded ₹25,000 on purpose. Lesson 2.8 replaces it with state.</p>
+    <span class="notes-label">CONNECT</span><p>Start with the simplest button.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Button</h2>
+    <p class="lead">A struct with a closure</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Button("Send Money") { … }: what is each part?</p>
+    <span class="notes-label">CONNECT</span><p>Read the API.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Understand Button (section 2)</p>
+  <h2>A title and an escaping action</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:17px">Button(&quot;Send Money&quot;) {
+    print(&quot;Send Money tapped&quot;)
+}</pre></div>
+        <div class="gap"></div>
+        <div class="cw"><div class="ch"><span>Simplified initializer</span></div><pre class="cb" style="font-size:15px">init(
+    _ titleKey: LocalizedStringKey,
+    action: @escaping () -&gt; Void
+)</pre></div></div>
+      <div><table class="tbl"><thead><tr><th>Part</th><th>Meaning</th></tr></thead><tbody><tr><td><code>Button</code></td><td>a generic SwiftUI struct</td></tr><tr><td><code>"Send Money"</code></td><td>the title</td></tr><tr><td><code>{ … }</code></td><td>trailing <b>action closure</b></td></tr><tr><td><code>@escaping</code></td><td><b>kept</b> after init returns</td></tr><tr><td><code>() -&gt; Void</code></td><td>no arguments, no result</td></tr></tbody></table>
+        <div class="rule step" data-label="Unit 01" style="margin-top:12px"><ul style="margin:6px 0 0"><li>A closure is a value: store it, call it later</li><li>Button stores one; calls it <b>when activated</b></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The simplest button: a title and a trailing closure. A simplified form of the initializer it calls: a localized title key, and an action of type escaping closure taking nothing and returning Void. SwiftUI has several Button initializers; we meet the custom-label one next.</p>
+    <span class="notes-label">SAY</span><p>The parts: Button, a generic struct; the title; the trailing action closure; @escaping, because the button keeps the closure after the initializer has returned; and () -> Void, no arguments and no result.</p>
+    <span class="notes-label">SAY</span><p>Click: closures as values, from Unit 01. You can store a closure in a constant and call it later. A Button does exactly that: it stores the closure and calls it when the button is activated.</p>
+    <span class="notes-label">CONNECT</span><p>The second initializer lets you design the label.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; A custom label (section 7)</p>
+  <h2>Two closures: action and label</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:16px">Button {
+    print(&quot;Send tapped&quot;)
+} label: {
+    VStack(spacing: 8) {
+        Image(systemName: &quot;arrow.up.right&quot;)
+        Text(&quot;Send&quot;)
+    }
+}</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Two closures</span><ul style="margin:6px 0 0"><li><code>action</code>: what happens</li><li><code>label</code>: what it looks like, a <code>@ViewBuilder</code></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">type(of:) in the simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Button("Send Money") { … }:<br>  Button&lt;Text&gt;<br>Button { … } label: { VStack … }:<br>  Button&lt;VStack&lt;TupleView&lt;(Image, Text)&gt;&gt;&gt;</p></div></div>
+        <div class="rule step" data-label="Generics"><ul style="margin:6px 0 0"><li><code>Button&lt;Label&gt;</code>: Swift infers <code>Label</code> from the closure</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The second initializer takes two closures: the action, what happens when it is activated, and the label, what the button looks like. The label closure is a @ViewBuilder, like a stack&rsquo;s content in 2.3, so it can hold an icon over a text.</p>
+    <span class="notes-label">SAY</span><p>Click: the printed types. With a string title, Button of Text. With our label, Button of VStack of TupleView of Image and Text. Click: Button is generic over its label type, and Swift infers that type from the label closure: generics again.</p>
+    <span class="notes-label">CONNECT</span><p>So when does the action closure actually run?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Creation vs activation</h2>
+    <p class="lead">body runs; the action waits</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>If body is evaluated ten times, does the action run ten times?</p>
+    <span class="notes-label">CONNECT</span><p>We counted.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Does the closure run when body runs? (section 3)</p>
+  <h2>Evaluation is not activation</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>PaymentView.swift</span></div><pre class="cb" style="font-size:13px">struct PaymentView: View {
+    let tick: Int
+    var body: some View {
+        let _ = print(&quot;PaymentView.body evaluated (tick \(tick))&quot;)
+        Button(&quot;Send Money&quot;) {
+            print(&quot;Payment requested&quot;)
+        }
+    }
+}</pre></div>
+        <div class="step" style="margin-top:10px"><div class="card accent"><span class="label">Parent changed 3 times, no tap</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">PaymentView.body evaluated (tick 0)<br>… (tick 1) … (tick 2) … (tick 3)<br>"Payment requested": never printed</p></div></div></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 520 252" style="max-height:280px" role="img" aria-labelledby="ca">
+        <title id="ca">Body evaluated, closure stored, body evaluated again, user activates, action runs</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="520" height="44" rx="12"/><use href="#i-code" x="14" y="9" width="26" height="26"/><text x="52" y="19">body evaluated</text><text class="sm" x="52" y="37">SwiftUI gets a Button description</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="52" width="520" height="44" rx="12"/><use href="#i-link" x="14" y="61" width="26" height="26"/><text x="52" y="71">Closure stored</text><text class="sm" x="52" y="89">inside that description, not called</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="104" width="520" height="44" rx="12"/><use href="#i-diff" x="14" y="113" width="26" height="26"/><text x="52" y="123">body evaluated again</text><text class="sm" x="52" y="141">a new description, a new closure</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="156" width="520" height="44" rx="12"/><use href="#i-tap" x="14" y="165" width="26" height="26"/><text x="52" y="175">User activates the button</text><text class="sm" x="52" y="193">a separate event</text></g>
+        <g class="nd" data-lit="5+"><rect class="sh" x="0" y="208" width="520" height="44" rx="12"/><use href="#i-check" x="14" y="217" width="26" height="26"/><text x="52" y="227">The action runs</text><text class="sm" x="52" y="245">once per activation</text></g>
+      </svg>
+    </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A PaymentView with a print in its body and a button. We made its parent change three times, which makes SwiftUI evaluate the body again, and never activated the button. Click: body evaluated. Click: the description contains the action closure, stored, not called. Click: body evaluated again: a new description with a new closure.</p>
+    <span class="notes-label">SAY</span><p>The console: body evaluated four times, tick 0 to 3, and "Payment requested" never printed. Click: the action runs only when the user activates the button, a separate event. Click: and then once per activation.</p>
+    <span class="notes-label">SAY</span><p>So if SwiftUI re-evaluates body ten times, the action runs zero times. View evaluation and user activation are separate events. That is also why it is safe to create closures in body.</p>
+    <span class="notes-label">CONNECT</span><p>Now the activation itself: from a finger to your closure.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>From tap to closure</h2>
+    <p class="lead">The event path</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A finger touches glass. Your closure runs. What happens in between?</p>
+    <span class="notes-label">CONNECT</span><p>The pipeline.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; From finger tap to Swift closure (section 4) &middot; conceptual</p>
+  <h2>Six steps from glass to code</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:28px;align-items:center">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 600 304" style="max-height:330px" role="img" aria-labelledby="tap">
+        <title id="tap">Finger touches the screen, iOS input handling, delivery to the app, hit testing, Button activation, the action closure runs</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="600" height="44" rx="12"/><use href="#i-phone" x="14" y="9" width="26" height="26"/><text x="52" y="19">Finger touches the screen</text><text class="sm" x="52" y="37">hardware detects touch</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="52" width="600" height="44" rx="12"/><use href="#i-kernel" x="14" y="61" width="26" height="26"/><text x="52" y="71">iOS input handling</text><text class="sm" x="52" y="89">the system processes and routes it</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="104" width="600" height="44" rx="12"/><use href="#i-process" x="14" y="113" width="26" height="26"/><text x="52" y="123">Delivered to the app</text><text class="sm" x="52" y="141">the running NPay process</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="156" width="600" height="44" rx="12"/><use href="#i-frame" x="14" y="165" width="26" height="26"/><text x="52" y="175">Hit testing</text><text class="sm" x="52" y="193">the interactive control is identified</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="208" width="600" height="44" rx="12"/><use href="#i-tap" x="14" y="217" width="26" height="26"/><text x="52" y="227">SwiftUI Button activation</text><text class="sm" x="52" y="245">the framework recognises it</text></g>
+        <g class="nd" data-lit="6+"><rect class="sh" x="0" y="260" width="600" height="44" rx="12"/><use href="#i-check" x="14" y="269" width="26" height="26"/><text x="52" y="279">Your action closure runs</text><text class="sm" x="52" y="297">on the main actor</text></g>
+      </svg>
+    </div>
+      <div class="rule step" data-label="Main thread (0.5)"><ul style="margin:6px 0 0"><li>UI interactions run on the <b>main actor</b></li><li>Keep actions <b>short</b></li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Connect to Unit 00&rsquo;s main thread and RunLoop. Click: a finger touches the screen and the hardware detects it. Click: iOS&rsquo;s input infrastructure processes and routes the input. Click: the event reaches the running NPay process. Click: hit testing identifies the interactive control under the finger. Click: SwiftUI recognises a button activation. Click: your action closure runs.</p>
+    <span class="notes-label">SAY</span><p>This is conceptual: Apple does not publish the exact routing or SwiftUI&rsquo;s internals. Click: one thing we can rely on: SwiftUI handles UI interactions on the main actor, so actions must stay short. Part 8 shows what happens when they are not.</p>
+    <span class="notes-label">CONNECT</span><p>We can see the last steps for real, in a call stack.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Inspect the call stack (sections 13, 17)</p>
+  <h2>Inside the existing process, on the main thread</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:28px;align-items:start">
+      <div><div class="card accent"><span class="label">Inside the Send action: Thread.callStackSymbols (selected)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Send tapped<br>main thread: true<br><br>0  closure #1 in StackView.body.getter<br>2  static MainActor.assumeIsolated(…)<br>3  ButtonAction.callAsFunction()<br>4  … AccessibilityButtonModifier.init(_:)<br>…<br>12 AccessibilityNode.accessibilityActivate()<br>13 activate(_:)   ← our test code</p></div>
+        <p class="small muted" style="margin:8px 0 0">Activated through accessibility, as VoiceOver does; a finger tap shows touch and gesture frames lower down. Frames vary by iOS version.</p></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">In Xcode</span><ul style="margin:6px 0 0"><li>Breakpoint on <code>print("Send tapped")</code></li><li><b>⌘R</b>, tap Send, <b>⌘7</b> for the stack</li><li>LLDB: <code>bt</code>, <code>thread list</code></li></ul></div>
+        <div class="rule step" data-label="Observe"><ul style="margin:6px 0 0"><li>Your closure, called by SwiftUI&rsquo;s <code>ButtonAction</code></li><li>Same process: nothing rebuilt, nothing relaunched</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s debugging lab: set a breakpoint on print("Send tapped"), run, tap Send, open the Debug navigator with Command-7, and type bt and thread list in the console. We did the equivalent inside the action: printed whether we are on the main thread and the call stack.</p>
+    <span class="notes-label">SAY</span><p>Main thread: true. At the top of the stack, frame 0, our closure. Just below it, SwiftUI&rsquo;s ButtonAction.callAsFunction, run with MainActor.assumeIsolated. Lower down, the activation entered through the accessibility node, because our script activated the button the way VoiceOver does; a real finger tap would show touch and gesture-recognition frames there instead. The exact frames depend on the iOS version.</p>
+    <span class="notes-label">SAY</span><p>Click: what to observe: your closure, called by SwiftUI&rsquo;s button machinery, inside the same running process. Tapping Send does not rebuild or relaunch NPay.</p>
+    <span class="notes-label">CONNECT</span><p>Step 4 of the pipeline was hit testing. What is that?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Hit testing</h2>
+    <p class="lead">Which view gets the tap?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A point on the screen. Which control responds?</p>
+    <span class="notes-label">CONNECT</span><p>Interaction regions.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Hit testing and contentShape (sections 5&ndash;6)</p>
+  <h2>Make the whole tile tappable</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:14px">Button {
+    print(&quot;Send tapped&quot;)
+} label: {
+    HStack {
+        Image(systemName: &quot;arrow.up.right&quot;)
+        Text(&quot;Send&quot;)
+    }
+    .frame(maxWidth: .infinity)
+    .padding()
+    .contentShape(Rectangle())
+}</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Hit testing</span><ul style="margin:6px 0 0"><li>Finds the <b>interactive view</b> at the touch point</li><li>Uses the hierarchy and <b>interaction regions</b></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Looks ≠ responds</span><ul style="margin:6px 0 0"><li>Empty or transparent parts of a label may <b>not</b> respond</li><li><code>.contentShape(Rectangle())</code>: the whole rectangle</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">NPay&rsquo;s tiles, accessibility frames</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Send 115 × 72 · Request 115 × 72 · History 115 × 78 pt</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>When the user taps a point, hit testing determines which interactive view corresponds to that location, using the view hierarchy and each view&rsquo;s interaction region. The text&rsquo;s widget showed a tap landing on History.</p>
+    <span class="notes-label">SAY</span><p>Click: a view&rsquo;s appearance and its hit region are related but not identical. A custom label with empty space, like this HStack stretched to full width, may not respond in its empty parts. .contentShape(Rectangle()) declares the whole rectangle as the interaction shape, so the region matches the tile you drew.</p>
+    <span class="notes-label">SAY</span><p>Click: NPay&rsquo;s quick actions use it. The accessibility frames of the three tiles: about 115 by 72 points each, comfortably above the 44 by 44 guideline from Section 19. We could not script real finger taps in this setup, so hit testing itself is shown, not measured; try tapping the tile edges in your own simulator.</p>
+    <span class="notes-label">CONNECT</span><p>Next: how a button looks and whether it can be used at all.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Styles, disabled, accessibility</h2>
+    <p class="lead">Presentation and access</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Same button, different presentation, and sometimes unavailable.</p>
+    <span class="notes-label">CONNECT</span><p>Styles first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Button styles (section 8)</p>
+  <h2><code>.plain</code>, <code>.bordered</code>, <code>.borderedProminent</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 320px;gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:16px">Button(&quot;Send Money&quot;) {
+    print(&quot;Tapped&quot;)
+}
+.buttonStyle(.borderedProminent)</pre></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Not just colour"><ul style="margin:6px 0 0"><li>Feedback, emphasis, shape</li><li>Adapts to environment and state</li></ul></div></div>
+      <div style="width:320px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/styles.png" alt="iPhone 17 simulator, iOS 26.5"></div><p class="shot-cap">iPhone 17 simulator, iOS 26.5</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>.buttonStyle changes how a button is presented. On the right, the three common built-in styles in the iOS 26.5 simulator, plain, bordered and borderedProminent, plus a disabled prominent button; the exact look varies by OS version, environment and state.</p>
+    <span class="notes-label">SAY</span><p>Click: styles are not colour presets. They also define interaction feedback, visual emphasis and shape, and they adapt to the environment, such as dark mode or the disabled state you see at the bottom.</p>
+    <span class="notes-label">CONNECT</span><p>That disabled state deserves its own slide.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Disabled state and accessibility (sections 9, 19)</p>
+  <h2>Say it&rsquo;s unavailable; say what it does</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:14px">Button(&quot;Send Money&quot;) {
+    print(&quot;Send requested&quot;)
+}
+.disabled(true)
+
+Button {
+    print(&quot;Send requested&quot;)
+} label: {
+    Image(systemName: &quot;arrow.up.right&quot;)
+}
+.accessibilityLabel(&quot;Send money&quot;)</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Activated both, in the simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Send Money: button, enabled: false<br>  → nothing printed<br>Request Money: button, enabled: true<br>  → Request requested</p></div></div>
+        <div class="card accent"><span class="label">Why .disabled</span><ul style="margin:6px 0 0"><li>Better than ignoring taps in the action</li><li>Changes <b>look</b> and <b>accessibility</b></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Labels</span><ul style="margin:6px 0 0"><li>Icon only? Add <code>.accessibilityLabel</code></li><li>Text labels are clearer: an arrow could mean Send, Upload, Share</li><li>Touch targets: about <b>44 × 44 pt</b> or larger</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Until the user enters a valid amount, Send should be disabled. .disabled(true) says the control is unavailable. Click: we activated a disabled Send Money button and an enabled Request Money button: accessibility reported Send as a button that is not enabled, and nothing ran; Request ran its action.</p>
+    <span class="notes-label">SAY</span><p>That is why .disabled beats silently ignoring taps inside the action: the button looks unavailable, and VoiceOver announces it as dimmed.</p>
+    <span class="notes-label">SAY</span><p>Click: accessibility labels. An icon-only button needs .accessibilityLabel so VoiceOver can say what it does. Our quick actions have text labels, which helps everyone: an arrow alone could mean Send, Transfer, Upload or Share. Apple&rsquo;s guidance suggests touch targets of about 44 by 44 points or larger; our tiles measured about 115 by 72.</p>
+    <span class="notes-label">CONNECT</span><p>Now make QuickAction a real, reusable button.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>QuickAction as a button</h2>
+    <p class="lead">The parent supplies behaviour</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One reusable view, three behaviours.</p>
+    <span class="notes-label">CONNECT</span><p>The new QuickAction.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Interactive quick actions (section 10)</p>
+  <h2>QuickAction stores a closure</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:28px;align-items:start">
+      <div class="cw"><div class="ch"><span>QuickAction.swift</span></div><pre class="cb" style="font-size:12.5px">struct QuickAction: View {
+    let symbol: String
+    let title: String
+    let action: () -&gt; Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.title2)
+                Text(title)
+                    .font(.caption)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.blue)
+        .background(Color.blue.opacity(0.08),
+                    in: RoundedRectangle(cornerRadius: 12))
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">New</span><ul style="margin:6px 0 0"><li><code>let action: () -&gt; Void</code>, a <b>closure property</b></li><li><code>Button(action: action)</code> uses it</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">type(of: quickAction.action)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">() -&gt; ()</p></div></div>
+        <div class="rule step" data-label="Ownership"><ul style="margin:6px 0 0"><li>A stored closure can <b>capture</b> objects</li><li>ARC matters when it captures models (Part 8)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>QuickAction gets a third property: let action: () -> Void, a closure property. Its body wraps the old icon-over-label VStack in Button(action: action): the label is the tile, and contentShape makes the whole tile tappable. .buttonStyle(.plain) keeps our own look instead of the system style.</p>
+    <span class="notes-label">SAY</span><p>Click: we printed the stored property&rsquo;s type: () -> (), Swift&rsquo;s spelling of () -> Void. A closure value, not a function name and not an event object.</p>
+    <span class="notes-label">SAY</span><p>Click: because QuickAction stores the closure, the closure can capture other objects and keep them alive. Today the actions only print, so nothing is captured; when they start capturing ViewModels and services, ARC matters. Part 8.</p>
+    <span class="notes-label">CONNECT</span><p>ContentView supplies the three closures.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Who owns the action? (sections 11&ndash;12, 14&ndash;15)</p>
+  <h2>Follow the Send closure</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift (the row)</span></div><pre class="cb" style="font-size:12.5px">HStack(spacing: 12) {
+    QuickAction(symbol: &quot;arrow.up.right&quot;,
+                title: &quot;Send&quot;) {
+        print(&quot;Send tapped&quot;)
+    }
+    QuickAction(symbol: &quot;arrow.down.left&quot;,
+                title: &quot;Request&quot;) {
+        print(&quot;Request tapped&quot;)
+    }
+    QuickAction(symbol: &quot;clock&quot;,
+                title: &quot;History&quot;) {
+        print(&quot;History tapped&quot;)
+    }
+}</pre></div>
+        <div class="step" style="margin-top:10px"><div class="card accent"><span class="label">All three activated</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Send tapped<br>Request tapped<br>History tapped</p></div></div></div>
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 480 252" style="max-height:280px" role="img" aria-labelledby="own">
+        <title id="own">ContentView defines the closure, the initializer receives it, QuickAction stores it, Button uses it, activation runs it</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="480" height="44" rx="12"/><use href="#i-phone" x="14" y="9" width="26" height="26"/><text x="52" y="19">ContentView</text><text class="sm" x="52" y="37">defines the Send closure</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="52" width="480" height="44" rx="12"/><use href="#i-code" x="14" y="61" width="26" height="26"/><text x="52" y="71">QuickAction init</text><text class="sm" x="52" y="89">receives it as an argument</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="104" width="480" height="44" rx="12"/><use href="#i-link" x="14" y="113" width="26" height="26"/><text x="52" y="123">QuickAction.action</text><text class="sm" x="52" y="141">stores the closure value</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="156" width="480" height="44" rx="12"/><use href="#i-tap" x="14" y="165" width="26" height="26"/><text x="52" y="175">Button(action: action)</text><text class="sm" x="52" y="193">its activation handler</text></g>
+        <g class="nd" data-lit="5+"><rect class="sh" x="0" y="208" width="480" height="44" rx="12"/><use href="#i-check" x="14" y="217" width="26" height="26"/><text x="52" y="227">Activated</text><text class="sm" x="52" y="245">print("Send tapped") runs</text></g>
+      </svg>
+    </div>
+        <div class="rule step" data-label="Separation" style="margin-top:10px"><ul style="margin:6px 0 0"><li>QuickAction: <b>how</b> it looks and is triggered</li><li>ContentView: <b>what</b> it means</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>ContentView&rsquo;s new row: three QuickActions, each with a trailing closure. Follow Send&rsquo;s closure. Click: ContentView defines it. Click: QuickAction&rsquo;s initializer receives it as an argument. Click: QuickAction stores it in action. Click: inside body, Button(action: action) makes it the activation handler. Click: when the button is activated, print("Send tapped") runs.</p>
+    <span class="notes-label">SAY</span><p>We activated all three tiles in the simulator: Send tapped, Request tapped, History tapped. One reusable view, three behaviours; that is the lab&rsquo;s verification step.</p>
+    <span class="notes-label">SAY</span><p>Click: why this is good architecture. QuickAction does not know about payments, history or navigation; it knows how to look and how to call its closure. The parent decides what the action means. That separation is the seed of MVVM and dependency injection later.</p>
+    <span class="notes-label">CONNECT</span><p>Two risks come with closures in buttons: lifetimes and blocking.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Captures and responsiveness</h2>
+    <p class="lead">Lifetimes and the main thread</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What can a stored closure keep alive, and what can a slow one freeze?</p>
+    <span class="notes-label">CONNECT</span><p>Captures first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Closure capture and ARC (section 16)</p>
+  <h2>A closure can keep an object alive</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Capture.swift (Mac, swiftc)</span></div><pre class="cb" style="font-size:13px">final class PaymentService {
+    func send() { print(&quot;Sending payment&quot;) }
+    deinit { print(&quot;PaymentService deinit&quot;) }
+}
+
+var service: PaymentService? = PaymentService()
+var action: (() -&gt; Void)? = { [service] in service?.send() }
+
+service = nil
+print(&quot;service variable set to nil&quot;)
+action?()
+action = nil
+print(&quot;closure released&quot;)</pre></div>
+        <div class="step" style="margin-top:10px"><div class="card accent"><span class="label">Output</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">service variable set to nil<br>Sending payment<br>PaymentService deinit<br>closure released</p></div></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Every capture a cycle?</span><ul style="margin:6px 0 0"><li><b>No</b>: a cycle needs a strong <b>loop</b></li><li>e.g. a service storing a closure that captures that service</li></ul></div></div>
+        <div class="rule step" data-label="[weak self] everywhere?"><ul style="margin:6px 0 0"><li>No: decide from <b>ownership</b> (1.8)</li><li>Today&rsquo;s actions only print</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s PaymentService example, made observable: a deinit that prints, a closure that captures the service, then we drop our own variable. Click: we compiled and ran it on a Mac. Setting the variable to nil did not free the service: the closure still held it and could still send a payment. The service was freed only when the closure was released. A stored closure can extend the lifetime of what it captures.</p>
+    <span class="notes-label">SAY</span><p>Click: does every button closure cause a retain cycle? No. A cycle needs a strong loop, for example a service that stores a closure which strongly captures that same service, as in Lesson 1.8.</p>
+    <span class="notes-label">SAY</span><p>Click: so should every SwiftUI action say [weak self]? No. Decide from the ownership relationships; weak references everywhere are not a substitute for understanding lifetimes. Our current actions only call print, so there is nothing to worry about yet.</p>
+    <span class="notes-label">CONNECT</span><p>The other risk: a slow action.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Keep actions responsive (section 18)</p>
+  <h2>A 3-second action freezes the main thread</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Deliberately bad</span></div><pre class="cb" style="font-size:16px">Button(&quot;Send&quot;) {
+    Thread.sleep(forTimeInterval: 3)
+    print(&quot;Finished&quot;)
+}</pre></div>
+        <div class="gap"></div>
+        <div class="cw"><div class="ch"><span>Later: the structure for async work</span></div><pre class="cb" style="font-size:14px">Button(&quot;Send&quot;) {
+    Task {
+        // call an async payment service
+    }
+}</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">A main-thread timer, every 0.5 s</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">fired at 0.5 · 1.0 · 1.5 secs<br>→ Send activated<br>Finished<br>fired at 4.6 · 5.0 · 5.5 secs</p></div></div>
+        <div class="rule step" data-label="Silent for 3 s"><ul style="margin:6px 0 0"><li>No timer, no events, no frames (0.5)</li><li><code>Task</code> alone doesn&rsquo;t make CPU work safe (1.9)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A deliberately bad action: sleep three seconds on the main thread, then print. We ran a repeating timer on the main thread, firing every half second, and activated the button at 1.5 seconds.</p>
+    <span class="notes-label">SAY</span><p>Click: the timer fired at 0.5, 1.0 and 1.5 seconds, then nothing until 4.6. Three seconds of silence: while the action blocked the main thread, no timer, no touch handling and no new frames, the RunLoop story from Lesson 0.5.</p>
+    <span class="notes-label">SAY</span><p>Click: the direction for later: when Send calls a real payment service, the action will start a Task and await an asynchronous service. Only the structure for now. Creating a Task does not by itself make synchronous CPU-heavy work safe on the main actor, as 1.9 measured. Networking and concurrency units come back to this.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.7 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:23px"><b>A button stores a closure</b><br><span class="muted" style="font-size:19px">body creates it; activation runs it</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-tap"/></svg></span><p style="font-size:23px"><b>Tap → hit test → action</b><br><span class="muted" style="font-size:19px">on the main actor, in the same process</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Views show, parents decide</b><br><span class="muted" style="font-size:19px">QuickAction takes its action as a closure</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A Button stores an escaping closure: evaluating body creates it, only activation runs it. A tap travels through iOS, hit testing and SwiftUI&rsquo;s button handling to your closure, on the main actor, inside the running app, so keep actions short. And a reusable view like QuickAction shows and triggers; its parent supplies what the action means.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>8 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="When does a Button&#x27;s action closure execute?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-tap"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">When does a <code>Button</code>&rsquo;s action closure execute?</p><ol class="q-opts"><li>Every time <code>body</code> is evaluated</li><li>When the button is activated</li><li>During compilation</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">body ran four times and &ldquo;Payment requested&rdquo; never printed; activation ran it.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking body &ldquo;runs&rdquo; the button.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. body ran four times and &ldquo;Payment requested&rdquo; never printed; activation ran it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does QuickAction store?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>QuickAction</code> store in <code>action</code>?</p><ol class="q-opts"><li>A function name as a <code>String</code></li><li>A closure value</li><li>A UIKit event object</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>type(of: quickAction.action)</code> printed <code>() -&gt; ()</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting a selector or event, as in older APIs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. <code>type(of: quickAction.action)</code> printed <code>() -&gt; ()</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does every captured reference create a retain cycle?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does every captured reference automatically create a retain cycle?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">A cycle needs a strong loop; our capture only delayed the service&rsquo;s deinit until the closure was released.</p>
+          <p class="q-trap"><b>Common trap:</b> Adding [weak self] everywhere.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. A cycle needs a strong loop; our capture only delayed the service&rsquo;s deinit until the closure was released.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should long synchronous work run in a button action on the main thread?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should long synchronous work run directly in a button action on the main thread?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">A 3-second sleep stopped a main-thread timer from 1.5 s to 4.6 s.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming actions run in the background.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say it is fine.</p>
+    <span class="notes-label">SAY</span><p>No. A 3-second sleep stopped a main-thread timer from 1.5 s to 4.6 s.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is hit testing?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is hit testing?</p><ol class="q-opts"><li>Finding the tapped interactive view</li><li>Compiling the button</li><li>Measuring network latency</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">It maps a touch location to the view that should respond, using interaction regions.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing the name with testing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. It maps a touch location to the view that should respond, using interaction regions.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why use a reusable QuickAction?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why make <code>QuickAction</code> a reusable component with an action closure?</p><ol class="q-opts"><li>To separate presentation from behaviour</li><li>To create a separate process</li><li>To avoid Swift closures</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">QuickAction shows and triggers; ContentView decides what Send means.</p>
+          <p class="q-trap"><b>Common trap:</b> Putting behaviour inside the component.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. QuickAction shows and triggers; ContentView decides what Send means.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="body evaluated 4 times, no tap: how many &quot;Payment requested&quot;?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>PaymentView.body</code> is evaluated 4 times and nobody taps. How many times does <code>print("Payment requested")</code> run?</p><ol class="q-opts"><li>0</li><li>1</li><li>4</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Measured: zero. Evaluation and activation are separate events.</p>
+          <p class="q-trap"><b>Common trap:</b> Counting body evaluations as taps.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick C.</p>
+    <span class="notes-label">SAY</span><p>A. Measured: zero. Evaluation and activation are separate events.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.6: does a modifier mutate the original view?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 2.6: does <code>.buttonStyle(.plain)</code> mutate the <code>Button</code> it is applied to?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Like every modifier, it returns a new view description.</p>
+          <p class="q-trap"><b>Common trap:</b> Picturing a mutable button object.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.6.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Like every modifier, it returns a new view description.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.7 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.8</td><td><b>@State and reactive UI</b></td><td>the Add Money button changes the balance from ₹25,000 to ₹26,000</td></tr><tr><td class="mono">Later</td><td><b>Async actions</b></td><td>Task and an asynchronous payment service</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Next lesson replaces the hard-coded balance with SwiftUI-managed state, so a button visibly changes NPay: property wrappers, value semantics, identity, state storage and updates. Asynchronous actions come with the networking and concurrency units.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.7 &middot; Lab</p>
+  <h2>Trace a real tap</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Verify the three actions and catch Send in the debugger.</p><ol class="lab"><li>Build the Section 14 code; tap each action.</li><li>Breakpoint on <code>print("Send tapped")</code>; tap Send.</li><li><b>⌘7</b>: find your closure and SwiftUI frames.</li><li>LLDB: <code>bt</code>, then <code>thread list</code>.</li><li>Add <code>Thread.sleep(forTimeInterval: 3)</code>; tap; feel it.</li><li>Remove it. Try <code>.disabled(true)</code> on Send.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your console output for all three</li><li>A screenshot of the stopped stack</li><li>One line: which thread ran the action?</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected: the console prints Send tapped, Request tapped, History tapped; the breakpoint stops on the main thread (thread 1) with the closure at the top and SwiftUI button frames below it, then touch and gesture frames (our scripted activation showed accessibility frames there instead); the sleep freezes the UI for three seconds; a disabled Send does nothing and looks dimmed.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.7 complete</p>
+    <h2>SwiftUI Button, Closures<br>&amp; Event Handling</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 2.8 &mdash; @State and Reactive UI</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain Button&rsquo;s initializers and its escaping action closure, why evaluating body never runs the action, the path from a tap to your closure on the main actor, hit testing and contentShape, styles, the disabled state and accessibility labels, and how a reusable QuickAction takes its behaviour as a closure without keeping things alive by accident.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 2.8: @State and reactive UI. The hard-coded balance becomes SwiftUI-managed state, and NPay responds visibly to a tap.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

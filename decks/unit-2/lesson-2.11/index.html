@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.11 — TextField &amp; Focus</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.11 — TextField &amp; Focus">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.11</p>
+    <h1 style="font-size:54px;line-height:1.05">TextField, User Input,<br>Validation &amp; Focus</h1>
+    <p class="lead" style="max-width:760px">Someone types <b>1500</b>. How does it travel from the keyboard into Swift state, and keep the screen in sync?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay can show and change things; today it accepts input. We follow text from the iPhone keyboard through a TextField and a binding into state, then validate it, manage focus, and add a payment form to NPay. In the simulator we focused fields as a tap would and entered text through UIKit&rsquo;s text-input protocol, the same one keyboards use; buttons were activated through accessibility as before.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.11 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p><code>TextField</code> and why it needs a <b>Binding</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></span><p>Keyboard &rarr; TextField &rarr; binding &rarr; <b>@State</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Why amounts start as <b>String</b>, never <code>Double</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Validation: keyboard hints are <b>not</b> validation</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p><code>@FocusState</code>, <code>onSubmit</code>, a Done button</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>NPay&rsquo;s <b>payment form</b>, validated against the balance</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.11 &middot; Where we are</p>
+  <h2>Today: NPay accepts input</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.11 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Text</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">2.2</text><text x="107.364" y="50" style="font-size:14px">Image &amp;</text><text x="107.364" y="68" style="font-size:14px">SF Symbols</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">2.3</text><text x="202.727" y="50" style="font-size:14px">VStack &amp;</text><text x="202.727" y="68" style="font-size:14px">@ViewBuilder</text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">2.4</text><text x="298.091" y="50" style="font-size:14px">HStack &amp;</text><text x="298.091" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">2.5</text><text x="393.455" y="50" style="font-size:14px">ZStack &amp;</text><text x="393.455" y="68" style="font-size:14px">layers</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">2.6</text><text x="488.818" y="50" style="font-size:14px">View</text><text x="488.818" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">2.7</text><text x="584.182" y="50" style="font-size:14px">Button &amp;</text><text x="584.182" y="68" style="font-size:14px">events</text></g>
+        <g class="nd"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">2.8</text><text x="679.545" y="50" style="font-size:14px">@State</text><text x="679.545" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">2.9</text><text x="774.909" y="50" style="font-size:14px">@Binding</text><text x="774.909" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">2.10</text><text x="870.273" y="50" style="font-size:14px">ForEach</text><text x="870.273" y="68" style="font-size:14px">&amp; List</text></g>
+        <g class="nd lit"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">2.11</text><text x="965.636" y="50" style="font-size:14px">TextField</text><text x="965.636" y="68" style="font-size:14px">&amp; focus</text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">2.12</text><text x="1061" y="50" style="font-size:14px">Payment</text><text x="1061" y="68" style="font-size:14px">flow</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.10: a transaction history from <code>ForEach</code> and stable IDs.</span><span><b>Today</b>A payment form: text input, validation, focus.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Everything so far was shown or tapped. Today the user types. It is the binding from 2.9 again, now driven by the keyboard.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>A payment form</h2>
+    <p class="lead">Recipient, amount, continue</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay gets a Send Money form. A demo: nothing is paid.</p>
+    <span class="notes-label">CONNECT</span><p>The target.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our next NPay milestone (sections 1, 20)</p>
+  <h2>Milestone 2.11: a validated payment form</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px 190px;gap:36px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Form</span><ul style="margin:6px 0 0"><li><b>Recipient</b> and <b>Amount (₹)</b> fields</li><li><b>Continue Demo</b>, enabled only when valid</li></ul></div>
+        <div class="card accent"><span class="label">A demo</span><ul style="margin:6px 0 0"><li>Prints the request</li><li>No money moves; 2.12 simulates payments</li></ul></div>
+      </div>
+      <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/before.png" alt="Before: 2.10"></div><p class="shot-cap">Before: 2.10</p></div>
+      <div class="step"><div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/typing.png" alt="ravi@npay, 1500: enabled"></div><p class="shot-cap">ravi@npay, 1500: enabled</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Where 2.10 ended. The milestone: a Send Money demo form with a recipient field, an amount field, and a Continue Demo button that is enabled only when the input is valid. Click: our run: ravi@npay and 1500 entered, Continue Demo enabled. It prints the request; it does not pay anyone. 2.12 adds a local payment simulation.</p>
+    <span class="notes-label">CONNECT</span><p>Start with what a TextField is.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>TextField</h2>
+    <p class="lead">Editable text needs a binding</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Text displays. TextField edits.</p>
+    <span class="notes-label">CONNECT</span><p>The smallest one.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; The smallest TextField (sections 2&ndash;3)</p>
+  <h2>Type Ravi; the Text follows</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.75fr) 250px;gap:22px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>TextFieldExperiment.swift</span></div><pre class="cb" style="font-size:13px">struct TextFieldExperiment: View {
+    @State private var name = &quot;&quot;
+
+    var body: some View {
+        VStack(spacing: 20) {
+            TextField(&quot;Enter your name&quot;, text: $name)
+                .textFieldStyle(.roundedBorder)
+            Text(&quot;Hello, \(name)&quot;)
+        }
+        .padding()
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <table class="tbl compact"><thead><tr><th>Text</th><th>TextField</th></tr></thead><tbody><tr><td>Shows text</td><td>edits text</td></tr><tr><td>a <code>String</code> value</td><td>a <code>Binding&lt;String&gt;</code></td></tr><tr><td>no keyboard</td><td>keyboard and text input</td></tr><tr><td>read only</td><td>two-way data flow</td></tr></tbody></table></div>
+      <div class="step"><div class="card accent"><span class="label">onChange(of: name), typing R-a-v-i</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">name = "R"<br>name = "Ra"<br>name = "Rav"<br>name = "Ravi"</p></div>
+        <div class="rule" data-label="What happened" style="margin-top:12px"><ul style="margin:6px 0 0"><li>The field wrote <code>name</code> via the binding</li><li>The <code>Text</code> re-rendered by itself</li></ul></div></div>
+      <div style="width:250px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/hello.png" alt="Hello, Ravi (with the keyboard)"></div><p class="shot-cap">Hello, Ravi (with the keyboard)</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Text displays content; TextField lets the user edit it, so it needs a connection to mutable state: a binding. The table: Text shows text from a value, with no keyboard; TextField edits text through a Binding of String and brings up the keyboard: two-way data flow.</p>
+    <span class="notes-label">SAY</span><p>The smallest experiment: @State name, a TextField bound to $name, and Text("Hello, \(name)"). On the right, our run after typing Ravi: the field, Hello, Ravi, and the system keyboard. Click: we logged each change of name: R, Ra, Rav, Ravi.</p>
+    <span class="notes-label">SAY</span><p>We never updated the Text. The field changed the state through its binding, and SwiftUI updated what depends on it. That is 2.9&rsquo;s binding, driven by a keyboard.</p>
+    <span class="notes-label">CONNECT</span><p>Why a binding, and not just the string?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Why TextField requires a Binding (section 5)</p>
+  <h2>Read the value, write the edits</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Without the $</span></div><pre class="cb" style="font-size:15px">TextField(&quot;Recipient ID&quot;, text: recipient)</pre></div>
+        <div class="step" style="margin-top:10px"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;cannot convert value &lsquo;recipient&rsquo; of type &lsquo;String&rsquo; to expected type &lsquo;Binding&lt;String&gt;&rsquo;, use wrapper instead</span><p class="small muted" style="margin:4px 0 0">swiftc, iOS 26.5 SDK</p></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">The field must</span><ul style="margin:6px 0 0"><li><b>Read</b> the value to display it</li><li><b>Write</b> the value as the user types</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">type(of:) in the simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">$amountText:  Binding&lt;String&gt;</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A text field has two jobs: read the current value to display it, and write the edited value as the user types. A plain String only gives it a value; a Binding of String gives it a read and write connection.</p>
+    <span class="notes-label">SAY</span><p>Click: so writing text: recipient without the dollar sign does not compile. The real error: cannot convert value recipient of type String to expected type Binding of String, use wrapper instead: the compiler even suggests the $ projected value. Click: $amountText printed as Binding of String.</p>
+    <span class="notes-label">CONNECT</span><p>What happens between a key press and that binding?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Keyboard to state</h2>
+    <p class="lead">The system owns the keyboard</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Several systems cooperate on every character.</p>
+    <span class="notes-label">CONNECT</span><p>The pipeline.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Keyboard to SwiftUI state (sections 4, 12) &middot; conceptual</p>
+  <h2>From a key to a visible update</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:28px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 600 304" style="max-height:330px" role="img" aria-labelledby="kb">
+        <title id="kb">User types, platform text input, text field, binding setter, state changes, dependent views update</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="600" height="44" rx="12"/><use href="#i-tap" x="14" y="9" width="26" height="26"/><text x="52" y="19">User types</text><text class="sm" x="52" y="37">on the system keyboard</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="52" width="600" height="44" rx="12"/><use href="#i-kernel" x="14" y="61" width="26" height="26"/><text x="52" y="71">Platform text input</text><text class="sm" x="52" y="89">composition, selection, autocorrect</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="104" width="600" height="44" rx="12"/><use href="#i-frame" x="14" y="113" width="26" height="26"/><text x="52" y="123">The text field</text><text class="sm" x="52" y="141">the edited text changes</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="156" width="600" height="44" rx="12"/><use href="#i-link" x="14" y="165" width="26" height="26"/><text x="52" y="175">Binding setter</text><text class="sm" x="52" y="193">writes the new String</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="208" width="600" height="44" rx="12"/><use href="#i-layers" x="14" y="217" width="26" height="26"/><text x="52" y="227">@State changes</text><text class="sm" x="52" y="245">the owner&rsquo;s state gets the value</text></g>
+        <g class="nd" data-lit="6+"><rect class="sh" x="0" y="260" width="600" height="44" rx="12"/><use href="#i-eye" x="14" y="269" width="26" height="26"/><text x="52" y="279">Dependent views update</text><text class="sm" x="52" y="297">e.g. Hello, Ravi</text></g>
+      </svg>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Not one key = one character</span><ul style="margin:6px 0 0"><li>Tamil, Hindi: <b>composition</b>, several events</li><li>Use platform text input, not raw key events</li></ul></div></div>
+        <div class="rule step" data-label="The keyboard"><ul style="margin:6px 0 0"><li>A <b>system</b> experience, not a SwiftUI view</li><li>Keep per-keystroke work cheap; debounce later</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Conceptually; the text&rsquo;s widget showed only stage 5. Click: the user types on the system keyboard. Click: the platform&rsquo;s text-input system handles it, including composition, selection and autocorrection. Click: the text field&rsquo;s edited text changes. Click: SwiftUI writes the new string through the binding. Click: the @State owner receives it. Click: views that depend on it update.</p>
+    <span class="notes-label">SAY</span><p>Click: one key press is not always one character. Tamil and Hindi, among others, compose characters from several input events. That is why ordinary text entry should use the platform&rsquo;s text-input APIs, not raw key events. Our test entered text through UIKit&rsquo;s text-input protocol, the same entry point keyboards use.</p>
+    <span class="notes-label">SAY</span><p>Click: the keyboard itself is part of the system input experience; we never build it in SwiftUI. And because every accepted edit can update state, keep per-keystroke work cheap: no network call per keystroke. Debouncing and async validation come later.</p>
+    <span class="notes-label">CONNECT</span><p>The amount field holds text. Why not a number?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Amounts as text</h2>
+    <p class="lead">And never as Double</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>While typing, the amount is not a number yet.</p>
+    <span class="notes-label">CONNECT</span><p>Watch it change.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Why amounts start as Strings (sections 6, 8)</p>
+  <h2>Keep the text; parse it carefully</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start">
+      <div><div class="card accent"><span class="label">Typing 1500: onChange</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">"" → "1"<br>"1" → "15"<br>"15" → "150"<br>"150" → "1500"</p></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">String while editing</span><ul style="margin:6px 0 0"><li>Holds <b>intermediate</b> text</li><li>Empty, a lone ".", partial input</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">Decimal(string:) alone (Mac)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">"12abc"  → 12<br>"1,500"  → 1<br>"-500"   → -500<br>""       → nil</p></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Parsing isn&rsquo;t validation</span><ul style="margin:6px 0 0"><li>Stops at the first bad character</li><li>Also check <b>syntax</b> and <b>rules</b></li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">Money as Double vs Decimal (Mac)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Double 0.1 + 0.2 == 0.3: false<br>  (0.30000000000000004)<br>Decimal 0.1 + 0.2 == 0.3: true</p></div>
+        <div class="gap"></div>
+        <div class="rule" data-label="Real money"><ul style="margin:6px 0 0"><li>Never <code>Double</code> as the source of truth</li><li>Decimal, or integer minor units (Unit 01)</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Typing 1500 goes through empty, 1, 15, 150, 1500: our onChange log. A user might also briefly have an empty field or just a decimal point. Keeping amountText as a String while editing preserves those intermediate states; converting every keystroke to a number would fight the user.</p>
+    <span class="notes-label">SAY</span><p>Click: then parse it carefully. Decimal(string:) on its own is lenient: "12abc" became 12, and "1,500" became 1, because it stops at the first character it cannot use. So parsing is not validation: we also check the syntax and the business rules, which is what the form does.</p>
+    <span class="notes-label">SAY</span><p>Click: and never use Double as the authoritative representation of money. In binary floating point, 0.1 plus 0.2 is 0.30000000000000004, not 0.3; Decimal gets it right. Real money uses Decimal or integer minor units, paise, as in Unit 01. Today&rsquo;s form is a UI-only demo.</p>
+    <span class="notes-label">CONNECT</span><p>The amount field also asks for a numeric keyboard.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Keyboard types</h2>
+    <p class="lead">A hint, not a boundary</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>.keyboardType(.decimalPad): does that make input valid?</p>
+    <span class="notes-label">CONNECT</span><p>Look, then paste.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; .keyboardType() (section 7)</p>
+  <h2><code>.decimalPad</code> shapes the keyboard, not the input</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 230px;gap:22px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Amount field</span></div><pre class="cb" style="font-size:14px">TextField(&quot;Amount (₹)&quot;, text: $amountText)
+    .keyboardType(.decimalPad)</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">A UX hint</span><ul style="margin:6px 0 0"><li>Asks for a digits-and-point keyboard</li><li>Text can still arrive by <b>paste</b>, hardware keyboard, accessibility</li></ul></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Pasting "1500": onChange</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Old amount: ""<br>New amount: 1500<br>(one change, no key presses)</p></div></div>
+        <div class="rule step" data-label="Principle"><ul style="margin:6px 0 0"><li>Validate <b>independently</b> of the keyboard</li></ul></div>
+      </div>
+      <div style="width:230px;max-width:100%;margin:0 auto"><div class="shot" style="height:500px"><img src="img/keyboard.png" alt="Decimal pad + Done"></div><p class="shot-cap">Decimal pad + Done</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>.keyboardType(.decimalPad) asks iOS for a keyboard with digits and a decimal point. On the right, the real decimal pad in the simulator, with our Done toolbar above it.</p>
+    <span class="notes-label">SAY</span><p>Does it guarantee valid input? No. It is a user-experience hint, not a validation boundary. Text can still arrive by paste, a hardware keyboard, accessibility input or other means. Click: we pasted "1500" into the amount field: onChange saw one change, from empty to 1500, with no key presses at all. Paste "abc" and it would arrive just as easily.</p>
+    <span class="notes-label">SAY</span><p>Click: so always validate independently of the keyboard configuration.</p>
+    <span class="notes-label">CONNECT</span><p>Before validation: focus. Which field is the keyboard typing into?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Focus</h2>
+    <p class="lead">@FocusState</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Next moves to Amount; Done hides the keyboard.</p>
+    <span class="notes-label">CONNECT</span><p>FocusState.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Focus management (sections 9, 19)</p>
+  <h2>Which field has the keyboard?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:28px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentForm (focus parts)</span></div><pre class="cb" style="font-size:12.5px">@FocusState private var focusedField: Field?
+enum Field: Hashable { case recipient, amount }
+
+TextField(&quot;Recipient ID (e.g. ravi@npay)&quot;, text: $recipient)
+    .focused($focusedField, equals: .recipient)
+    .submitLabel(.next)
+    .onSubmit { focusedField = .amount }
+
+.toolbar {                         // on the form
+    ToolbarItemGroup(placement: .keyboard) {
+        Spacer()
+        Button(&quot;Done&quot;) { focusedField = nil }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Return in the recipient field</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">focused after return:<br>  UITextField, placeholder Amount (₹)</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">type(of:)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">_amountFocused: FocusState&lt;Bool&gt;<br>$amountFocused: Binding</p></div></div>
+        <div class="rule step" data-label="@State vs @FocusState"><ul style="margin:6px 0 0"><li><b>@State</b>: the view&rsquo;s own data</li><li><b>@FocusState</b>: which control is focused</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>@FocusState connects a property to the focus of focusable controls. With an optional enum, Field, one property says which of several fields has focus, or nil for none. .focused($focusedField, equals: .recipient) ties the recipient field to that case. .submitLabel(.next) labels the return key, and .onSubmit moves focus to the amount field. Setting focusedField = nil clears focus and hides the keyboard; the Done button in a keyboard toolbar does exactly that, and it is visible above the decimal pad on the previous slide.</p>
+    <span class="notes-label">SAY</span><p>Click: we entered ravi@npay and sent a return: the first responder became the Amount field. onSubmit moved the focus.</p>
+    <span class="notes-label">SAY</span><p>Click: like @State, it is a property wrapper: _amountFocused is a FocusState of Bool, and $amountFocused a binding. Click: but a different concern: @State is the view&rsquo;s own data; @FocusState is which control is focused.</p>
+    <span class="notes-label">CONNECT</span><p>Now assemble the form and validate it.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>PaymentForm</h2>
+    <p class="lead">Validated against the balance</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Recipient required; amount positive, two decimals, within the balance.</p>
+    <span class="notes-label">CONNECT</span><p>The rules.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Validate against the demo balance (sections 10, 17)</p>
+  <h2>Syntax, then rules, then the balance</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.5fr) 210px;gap:22px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>PaymentForm validation</span></div><pre class="cb" style="font-size:12.5px">private var isValidAmount: Bool {
+    let pattern = #&quot;^[0-9]+(\.[0-9]{1,2})?$&quot;#
+    guard amountText.range(of: pattern,
+                           options: .regularExpression) != nil
+    else { return false }
+    guard let amount = Decimal(string: amountText,
+              locale: Locale(identifier: &quot;en_US_POSIX&quot;))
+    else { return false }
+    return amount &gt; 0
+        &amp;&amp; amount &lt;= Decimal(availableBalance)
+}
+// isValid: recipient not blank &amp;&amp; isValidAmount
+// Button(&quot;Continue Demo&quot;) { … }.disabled(!isValid)</pre></div>
+        <div class="rule step" data-label="Reacts to both" style="margin-top:10px"><ul style="margin:6px 0 0"><li>25500 invalid at ₹25,000; <b>+ ₹1,000</b> &rarr; enabled</li></ul></div></div>
+      <div class="step"><table class="tbl compact"><thead><tr><th>Amount</th><th>Ran</th></tr></thead><tbody><tr><td>1500</td><td>valid</td></tr><tr><td>25000</td><td>valid</td></tr><tr><td>25001</td><td>invalid</td></tr><tr><td>0</td><td>invalid</td></tr><tr><td>12.345</td><td>invalid</td></tr><tr><td>abc</td><td>invalid</td></tr><tr><td>-500</td><td>invalid</td></tr></tbody></table><p class="small muted" style="margin:6px 0 0">Balance ₹25,000; Mac, swiftc</p></div>
+      <div style="width:210px;max-width:100%;margin:0 auto"><div class="shot" style="height:457px"><img src="img/over.png" alt="25001: message, disabled"></div><p class="shot-cap">25001: message, disabled</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentForm&rsquo;s validation in three steps. A regular expression checks the syntax: digits, optionally a point and one or two digits. Then Decimal parses it, which after the regex is safe. Then the rules: greater than zero, and not more than the available balance, which the form now receives from ContentView as a let. Continue Demo is disabled unless the recipient is not blank and the amount is valid.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran the text&rsquo;s whole table: 1500 and 25,000 valid; 25,001, 0, 12.345, abc and -500 invalid, exactly as the text predicts. On the right, the real form with 25001: the red message and a disabled button, with the decimal pad and Done still up.</p>
+    <span class="notes-label">SAY</span><p>Click: and it reacts to the balance too. We typed 25500: invalid at ₹25,000. Then we activated + ₹1,000 in the balance editor: the balance became 26,000, the form received the new value, and Continue Demo enabled itself. isValid is computed from both local input and the input value.</p>
+    <span class="notes-label">CONNECT</span><p>Where does this validation sit among all the checks a payment needs?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Three responsibilities (sections 11, 16)</p>
+  <h2>Where today&rsquo;s validation sits</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 900 176" style="max-height:200px" role="img" aria-labelledby="lay">
+        <title id="lay">Input experience, client-side validation, trusted business validation</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="900" height="52" rx="12"/><use href="#i-phone" x="14" y="13" width="26" height="26"/><text x="52" y="23">Input experience</text><text class="sm" x="52" y="41">keyboard type, placeholder, focus, formatting</text></g>
+        <g class="nd lit"><rect class="sh" x="0" y="62" width="900" height="52" rx="12"/><use href="#i-check" x="14" y="75" width="26" height="26"/><text x="52" y="85">Client-side validation</text><text class="sm" x="52" y="103">required fields, syntax, limits, feedback</text></g>
+        <g class="nd"><rect class="sh" x="0" y="124" width="900" height="52" rx="12"/><use href="#i-shield" x="14" y="137" width="26" height="26"/><text x="52" y="147">Trusted business validation</text><text class="sm" x="52" y="165">authoritative balance, permissions, rules, security</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">NPay today</span><ul style="margin:6px 0 0"><li>PaymentForm owns its input and focus state</li><li>Local validation, then prints a request</li></ul></div>
+      <div class="rule step" data-label="A disabled button"><ul style="margin:6px 0 0"><li>Does <b>not</b> replace backend validation</li><li>No financial transaction happens</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three separate responsibilities. The input experience: keyboard type, placeholder, focus, formatting. Client-side validation, highlighted, which is what we built: required fields, syntax, limits and feedback. And trusted business validation: the authoritative balance, permissions, transaction rules and security, which belongs to the backend.</p>
+    <span class="notes-label">SAY</span><p>In NPay, PaymentForm is added below the quick actions; it owns its own input and focus state and only prints a demo request. Click: a disabled button is a convenience, not security: it never replaces backend validation, and no transaction happens.</p>
+    <span class="notes-label">CONNECT</span><p>Last: debugging the form.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Debugging and checkpoint</h2>
+    <p class="lead">Watch the values change</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>onChange shows values, not key presses.</p>
+    <span class="notes-label">CONNECT</span><p>The log.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Debugging TextField (sections 15, 18, 20)</p>
+  <h2>Values, not key presses</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>PaymentForm amount field</span></div><pre class="cb" style="font-size:13.5px">TextField(&quot;Amount (₹)&quot;, text: $amountText)
+    .keyboardType(.decimalPad)
+    .textFieldStyle(.roundedBorder)
+    .onChange(of: amountText) { oldValue, newValue in
+        print(&quot;Old amount:&quot;, oldValue)
+        print(&quot;New amount:&quot;, newValue)
+    }</pre></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="The whole flow"><ul style="margin:6px 0 0"><li>Keyboard &rarr; TextField &rarr; Binding &rarr; @State</li><li>&rarr; Validation &rarr; button state &rarr; update</li></ul></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Typed 1500 vs pasted 1500</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">typed:  4 changes (1, 15, 150, 1500)<br>pasted: 1 change  (1500)</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Continue Demo, activated</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Demo payment request<br>Recipient: ravi@npay<br>Amount: 1500</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s debugging tool: onChange(of: amountText) with the two-parameter closure, printing old and new values. Click: typed character by character, 1500 produced four changes; pasted, one. onChange observes value changes; it is not a raw keyboard listener, and that difference is exactly why we validate the value, not the keys.</p>
+    <span class="notes-label">SAY</span><p>Click: with a valid form, Continue Demo printed the demo request: recipient ravi@npay, amount 1500.</p>
+    <span class="notes-label">SAY</span><p>Click: the complete flow to be able to explain: keyboard input, TextField, Binding, @State, validation, the button enabled or disabled, SwiftUI update. The text&rsquo;s Xcode experiments, removing the $, numberPad, the validation inputs, Next focus and Tamil composition, are in the lab.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.11 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:23px"><b>TextField writes a binding</b><br><span class="muted" style="font-size:19px">keyboard → binding → @State</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p style="font-size:23px"><b>Validate the value</b><br><span class="muted" style="font-size:19px">keyboard type is only a hint</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p style="font-size:23px"><b>Focus is state too</b><br><span class="muted" style="font-size:19px">@FocusState, onSubmit, Done</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A TextField reads and writes text through a Binding of String, so the keyboard ends up changing your @State and SwiftUI updates the rest. Validate the value itself, syntax then rules then the balance, because a decimal pad is only a hint and paste bypasses it; and the backend has the final word. And focus is state: @FocusState says which field has the keyboard, onSubmit moves it, and Done clears it.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why does TextField take a Binding&lt;String&gt;?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why does <code>TextField</code> commonly take a <code>Binding&lt;String&gt;</code>?</p><ol class="q-opts"><li>To read and write the editable text</li><li>To create a new thread</li><li>To store data in a database</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">It displays the value and writes each edit back; a plain String did not compile.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the field keeps its own copy.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. It displays the value and writes each edit back; a plain String did not compile.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does .decimalPad guarantee valid decimal input?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>.keyboardType(.decimalPad)</code> guarantee valid decimal input?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">A paste delivered "1500" in one change without a key press; anything can be pasted.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating the keyboard as validation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. A paste delivered "1500" in one change without a key press; anything can be pasted.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does @FocusState manage?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>@FocusState</code> manage?</p><ol class="q-opts"><li>Which control has focus</li><li>Network state</li><li>Application signing</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">onSubmit set it to .amount and the Amount field became first responder.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing it with @State.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. onSubmit set it to .amount and the Amount field became first responder.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why keep the amount as a String while editing?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why is a <code>String</code> useful while the amount is being edited?</p><ol class="q-opts"><li>It keeps intermediate text such as empty input and a lone decimal point</li><li>It encrypts money</li><li>It removes the need for validation</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Typing 1500 passes through "", "1", "15", "150".</p>
+          <p class="q-trap"><b>Common trap:</b> Converting every keystroke to a number.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. Typing 1500 passes through "", "1", "15", "150".</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should Double be the authoritative representation of money?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should <code>Double</code> be the authoritative representation of money?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">0.1 + 0.2 printed 0.30000000000000004; use Decimal or integer minor units.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming floating point is exact.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. 0.1 + 0.2 printed 0.30000000000000004; use Decimal or integer minor units.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does a disabled Continue button replace backend validation?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does a disabled Continue button replace backend validation?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It is client-side convenience; trusted rules live on the backend.</p>
+          <p class="q-trap"><b>Common trap:</b> Trusting the client.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It is client-side convenience; trusted rules live on the backend.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What happens when TextField writes through $amountText?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What happens when the TextField writes through <code>$amountText</code>?</p><ol class="q-opts"><li>The state owner receives the updated String</li><li>A new independent TextField state is created</li><li>The app recompiles</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">onChange on the owner logged every new value.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting a separate copy in the field.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. onChange on the owner logged every new value.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Decimal(string: &quot;12abc&quot;) on its own returns…?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">Without the regex check, what does <code>Decimal(string: "12abc", locale: en_US_POSIX)</code> return?</p><ol class="q-opts"><li><code>nil</code></li><li><code>12</code></li><li>A crash</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">It stops at the first character it cannot use, which is why the form checks syntax first.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting strict parsing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>B. It stops at the first character it cannot use, which is why the form checks syntax first.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.10: what decides lazy row creation?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 2.10: what decides whether 1,000 rows are built eagerly or lazily?</p><ol class="q-opts"><li><code>ForEach</code></li><li>The surrounding container</li><li><code>Identifiable</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">VStack built 1,000 row bodies, LazyVStack 12, List 9.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming ForEach is lazy.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.10.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. VStack built 1,000 row bodies, LazyVStack 12, List 9.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.11 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.12</td><td><b>Unit 2 integration &amp; architecture review</b></td><td>connect the form to a local payment simulation; clean up the files; review Unit 2</td></tr><tr><td class="mono">Later</td><td><b>Debouncing, async validation</b></td><td>expensive checks off the keystroke path</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Next lesson closes Unit 2: the full NPay dashboard assembled and cleaned up, the payment form connected to a local transaction simulation, and a review of every SwiftUI idea before Unit 3. Debouncing and asynchronous validation come later in the course.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.11 &middot; Lab</p>
+  <h2>Type, paste, validate</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Run the text&rsquo;s experiments A to E.</p><ol class="lab"><li><b>A</b>: remove <code>$</code> from <code>text: $recipient</code>.</li><li><b>B</b>: <code>.decimalPad</code> &rarr; <code>.numberPad</code>.</li><li><b>C</b>: amounts 0, -100, 12.345, 1500.</li><li><b>D</b>: recipient, then Next: where&rsquo;s the focus?</li><li><b>E</b>: a Tamil recipient name.</li><li>Paste an amount; compare the onChange log.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>The compiler error, explained</li><li>Which amounts enabled Continue</li><li>Your onChange log: typed vs pasted</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our runs: "cannot convert value &lsquo;recipient&rsquo; of type &lsquo;String&rsquo; to expected type &lsquo;Binding&lt;String&gt;&rsquo;"; numberPad drops the decimal point key; only 1500 enables Continue (-100 cannot even be typed on the pad, but can be pasted and is rejected); Next moves focus to Amount; Tamil input is composed by the system keyboard before it reaches the binding; a paste logs one change.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.11 complete</p>
+    <h2>TextField, User Input,<br>Validation &amp; Focus</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 2.12 &mdash; Unit 2 Integration &amp; Architecture Review</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain how typed text reaches @State through a TextField&rsquo;s binding, why amounts stay text while editing and never become Double, why keyboard types are hints and validation must check the value, how @FocusState, onSubmit and a Done button manage focus, and how NPay&rsquo;s payment form validates against the balance without moving money.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 2.12: Unit 2 integration and architecture review. The full NPay dashboard, a local payment simulation, and a review before Unit 3.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.8 — @State</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.8 — @State">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.8</p>
+    <h1 style="font-size:54px;line-height:1.05">@State and<br>Reactive UI</h1>
+    <p class="lead" style="max-width:760px">Tap <b>Add Demo ₹1,000</b> and the balance becomes ₹26,000. Nobody updated a label. <b>Who did?</b></p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Until now NPay&rsquo;s balance has been a hard-coded string. Today it becomes state: tap a button and the screen follows. We learn @State the usual way: build, predict, observe, investigate, experiment, integrate. How SwiftUI manages mutable state, why a view struct can be recreated without losing its state, and how a variable change becomes a visible update. Every console line and screenshot came from the iOS Simulator; buttons were activated through accessibility, as in 2.7.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.8 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Why a plain <code>var</code> in a view <b>won&rsquo;t compile</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>What <code>@State</code> is: a <b>property wrapper</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Where state <b>lives</b>, and why it survives</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>How a change becomes a <b>screen update</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>Who <b>owns</b> state; what <code>$balance</code> is</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p>When state <b>resets</b>: identity</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.8 &middot; Where we are</p>
+  <h2>Today: the balance changes</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.8 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Text</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">2.2</text><text x="107.364" y="50" style="font-size:14px">Image &amp;</text><text x="107.364" y="68" style="font-size:14px">SF Symbols</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">2.3</text><text x="202.727" y="50" style="font-size:14px">VStack &amp;</text><text x="202.727" y="68" style="font-size:14px">@ViewBuilder</text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">2.4</text><text x="298.091" y="50" style="font-size:14px">HStack &amp;</text><text x="298.091" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">2.5</text><text x="393.455" y="50" style="font-size:14px">ZStack &amp;</text><text x="393.455" y="68" style="font-size:14px">layers</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">2.6</text><text x="488.818" y="50" style="font-size:14px">View</text><text x="488.818" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">2.7</text><text x="584.182" y="50" style="font-size:14px">Button &amp;</text><text x="584.182" y="68" style="font-size:14px">events</text></g>
+        <g class="nd lit"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">2.8</text><text x="679.545" y="50" style="font-size:14px">@State</text><text x="679.545" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">2.9</text><text x="774.909" y="50" style="font-size:14px">@Binding</text><text x="774.909" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">2.10</text><text x="870.273" y="50" style="font-size:14px">ForEach</text><text x="870.273" y="68" style="font-size:14px">&amp; List</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">2.11</text><text x="965.636" y="50" style="font-size:14px">TextField</text><text x="965.636" y="68" style="font-size:14px">&amp; focus</text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">2.12</text><text x="1061" y="50" style="font-size:14px">Payment</text><text x="1061" y="68" style="font-size:14px">flow</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.7: buttons that run closures, but only print.</span><span><b>Today</b><code>@State</code>: a tap changes what is on screen.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson the quick actions ran closures but nothing on screen changed. Today a button changes a value and SwiftUI updates the screen by itself. That is the heart of SwiftUI.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>A balance that changes</h2>
+    <p class="lead">Hard-coded no more</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Text("₹25,000") can never change.</p>
+    <span class="notes-label">CONNECT</span><p>The requirement.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our balance cannot change (section 1)</p>
+  <h2>Tap, and the balance should follow</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px 190px;gap:36px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Requirement</span><ul style="margin:6px 0 0"><li>Tap <b>Add Demo ₹1,000</b></li><li>The balance updates <b>immediately</b></li></ul></div>
+        <div class="card accent"><span class="label">Today</span><ul style="margin:6px 0 0"><li>No manual label updates</li><li>The display is <b>derived from state</b></li><li>A demo: no money moves</li></ul></div>
+      </div>
+      <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/final.png" alt="Start: ₹25,000"></div><p class="shot-cap">Start: ₹25,000</p></div>
+      <div class="step"><div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/taps.png" alt="After 3 taps: ₹28,000"></div><p class="shot-cap">After 3 taps: ₹28,000</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Until 2.7 the balance card said Text("₹25,000"): a fixed string. A payment app shows changing information. The requirement: tap Add Demo ₹1,000 and the balance updates immediately. On the left, today&rsquo;s finished NPay at launch.</p>
+    <span class="notes-label">SAY</span><p>Click: the same app after three taps: ₹28,000. Nobody replaced a label; the display is derived from the current state. It is a demo, no money moves. How?</p>
+    <span class="notes-label">CONNECT</span><p>First, try the obvious thing.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>A normal variable</h2>
+    <p class="lead">Predict: does it compile?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Give the view a var and change it in a button.</p>
+    <span class="notes-label">CONNECT</span><p>Predict first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Experiment 1: a normal Swift variable (section 2)</p>
+  <h2>It doesn&rsquo;t compile</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:14.5px">struct ContentView: View {
+    var balance = 25000
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(&quot;Balance: ₹\(balance)&quot;)
+            Button(&quot;Add ₹1,000&quot;) {
+                balance += 1000
+            }
+        }
+    }
+}</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;left side of mutating operator isn&rsquo;t mutable: &lsquo;self&rsquo; is immutable</span><p class="small muted" style="margin:4px 0 0">swiftc, iOS 26.5 SDK, at <code>balance += 1000</code></p></div>
+        <div class="step"><div class="card accent"><span class="label">Why</span><ul style="margin:6px 0 0"><li><code>body</code> is a <b>nonmutating</b> getter</li><li>The action can&rsquo;t change the view&rsquo;s stored property</li><li><code>var account = Account(…)</code> works: <code>account</code> is mutable</li></ul></div></div>
+        <div class="rule step" data-label="Key insight"><ul style="margin:6px 0 0"><li>A view struct is a <b>description</b>, not a mutable controller</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Temporarily replace ContentView with this: an ordinary var balance, and a button that adds 1,000. Predict: does it compile? It is declared var, after all.</p>
+    <span class="notes-label">SAY</span><p>Click: the real compiler error: left side of mutating operator isn&rsquo;t mutable: self is immutable, at balance += 1000.</p>
+    <span class="notes-label">SAY</span><p>Click: why. Structs have value semantics, from Unit 01. var account = Account(balance: 25000); account.balance += 1000 works, because account is a mutable variable. But a view&rsquo;s body is a nonmutating computed property, and the escaping button action captured an immutable self. It cannot change a stored property of the view value.</p>
+    <span class="notes-label">SAY</span><p>Click: the key insight: a SwiftUI view struct is a description of UI, not a mutable controller object. Mutable state has to live somewhere else.</p>
+    <span class="notes-label">CONNECT</span><p>Change one word.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>@State</h2>
+    <p class="lead">One line changes everything</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>var balance → @State private var balance.</p>
+    <span class="notes-label">CONNECT</span><p>Run it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Experiment 2: introduce @State (section 3)</p>
+  <h2>Change a property; the screen follows</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:14px">struct ContentView: View {
+    @State private var balance = 25000
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(&quot;Balance: ₹\(balance)&quot;)
+                .font(.title)
+            Button(&quot;Add Demo ₹1,000&quot;) {
+                balance += 1000
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+}</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">A print in body; button activated 3 times</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">body: balance = 25000<br>body: balance = 26000<br>body: balance = 27000<br>body: balance = 28000</p></div></div>
+        <div class="rule step" data-label="What changed"><ul style="margin:6px 0 0"><li>No refresh call, no label replaced</li><li>We updated a <b>property</b>; SwiftUI did the rest</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Change only one line: var balance becomes @State private var balance. It compiles. Run it and tap the button.</p>
+    <span class="notes-label">SAY</span><p>Click: with a print in body, activating the button three times: body ran with 25,000, then 26,000, 27,000, 28,000. Each change produced a new description with the new value.</p>
+    <span class="notes-label">SAY</span><p>Click: what changed? We did not call a refresh function. We did not replace a label. We updated a property, and SwiftUI handled the interface update.</p>
+    <span class="notes-label">CONNECT</span><p>So what is @State exactly?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; What exactly is @State? (section 4)</p>
+  <h2><code>@State private var balance = 25000</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <table class="tbl"><thead><tr><th>Part</th><th>Meaning</th></tr></thead><tbody><tr><td><code>@State</code></td><td>a SwiftUI <b>property wrapper</b></td></tr><tr><td><code>private</code></td><td>only this view can touch it</td></tr><tr><td><code>var</code></td><td>mutable</td></tr><tr><td><code>balance</code></td><td>the property name</td></tr><tr><td><code>25000</code></td><td>the <b>initial</b> value</td></tr><tr><td>type</td><td>inferred: <code>Int</code></td></tr></tbody></table>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">@State</span><ul style="margin:6px 0 0"><li>Local mutable state <b>owned by a view</b></li><li>Takes part in SwiftUI&rsquo;s <b>update system</b></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">type(of:) inside the view</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">balance:   Int<br>_balance:  State&lt;Int&gt;<br>$balance:  Binding&lt;Int&gt;   (Part 8)</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>@State is a SwiftUI property wrapper: a way for a view to own local mutable state that takes part in SwiftUI&rsquo;s update system. The declaration, part by part: the wrapper, private so only this view uses it, var because it changes, the name, the initial value, and the type, inferred as Int.</p>
+    <span class="notes-label">SAY</span><p>Click: we printed three types inside a view. balance is a plain Int. _balance, with an underscore, is the wrapper itself: State of Int, the text&rsquo;s "conceptually State of Int", confirmed. And $balance is a Binding of Int, which Part 8 explains.</p>
+    <span class="notes-label">CONNECT</span><p>Where do _balance and $balance come from? Property wrappers, in plain Swift.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Property wrappers</h2>
+    <p class="lead">Plain Swift underneath</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Build a wrapper ourselves.</p>
+    <span class="notes-label">CONNECT</span><p>NonNegative.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Property wrapper transformation (section 5)</p>
+  <h2><code>@NonNegative</code>: a wrapper in plain Swift</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>NonNegative.swift (Mac, swiftc)</span></div><pre class="cb" style="font-size:12.5px">@propertyWrapper
+struct NonNegative {
+    private var storage: Int
+    var wrappedValue: Int {
+        get { storage }
+        set { storage = max(0, newValue) }
+    }
+    init(wrappedValue: Int) {
+        storage = max(0, wrappedValue)
+    }
+}
+
+struct Account {
+    @NonNegative var balance = 25000
+}
+
+var account = Account()
+account.balance = -500
+print(account.balance)</pre></div>
+        <div class="step" style="margin-top:10px"><div class="card accent"><span class="label">Output</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">0</p></div></div></div>
+      <div>
+        <div class="step"><div class="cw"><div class="ch"><span>What the compiler generates, roughly</span></div><pre class="cb" style="font-size:13px">struct Account {   // teaching approximation
+    private var _balance =
+        NonNegative(wrappedValue: 25000)
+    var balance: Int {
+        get { _balance.wrappedValue }
+        set { _balance.wrappedValue = newValue }
+    }
+}</pre></div></div>
+        <div class="rule step" data-label="@State adds" style="margin-top:12px"><ul style="margin:6px 0 0"><li>Same mechanism: <code>_balance</code> + accessors</li><li>Plus <b>SwiftUI-managed storage</b> and updates</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A custom wrapper in plain Swift: NonNegative stores an Int and clamps anything below zero. Account uses it on balance. We set -500 and print. Click: we compiled and ran it on a Mac: 0. The setter clamped it.</p>
+    <span class="notes-label">SAY</span><p>Click: what the compiler does, as a teaching approximation: it creates hidden backing storage, _balance, holding a NonNegative, and a computed balance property whose get and set go through wrappedValue. That is where the _balance name we printed for @State comes from.</p>
+    <span class="notes-label">SAY</span><p>Click: @State uses the same language mechanism, but its wrapper does something extra: it connects to storage that SwiftUI manages, and to SwiftUI&rsquo;s dependency updates. NonNegative is not how State is implemented; it shows the syntax.</p>
+    <span class="notes-label">CONNECT</span><p>Which raises the big question: where is that storage?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Where state lives</h2>
+    <p class="lead">Not in the struct</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>View values come and go. The balance stays.</p>
+    <span class="notes-label">CONNECT</span><p>We recreated the view.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Where is @State stored? (sections 6, 13)</p>
+  <h2>New view value, same state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Survivor.swift (parent changes tick)</span></div><pre class="cb" style="font-size:12.5px">struct Survivor: View {
+    let tick: Int
+    @State private var balance = 25000
+    init(tick: Int) {
+        self.tick = tick
+        print(&quot;Survivor value created (tick \(tick))&quot;)
+    }
+    var body: some View {
+        let _ = print(&quot;body: tick \(tick), balance = \(balance)&quot;)
+        Button(&quot;Add&quot;) { balance += 1000 }
+    }
+}</pre></div>
+        <div class="rule step" data-label="25000 is" style="margin-top:12px"><ul style="margin:6px 0 0"><li>The <b>initial</b> value for this identity</li><li>Not re-assigned when <code>body</code> runs</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">Add ×3, then the parent changed tick twice</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Survivor value created (tick 0)<br>body: tick 0, balance = 25000<br>… Add ×3 …<br>body: tick 0, balance = 28000<br>Survivor value created (tick 1)<br>body: tick 1, balance = 28000<br>Survivor value created (tick 2)<br>body: tick 2, balance = 28000</p></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">So</span><ul style="margin:6px 0 0"><li>The <b>struct</b> was created again, twice</li><li>The <b>state</b> stayed at 28000: it lives with the view&rsquo;s <b>identity</b></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The most important idea today. A view struct is a value that SwiftUI can recreate during normal updates, yet its @State does not reset. To see it, this Survivor view prints when its struct is created and when its body runs. Its parent passes a tick that changes, which forces a new Survivor value.</p>
+    <span class="notes-label">SAY</span><p>Click: the console. Created at tick 0 with 25,000. Three activations of Add: 28,000. Then the parent changed tick twice: two brand-new Survivor values were created, and both bodies saw balance 28,000. The struct is new; the state is not.</p>
+    <span class="notes-label">SAY</span><p>That is because SwiftUI keeps the state in storage associated with the view&rsquo;s identity, not inside the struct. Click: and it answers Section 13: = 25000 is the initial value SwiftUI uses when it first sets up state for that identity, not an assignment that runs every time body runs. The text&rsquo;s analogy is a hotel room: the sign on the door can be replaced, and the guest&rsquo;s belongings stay with the room.</p>
+    <span class="notes-label">CONNECT</span><p>A picture of that, and one warning.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; View value vs persistent UI state (section 6) &middot; conceptual</p>
+  <h2>The struct describes; SwiftUI keeps</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 56" style="max-height:70px" role="img" aria-labelledby="store">
+        <title id="store">The ContentView value may be recreated; SwiftUI state storage, keyed by identity, keeps balance</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="340" height="56" rx="12"/><use href="#i-file" x="14" y="15" width="26" height="26"/><text x="52" y="25">ContentView value</text><text class="sm" x="52" y="43">may be recreated</text></g>
+        <path class="wire dash" d="M344 28H396M389 21l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="400" y="0" width="340" height="56" rx="12"/><use href="#i-layers" x="414" y="15" width="26" height="26"/><text x="452" y="25">SwiftUI state storage</text><text class="sm" x="452" y="43">keyed by view identity</text></g>
+        <path class="wire" d="M744 28H796M789 21l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="800" y="0" width="336" height="56" rx="12"/><use href="#i-db" x="814" y="15" width="26" height="26"/><text x="852" y="25">balance = 28000</text><text class="sm" x="852" y="43">survives re-evaluation</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">Like a form</span><ul style="margin:6px 0 0"><li>SwiftUI may recreate the <b>form template</b></li><li>The <b>values entered</b> are kept separately</li></ul></div>
+      <div class="rule step" data-label="Not persistence"><ul style="margin:6px 0 0"><li>Not saved to disk</li><li>App terminated: the value is <b>not guaranteed</b> to survive</li><li>Persistence: a later unit</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The model. The ContentView value may be recreated. SwiftUI&rsquo;s state machinery keeps storage associated with the view&rsquo;s identity, and that is where balance lives. The private memory layout is not public; this is a conceptual model. The text&rsquo;s other analogy: a form template can be reprinted, while the values entered into the form are kept separately.</p>
+    <span class="notes-label">SAY</span><p>Click: one important distinction. @State is not durable persistence. It does not save to disk; if NPay is terminated, the value is not guaranteed to survive. Persistence, SwiftData and the Keychain come later.</p>
+    <span class="notes-label">CONNECT</span><p>Now follow a change from tap to screen.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>From change to screen</h2>
+    <p class="lead">UI = f(State)</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>balance changes. What does SwiftUI do?</p>
+    <span class="notes-label">CONNECT</span><p>The pipeline.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; What happens when balance changes? (section 7) &middot; conceptual</p>
+  <h2>From a tap to a new balance on screen</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:28px;align-items:center">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 600 304" style="max-height:330px" role="img" aria-labelledby="pipe">
+        <title id="pipe">Tap, action runs, state updated, dependent bodies re-evaluated, layout, rendered</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="600" height="44" rx="12"/><use href="#i-tap" x="14" y="9" width="26" height="26"/><text x="52" y="19">User taps Add Demo ₹1,000</text><text class="sm" x="52" y="37">the event reaches SwiftUI (2.7)</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="52" width="600" height="44" rx="12"/><use href="#i-code" x="14" y="61" width="26" height="26"/><text x="52" y="71">The action runs</text><text class="sm" x="52" y="89">balance += 1000</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="104" width="600" height="44" rx="12"/><use href="#i-layers" x="14" y="113" width="26" height="26"/><text x="52" y="123">State storage updated</text><text class="sm" x="52" y="141">SwiftUI notes the change</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="156" width="600" height="44" rx="12"/><use href="#i-eye" x="14" y="165" width="26" height="26"/><text x="52" y="175">Dependent bodies re-evaluated</text><text class="sm" x="52" y="193">new descriptions with ₹26,000</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="208" width="600" height="44" rx="12"/><use href="#i-layout" x="14" y="217" width="26" height="26"/><text x="52" y="227">Layout as needed</text><text class="sm" x="52" y="245">only what changed</text></g>
+        <g class="nd" data-lit="6+"><rect class="sh" x="0" y="260" width="600" height="44" rx="12"/><use href="#i-frame" x="14" y="269" width="26" height="26"/><text x="52" y="279">Rendered</text><text class="sm" x="52" y="297">the new balance on screen</text></g>
+      </svg>
+    </div>
+      <div class="step"><p style="font-size:34px;font-weight:700;margin:0;text-align:center">UI = f(State)</p>
+        <p class="small muted" style="text-align:center;margin:8px 0 0">The description is a function of the current state.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A conceptual pipeline; only stage 1 was in the text&rsquo;s widget, and SwiftUI&rsquo;s scheduling is private. Click: the user taps, and as in 2.7 the event reaches SwiftUI. Click: the action runs: balance += 1000. Click: the write goes to SwiftUI&rsquo;s state storage, and SwiftUI notes the change. Click: views whose body read balance are evaluated again, producing descriptions with ₹26,000. Click: layout runs where needed. Click: the new balance is rendered.</p>
+    <span class="notes-label">SAY</span><p>Click: the mental model: UI equals f of State. The interface description depends on the current state; change the state and SwiftUI updates the presentation.</p>
+    <span class="notes-label">CONNECT</span><p>Does that mean the whole screen is rebuilt? We asked SwiftUI.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Observe body evaluation (sections 8&ndash;9, 16)</p>
+  <h2>Ask SwiftUI why body ran</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift (temporary)</span></div><pre class="cb" style="font-size:14px">var body: some View {
+    let _ = Self._printChanges()
+
+    return VStack(spacing: 20) {
+        Text(&quot;₹\(balance)&quot;)
+        Button(&quot;Add Money&quot;) {
+            balance += 1000
+        }
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">In Xcode, too</span><ul style="margin:6px 0 0"><li>Breakpoint on <code>balance += 1000</code></li><li>LLDB: <code>po balance</code> (when it can evaluate)</li></ul></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Simulator console: launch, then Add Money ×2</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">ChangesDemo: @self, @identity, _balance changed.<br>ChangesDemo: _balance changed.<br>ChangesDemo: _balance changed.</p></div></div>
+        <div class="rule step" data-label="Not a redraw count"><ul style="margin:6px 0 0"><li>Init &ne; body &ne; layout &ne; rendering</li><li>Body evaluations aren&rsquo;t frames drawn</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Self._printChanges() is a SwiftUI debugging helper: called inside body, it prints why the body is being evaluated. Note the return before VStack: once body contains a let statement, the view expression needs an explicit return here.</p>
+    <span class="notes-label">SAY</span><p>Click: our run. At launch: @self, @identity and _balance changed, everything is new. After each Add Money: only "_balance changed". SwiftUI knows exactly which state triggered the update. In 2.1 we saw the same pattern with a counter.</p>
+    <span class="notes-label">SAY</span><p>Click: several evaluations do not mean the screen was redrawn several times. View initialization, body evaluation, layout and rendering are separate stages. The text&rsquo;s widget made the point visually: only the balance changes; the header and actions stay as they are.</p>
+    <span class="notes-label">SAY</span><p>The text also suggests a breakpoint on balance += 1000 and po balance in LLDB; whether LLDB can evaluate it depends on the debug context and optimisation.</p>
+    <span class="notes-label">CONNECT</span><p>Now put the state into NPay itself.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>State in NPay</h2>
+    <p class="lead">One owner, one-way flow</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Change only what is needed.</p>
+    <span class="notes-label">CONNECT</span><p>BalanceCard first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Integrate @State into NPay (sections 10, 12)</p>
+  <h2>Steps A, B, C</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>A: BalanceCard receives a value</span></div><pre class="cb" style="font-size:12.5px">struct BalanceCard: View {
+    let balance: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(&quot;Available Balance&quot;)
+                .font(.subheadline)
+            Text(balance,
+                 format: .currency(code: &quot;INR&quot;)
+                     .precision(.fractionLength(0)))
+                .font(.largeTitle.bold())
+            Text(&quot;NPay Demo Account&quot;)
+                .font(.caption)
+        }
+        // same modifiers as 2.6
+    }
+}</pre></div></div>
+      <div><div class="cw"><div class="ch"><span>B, C: ContentView owns it</span></div><pre class="cb" style="font-size:13.5px">@State private var balance = 25000   // ContentView
+
+BalanceCard(balance: balance)
+
+Button(&quot;Add Demo ₹1,000&quot;) {
+    balance += 1000
+}
+.buttonStyle(.borderedProminent)</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">formatted, in the simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">25000 → ₹25,000</p></div></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">BalanceCard body, Add ×3 then Send</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">BalanceCard body: 25000 … 26000 … 27000 … 28000<br>Send tapped</p></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Step A: BalanceCard gets a let balance: Int instead of a fixed string, and shows it with a currency format: INR, no decimal places, which printed ₹25,000 in the simulator. The modifiers are the same as in 2.6. BalanceCard does not own mutable state; it receives a value.</p>
+    <span class="notes-label">SAY</span><p>Steps B and C: ContentView gets @State private var balance = 25000, passes it with BalanceCard(balance: balance), and adds an Add Demo ₹1,000 button below the card.</p>
+    <span class="notes-label">SAY</span><p>Click: the format check. Click: with a print in BalanceCard&rsquo;s body, three activations: the card was evaluated with 26,000, 27,000, 28,000; then Send still printed "Send tapped": the quick actions keep working. The screenshots on the first slide are this exact code.</p>
+    <span class="notes-label">CONNECT</span><p>Why does ContentView own the balance, and not the card?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; State ownership (sections 11, 17)</p>
+  <h2>The parent owns; children read; actions change</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 186" style="max-height:190px" role="img" aria-labelledby="own">
+        <title id="own">ContentView owns the balance; BalanceCard reads it; the Add button changes it</title>
+        <g class="nd lit"><rect class="sh" x="368" y="0" width="400" height="56" rx="12"/><use href="#i-layers" x="382" y="15" width="26" height="26"/><text x="420" y="25">ContentView</text><text class="sm" x="420" y="43">owns @State balance</text></g>
+        <path class="wire" d="M468 60V96H184V124M177 117l7 7 7-7"/>
+        <path class="wire dash" d="M952 124V96H668V60M661 71l7-7 7 7"/>
+        <g class="nd"><rect class="sh" x="0" y="130" width="368" height="56" rx="12"/><use href="#i-file" x="14" y="145" width="26" height="26"/><text x="52" y="155">BalanceCard</text><text class="sm" x="52" y="173">reads balance</text></g>
+        <g class="nd"><rect class="sh" x="768" y="130" width="368" height="56" rx="12"/><use href="#i-tap" x="782" y="145" width="26" height="26"/><text x="820" y="155">Add Demo button</text><text class="sm" x="820" y="173">changes balance</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">One-way data flow</span><ul style="margin:6px 0 0"><li>State &rarr; descriptions &rarr; screen</li><li>Actions change state, never the card</li></ul></div>
+      <div class="step"><div class="card accent"><span class="label">A real payment app (17)</span><ul style="margin:6px 0 0"><li>The <b>backend</b> owns the real balance</li><li>A local <code>+= 1000</code> is <b>not</b> a transaction</li></ul></div></div>
+    </div>
+    <div class="step" style="margin-top:12px"><div class="diagram">
+      <svg class="art" viewBox="0 0 1136 56" style="max-height:60px" role="img" aria-labelledby="prod">
+        <title id="prod">Trusted backend, networking service, ViewModel, BalanceCard</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="266" height="56" rx="12"/><use href="#i-bank" x="14" y="15" width="26" height="26"/><text x="52" y="25">Trusted backend</text><text class="sm" x="52" y="43">authoritative balance</text></g>
+        <g class="nd"><rect class="sh" x="290" y="0" width="266" height="56" rx="12"/><use href="#i-link" x="304" y="15" width="26" height="26"/><text x="342" y="25">Networking service</text><text class="sm" x="342" y="43">authenticated fetch</text></g>
+        <g class="nd"><rect class="sh" x="580" y="0" width="266" height="56" rx="12"/><use href="#i-layers" x="594" y="15" width="26" height="26"/><text x="632" y="25">ViewModel / app state</text><text class="sm" x="632" y="43">loading, errors, display</text></g>
+        <g class="nd"><rect class="sh" x="870" y="0" width="266" height="56" rx="12"/><use href="#i-file" x="884" y="15" width="26" height="26"/><text x="922" y="25">BalanceCard</text><text class="sm" x="922" y="43">displays it</text></g>
+        <path class="wire" d="M268 28H286M279 21l7 7-7 7"/>
+        <path class="wire" d="M558 28H576M569 21l7 7-7 7"/>
+        <path class="wire" d="M848 28H866M859 21l7 7-7 7"/>
+      </svg>
+    </div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Why does ContentView own the state? Because it coordinates both the button that changes the balance and the card that shows it. The parent owns the state and passes values down; the card only reads; the button&rsquo;s action changes the state, which produces new descriptions. That is one-way data flow. Two-way bindings come next lesson.</p>
+    <span class="notes-label">SAY</span><p>Click: Section 17&rsquo;s architecture decision. @State is right for this demo of local UI state. In a real payment app the authoritative balance comes from a trusted backend. Click: a production shape: backend, an authenticated networking service, a ViewModel that manages loading, errors and the displayed data, and BalanceCard showing it. The client must never treat a locally incremented number as a real transaction. Later units also store money as paise in Int64, as Unit 01 did; today&rsquo;s whole-rupee Int is for the demo.</p>
+    <span class="notes-label">CONNECT</span><p>Last question: when does @State reset?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Identity and $balance</h2>
+    <p class="lead">When state resets; what $ gives you</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>State is tied to identity. Change the identity...</p>
+    <span class="notes-label">CONNECT</span><p>Run the experiment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; When does @State reset? (section 14)</p>
+  <h2>New identity, fresh state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>IdentityExperiment.swift</span></div><pre class="cb" style="font-size:13px">struct IdentityExperiment: View {
+    @State private var identity = UUID()
+
+    var body: some View {
+        VStack(spacing: 20) {
+            CounterView()          // @State count = 0
+                .id(identity)
+            Button(&quot;Replace Identity&quot;) {
+                identity = UUID()
+            }
+        }
+    }
+}</pre></div>
+        <div class="step" style="margin-top:10px"><div class="card accent"><span class="label">Increment ×3, then Replace Identity</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">CounterView body: count = 0 … 1 … 2 … 3<br>CounterView body: count = 0</p></div></div></div>
+      <div>
+        <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px"><div style="width:200px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/identity-before.png" alt="After 3 increments"></div><p class="shot-cap">After 3 increments</p></div><div class="step"><div style="width:200px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/identity-after.png" alt="After Replace Identity"></div><p class="shot-cap">After Replace Identity</p></div></div></div>
+        <div class="rule step" data-label="Avoid" style="margin-top:12px"><ul style="margin:6px 0 0"><li><code>.id(UUID())</code> created <b>in body</b></li><li>Every evaluation would reset state</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>CounterView has its own @State count. The parent gives it an explicit identity with .id, stored as a UUID in the parent&rsquo;s state, and a button that replaces that UUID.</p>
+    <span class="notes-label">SAY</span><p>We activated Increment three times: count 1, 2, 3, on the left. Click: then Replace Identity: count 0, on the right. Changing .id gave SwiftUI a different identity for CounterView, so the old state was no longer associated with it and a new state started from 0. Same result as 2.1&rsquo;s identity experiment.</p>
+    <span class="notes-label">SAY</span><p>Click: so never create .id(UUID()) inside body: every evaluation would produce a new identity and reset the state, and SwiftUI would replace the view each time. Here the UUID lives in @State and changes only on purpose.</p>
+    <span class="notes-label">CONNECT</span><p>One last piece of syntax: the dollar sign.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; What does $balance mean? (section 15)</p>
+  <h2>The value, and a binding to it</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 186" style="max-height:190px" role="img" aria-labelledby="proj">
+        <title id="proj">From @State balance: balance is the Int value; $balance is a Binding of Int</title>
+        <g class="nd lit"><rect class="sh" x="384" y="0" width="368" height="56" rx="12"/><use href="#i-layers" x="398" y="15" width="26" height="26"/><text x="436" y="25">@State balance</text><text class="sm" x="436" y="43">SwiftUI-managed state</text></g>
+        <path class="wire" d="M480 60V96H184V124M177 117l7 7 7-7"/>
+        <path class="wire" d="M656 60V96H952V124M945 117l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="130" width="368" height="56" rx="12"/><use href="#i-code" x="14" y="145" width="26" height="26"/><text x="52" y="155">balance</text><text class="sm" x="52" y="173">the Int value</text></g>
+        <g class="nd"><rect class="sh" x="768" y="130" width="368" height="56" rx="12"/><use href="#i-link" x="782" y="145" width="26" height="26"/><text x="820" y="155">$balance</text><text class="sm" x="820" y="173">Binding&lt;Int&gt;: read and write</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">type(of:) inside the view</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">balance:  Int<br>$balance: Binding&lt;Int&gt;</p></div>
+      <div class="step"><div class="card accent"><span class="label">Next lesson</span><ul style="margin:6px 0 0"><li>Pass <code>$balance</code> to a child</li><li>The child <b>edits the parent&rsquo;s</b> state, no copy</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>balance gives the wrapped value, an Int. $balance gives the projected value, which for @State is a Binding of Int, as we printed. A binding is a reference to state stored elsewhere that you can read and write.</p>
+    <span class="notes-label">SAY</span><p>Click: that is Lesson 2.9: pass $balance to a child view, a balance editor, and the child can change state owned by its parent without creating a second, independent copy.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.8 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p style="font-size:23px"><b>@State is a wrapper</b><br><span class="muted" style="font-size:19px">view-owned state in SwiftUI storage</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Identity keeps it</b><br><span class="muted" style="font-size:19px">new struct, same state; new id, fresh state</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p style="font-size:23px"><b>UI = f(State)</b><br><span class="muted" style="font-size:19px">change state; SwiftUI updates the screen</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A view struct cannot change its own stored properties, so @State, a property wrapper, gives it state that SwiftUI stores for it. That state belongs to the view&rsquo;s identity: the struct can be recreated and the state survives, but a new identity starts fresh. And the screen is a function of state: change the state in an action and SwiftUI re-evaluates what depends on it.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>8 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is @State?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is <code>@State</code>?</p><ol class="q-opts"><li>A SwiftUI property wrapper</li><li>A database</li><li>A background thread</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why"><code>_balance</code> printed <code>State&lt;Int&gt;</code>: the wrapper behind the property.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking it stores data permanently.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. <code>_balance</code> printed <code>State&lt;Int&gt;</code>: the wrapper behind the property.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does @State persist across app termination?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>@State</code> automatically persist across app termination?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It lives in SwiftUI&rsquo;s in-memory storage for the view&rsquo;s identity; persistence is a later unit.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing &ldquo;survives updates&rdquo; with &ldquo;saved&rdquo;.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It lives in SwiftUI&rsquo;s in-memory storage for the view&rsquo;s identity; persistence is a later unit.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can a view struct be recreated while its @State survives?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can a view struct be recreated while its <code>@State</code> survives?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Two new Survivor values were created; both saw balance 28000.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the state lives inside the struct.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say no.</p>
+    <span class="notes-label">SAY</span><p>Yes. Two new Survivor values were created; both saw balance 28000.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What can happen when a view&#x27;s identity changes?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What can happen when a view&rsquo;s identity changes?</p><ol class="q-opts"><li>Its local state may reset</li><li>The entire iOS process must restart</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Replace Identity took the counter from 3 back to 0.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting state to follow the struct&rsquo;s type.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. Replace Identity took the counter from 3 back to 0.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does $balance provide for @State?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>$balance</code> provide for an <code>@State</code> property?</p><ol class="q-opts"><li>A <code>Binding&lt;Int&gt;</code></li><li>A second, independent <code>Int</code></li><li>A database connection</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Printed <code>Binding&lt;Int&gt;</code>: read and write access to the same state.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking $ makes a copy.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. Printed <code>Binding&lt;Int&gt;</code>: read and write access to the same state.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should a production balance change by incrementing local @State?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-bank"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should a production payment balance be changed only by incrementing local <code>@State</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The backend owns the real balance; a local <code>+= 1000</code> is not a transaction.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating demo state as the source of truth.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. The backend owns the real balance; a local <code>+= 1000</code> is not a transaction.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Increment ×3, then Replace Identity: what does the counter show?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">The counter shows 3. You tap <b>Replace Identity</b>. What does it show?</p><ol class="q-opts"><li>3</li><li>0</li><li>4</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A new identity gets new state, starting from its initial value 0.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting the count to carry over.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. A new identity gets new state, starting from its initial value 0.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.7: does evaluating body run a button&#x27;s action?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 8</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-tap"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 2.7: when the balance change makes <code>body</code> run again, does the button&rsquo;s action run again?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">body creates a new closure; only activation runs it.</p>
+          <p class="q-trap"><b>Common trap:</b> Mixing up evaluation and activation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.7.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. body creates a new closure; only activation runs it.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.8 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.9</td><td><b>@Binding: two-way state communication</b></td><td>a balance editor that changes the parent&rsquo;s state via <code>$balance</code></td></tr><tr><td class="mono">Later</td><td><b>Networking, ViewModels, persistence</b></td><td>the real, authoritative balance</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Next lesson builds a separate NPay balance editor and passes $balance to it, so a child view can modify state owned by its parent without a second copy. The real balance, from a backend through a ViewModel, comes in later units.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.8 &middot; Lab</p>
+  <h2>Make NPay reactive</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Predict each result before you run it.</p><ol class="lab"><li>Experiment 1: a plain <code>var</code>; read the error.</li><li>Experiment 2: <code>@State</code>; tap three times.</li><li>Add <code>Self._printChanges()</code>; tap; read the console.</li><li>Integrate: <code>BalanceCard(balance:)</code> and the button.</li><li>Run <code>IdentityExperiment</code>: increment, then replace.</li><li>Breakpoint on <code>balance += 1000</code>; try <code>po balance</code>.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>The compiler error and your one-line explanation</li><li>Console output for three taps</li><li>Before/after screenshots of Replace Identity</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our runs: "left side of mutating operator isn&rsquo;t mutable: &lsquo;self&rsquo; is immutable"; the balance goes 25,000 → 28,000; _printChanges prints "@self, @identity, _balance changed." then "_balance changed." per tap; the counter goes 3 → 0 on Replace Identity; po balance may or may not evaluate depending on optimisation.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.8 complete</p>
+    <h2>@State and<br>Reactive UI</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 2.9 &mdash; @Binding and Two-Way State Communication</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain why a plain var in a view cannot change, what the @State property wrapper adds, why state survives when the view struct is recreated and resets when identity changes, how a change flows from a tap to the screen, who should own state, what $balance is, and why a real balance does not live in local @State.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 2.9: @Binding. A separate NPay balance editor changes state owned by its parent, through a binding, without making a copy.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

@@ -1,237 +1,329 @@
-# Unit 2 · Lesson 2.1 — Inside SwiftUI (Parts 2 and 3)
+# Unit 2 · Lesson 2.1 — SwiftUI Text: From Source Code to Screen
 
-> Lesson text as shared. **Part 1 (Sections 1–10) was not shared**; the text starts at Section 11 ("We stopped at a
-> very important concept: reconciliation"). The deck (`index.html`) is built from Sections 11–30, with a short
-> authored opening that recalls "views are descriptions" from Lessons 1.5–1.6. NPay is the course's running app.
-> Long code blocks are summarised as "(Code: …)"; the full code, run in the iOS Simulator, is on the slides.
-> Corrections, evidence and authored additions are listed at the end under "Deck changes".
+> Lesson text as shared (Unit 2 restarted from zero; this replaces the earlier "Inside SwiftUI" Lesson 2.1, which
+> is kept in git history at commit d9883ef). Interactive widgets in the original (runtime walkthrough, width slider,
+> quiz) are described in brackets. The deck (`index.html`, built by `tools/gen2_1.py`) follows Sections 1–16.
+> Corrections, simulator evidence and authored additions are listed at the end under "Deck changes".
 
-## Lesson 2.1 — Part 2: Inside SwiftUI's Rendering Engine
+NPay iOS Engineering Masterclass · Beginner in iOS → Senior-Level Understanding
 
-SwiftUI Internals · Reconciliation · Identity · Layout · Rendering · Trainer Edition
+We're restarting Unit 2 from zero.
 
-We stopped at a very important concept: reconciliation. We already understand that SwiftUI views are descriptions, not actual pixels. Now we'll explore what happens when those descriptions change.
+You already know programming and have studied Swift, memory, processes, and concurrency in Units 0 and 1. Now we'll use that knowledge to understand how iOS applications are actually built.
 
-Our central question is: When NPay's balance changes from ₹25,000 to ₹30,000, how does SwiftUI update the interface without rebuilding everything unnecessarily?
+Our learning rule is simple: **Build something small → Predict → Run → Investigate internals → Experiment → Improve NPay.**
 
-### 11. Understanding reconciliation deeply
+Today we'll learn one main concept: SwiftUI Text.
 
-Imagine the NPay dashboard contains three elements: a heading (NPay), a balance (₹25,000), a button (Send Money). Now a transaction completes, and the balance becomes ₹30,000. The desired interface has changed, but only one displayed value is different.
+By the end, you'll understand not only how to display text but also how Swift resolves Text, why it conforms to View, what `some View` means, how SwiftUI measures text, and how it becomes visible on an iPhone.
 
-(Explore the old and new view descriptions: previous — NPay, ₹25,000, Send Money; new — NPay, ₹30,000, Send Money. Only the balance's displayed content differs in this example. Conceptual comparison. SwiftUI does not expose a public, fixed virtual-DOM diff algorithm equivalent to React's.)
+## 1. The engineering story
 
-What happens internally? Conceptually:
-1. The balance state changes.
-2. SwiftUI identifies affected dependencies.
-3. Relevant view descriptions may be reevaluated.
-4. The framework determines which managed UI information needs updating.
-5. Layout, graphics, and presentation work occur as required.
+Imagine we're developing NPay, a new payment application.
 
-Important: We should not teach SwiftUI as simply comparing two complete trees node by node. Its internal dependency tracking, identity management, and update mechanisms are more sophisticated and not fully publicly specified.
+Our first requirement: When NPay launches, display the application name in the center of the screen.
 
-**Trainer analogy.** Think of a restaurant order display. When one order changes from Preparing to Ready, the entire restaurant doesn't need to be rebuilt. The display system updates the information that changed.
+> **Milestone 2.1 — Our first NPay screen.** We won't add icons, buttons, or layouts yet. We'll investigate one SwiftUI component thoroughly.
 
-### 12. What causes body to run again?
+## 2. Build — our first SwiftUI view
 
-(Code: `struct NPayDashboard: View` with `@State private var balance = 25000`, `let _ = print("NPayDashboard body evaluated")` in `body`, a `Text("₹\(balance)")` and a `Button("Add ₹1,000") { balance += 1000 }`.)
-
-When the button changes balance, SwiftUI may reevaluate body to produce an updated description. The print is for debugging and teaching only; avoid relying on body evaluation counts as part of application logic.
-
-| Operation | Meaning |
-|---|---|
-| View struct initialization | A Swift value is constructed |
-| body evaluation | A new view description is computed |
-| Rendering | Visual output is prepared and presented |
-
-These operations are related, but they are not identical.
-
-**Trainer question.** If body executes ten times, does the GPU necessarily draw the entire screen ten times? No. View evaluation and physical rendering are different stages.
-
-### 13. Why SwiftUI views are usually structs
-
-Swift structs have value semantics. They are well suited for describing UI configurations.
-
-(Code: `struct BalanceCard: View { let title: String; let balance: Int; var body … VStack(alignment: .leading) { Text(title); Text("₹\(balance)").font(.largeTitle) } }`.)
-
-The view value describes what should appear. SwiftUI manages the associated state, identity, and platform rendering infrastructure.
-
-**Important distinction.** A SwiftUI view struct is not necessarily a persistent object representing one permanent physical screen element. SwiftUI may recreate view values as part of normal updates. That is why we should avoid putting expensive side effects inside body.
-
-### 14. View identity — one of the deepest SwiftUI concepts
-
-(Code: `struct NPayScreen: View` with `@State private var showPremium = false`, a `Toggle("Premium Mode", isOn: $showPremium)`, and `if showPremium { PremiumCounterView() } else { StandardCounterView() }`.)
-
-SwiftUI uses view identity to associate state with the correct parts of the hierarchy. When a conditional branch changes which view occupies a position, the previous view's state may be discarded.
-
-(Experiment: Structural identity — Premium Mode toggle, PremiumCounterView 0, Increment. Switching between these two different view types simulates removing one branch and inserting the other, resetting the branch-local counter state. Conceptual simulation of branch-local @State lifetime.)
-
-**Trainer insight.** View identity is not the same as object identity. SwiftUI identity determines how the framework associates state and updates with a view's position and structure. We'll explore stable identity in lists and navigation later.
-
-### 15. Explicit identity using .id()
+Open your existing NPay Xcode project. In `ContentView.swift`, use:
 
 ```swift
-CounterView()
-    .id(accountId)
+import SwiftUI
+
+struct ContentView: View {
+
+    var body: some View {
+        Text("NPay")
+    }
+}
+
+#Preview {
+    ContentView()
+}
 ```
 
-If accountId changes, SwiftUI treats the view as having a different explicit identity. This can cause associated state to reset.
+Press Command + R to launch the application, or use Xcode's SwiftUI Canvas preview.
 
-**Why is this useful?** Suppose the user switches from account A to account B. We may want account-specific temporary state to reset. But using .id() unnecessarily can destroy useful state and trigger additional work.
+Expected result: the word NPay appears near the center of the screen.
 
-**Trainer rule:** Use explicit identity deliberately, not as a universal fix for UI update problems.
+Now we have a working feature. Let's investigate how it works.
 
-### 16. State ownership — where should state live?
+## 3. First mystery — what exactly is Text?
 
-NPay has two screens, Dashboard and Transaction history; both need the selected account. Should each screen maintain its own independent selected-account state? Usually, shared state should be owned at an appropriate common level.
+When Swift encounters `Text("NPay")`, what is Text? A function? A class? A UIKit object?
 
-(Parent / Shared State Owner — Selected account → DashboardView, TransactionView.)
+Text is a struct defined in the SwiftUI framework. Conceptually:
 
-This is the idea behind lifting shared state to an appropriate owner. It prevents different screens from maintaining inconsistent independent copies of the same UI selection.
+```swift
+// Simplified illustration — not Apple's source
+struct Text: View {
+    // Text content and styling information
+}
+```
 
-### 17. @State versus @Binding
+Text conforms to the View protocol.
 
-(Code: `ParentView` with `@State private var balance = 25000` passing `$balance` to `BalanceEditor`, which has `@Binding var balance: Int` and a `Button("Add ₹1,000") { balance += 1000 }`.)
+| Part | Meaning |
+|---|---|
+| `Text` | SwiftUI struct |
+| `(...)` | Initializer invocation |
+| `"NPay"` | String literal |
+| Result | A Text value describing UI content |
 
-The parent owns the state. The child receives a binding that allows reading and writing that state.
+**Connect to Unit 1.** Remember:
 
-(Interactive binding relationship: Parent @State ₹25,000 — Binding — Child @Binding. Child updates balance. Reset.)
+```swift
+struct Customer {
+    let name: String
+}
 
-**Trainer question.** Does @Binding create a second independent copy of the state? No. A binding provides access to state owned elsewhere.
+let customer = Customer(name: "Ravi")
+```
 
-### 18. @Observable — managing reference-based application state
+`Customer(...)` creates a Customer value. Similarly, `let title = Text("NPay")` creates a Text value. But there's a difference in purpose: Customer models domain data, while Text describes interface content.
 
-(Code: `import Observation; @Observable final class NPayViewModel { var balance = 25000; var isLoading = false; func addDemoAmount() { balance += 1000 } }` and a `DashboardView` with `@State private var model = NPayViewModel()` showing `Text("₹\(model.balance)")` and a button calling `model.addDemoAmount()`.)
+**Trainer question.** Does `Text("NPay")` immediately draw pixels? No. It creates a declarative view value. SwiftUI manages layout and rendering separately.
 
-The Observation framework tracks property access and changes to support updates to dependent views.
+## 4. How does Swift find Text?
 
-**Important distinction.** @Observable makes a type observable. It does not automatically make its mutable state thread-safe. For UI-facing mutable state, actor isolation—often @MainActor—is an important design consideration.
+Look at the first line: `import SwiftUI`. SwiftUI is an Apple framework that exposes a module containing types such as Text, Image, Button, and VStack. The compiler uses imported module information to resolve those declarations.
 
-### 19. SwiftUI and the main actor
+1. `import SwiftUI` — makes SwiftUI declarations available
+2. `Text` — compiler resolves the SwiftUI type
+3. `"NPay"` — compiler processes the string literal
+4. Initializer overload resolution — selects a compatible Text initializer
+5. Text value — a statically typed view description
 
-(Code: `@MainActor @Observable final class NPayViewModel { var balance = 25000; var isLoading = false; func loadBalance() async { isLoading = true; defer { isLoading = false } /* await a networking service, update balance */ } }`.)
+**Investigate in Xcode.** Hold Command (⌘) and click Text, then select Jump to Definition. You should see an interface declaration resembling `public struct Text: View`. The exact interface may differ by Xcode and SDK version. This is how you can inspect APIs instead of memorizing them.
 
-@MainActor isolates the ViewModel to the main actor. This helps prevent unsafe concurrent access to UI-facing mutable state.
+## 5. Why does ContentView conform to View?
 
-**Important nuance.** @MainActor does not mean every asynchronous operation must block the main thread. When a task suspends at await, the main actor can process other work. However, CPU-heavy synchronous computation on the main actor can still block UI responsiveness.
+`struct ContentView: View` is protocol conformance, not class inheritance. We studied protocols in Unit 1. A simplified mental model of the View protocol is:
 
-### 20. SwiftUI rendering and Core Animation
+```swift
+// Teaching approximation, not Apple's exact API
 
-At a high level, SwiftUI manages view descriptions and layout. Apple's graphics and compositing infrastructure handles the work needed to present visual content.
+protocol View {
+    associatedtype Body: View
 
-Conceptual rendering pipeline: SwiftUI view descriptions (what should be displayed) → dependency and identity management (what may need updating) → layout (where content belongs) → graphics and compositing infrastructure (prepare and combine visual content) → display presentation (visible frame reaches the screen). Conceptual model; SwiftUI's private rendering implementation and the precise role of underlying technologies may vary by OS release.
+    @ViewBuilder
+    var body: Body { get }
+}
+```
 
-**Trainer insight.** Avoid teaching that every SwiftUI view directly corresponds to a CALayer. SwiftUI manages its own abstractions, and the underlying rendering representation is an implementation detail.
+The important parts are:
+- `associatedtype Body` — each view has a specific body type.
+- `body` — describes the view's content.
+- `@ViewBuilder` — supports declarative composition of child views.
 
-### 21. Performance — why excessive body work matters
+Our ContentView satisfies the protocol because its body produces a Text, which itself conforms to View. (Diagram: View protocol; ContentView and Text both conform to View.)
 
-(Code: `body` computing `let result = expensiveCalculation()` then `Text("\(result)")`.)
+**Trainer insight.** ContentView doesn't need to inherit from Text. It only needs to return a view description satisfying the View protocol.
 
-This is risky if expensiveCalculation() performs substantial synchronous work. Because SwiftUI may reevaluate body multiple times, expensive calculations there can harm responsiveness. A better architecture moves expensive work into an appropriate service or asynchronous operation and exposes the result as state.
+## 6. What exactly does some View mean?
 
-**Trainer question.** Should networking requests be started directly as side effects of evaluating body? No. body should describe the interface. Use lifecycle-aware mechanisms such as .task, actions, and appropriately owned models to coordinate side effects.
+```swift
+var body: some View {
+    Text("NPay")
+}
+```
 
-### 22. Our first complete NPay dashboard
+Why `some View` instead of just `View`? Because `some View` is an opaque return type. It means the implementation returns one specific concrete type conforming to View, while hiding that concrete type from callers. In our example, that underlying type is Text.
 
-(Code: `struct NPayDashboard: View` with `@State private var balance = 25000` and `showMessage`; a `VStack(spacing: 24)` with `Text("NPay").font(.largeTitle.bold())`, `Text("Available Balance").foregroundStyle(.secondary)`, `Text(balance, format: .currency(code: "INR").precision(.fractionLength(0))).font(.system(size: 38, weight: .bold))`, `Button("Add Demo ₹1,000") { balance += 1000; showMessage = true }.buttonStyle(.borderedProminent)`, `if showMessage { Text("Demo balance updated").foregroundStyle(.green) }`, `Spacer()`, `.padding()`; and `#Preview { NPayDashboard() }`.)
+Compiler's understanding: declared return type `some View`; underlying concrete type `Text`; requirement: Text conforms to View.
 
-This is a demonstration screen, not a real wallet or bank balance implementation. It introduces several concepts we'll study in upcoming lessons: view composition, text formatting, state changes, conditional views, modifiers, layout, Xcode previews.
+**Important distinction.** `some View` does not mean Swift can arbitrarily return a different concrete type on each evaluation. The opaque return type has a consistent underlying concrete type for that declaration. We'll see why this matters when we introduce conditional views.
 
-## Lesson 2.1 — Part 3: Architecture Review, Debugging & Mastery
+## 7. What happens at runtime?
 
-### 23. Senior engineer architecture review
+Let's follow the complete journey from launching NPay to seeing text.
 
-1. Is a SwiftUI View struct the same as a UIKit UIView object?
-2. Does every @State update redraw the entire screen?
-3. Why doesn't @State disappear whenever the View struct is recreated?
-4. Should we perform network requests directly inside body?
-5. Does @Observable make a ViewModel thread-safe?
-6. What happens if a view's identity changes?
+[Interactive execution walkthrough. Step 1 — Operating system: iOS launches NPay. The app process starts and the SwiftUI application lifecycle is established. (The remaining steps were not included in the shared text.) Conceptual runtime flow; SwiftUI's private implementation details are not fully public.]
 
-**Trainer technique.** Ask the question first. Let participants explain their reasoning. Only then reveal the answer.
+**Key insight.** Creating a Text value is not the same as drawing text. The framework decides how to measure, position, and render the description.
 
-### 24. Debugging SwiftUI — Why is body running again?
+## 8. Why is NPay centered without a VStack?
 
-A developer reports: "My NPay dashboard's body is executing repeatedly. SwiftUI must be inefficient!" Is that necessarily true? No. SwiftUI can reevaluate view descriptions as part of normal dependency updates. The useful question is whether unnecessary expensive work is occurring.
+We haven't written any positioning code. Yet the text appears centered in the root screen. Why?
 
-(Code: `DashboardView` with `@State private var count = 0` and `let _ = Self._printChanges()` in `body`, a `Text("Count: \(count)")` and an increment button.)
+In this simple root layout, the SwiftUI hosting environment proposes available space and places the text according to its layout behavior. This does not mean every Text is automatically centered in every parent. The result depends on the surrounding layout.
 
-Self._printChanges() is a SwiftUI debugging facility that can help explain why a view's body is being evaluated. It is a diagnostic tool, not something to build application logic around.
+**Experiment.** Replace `Text("NPay")` with:
 
-What should we investigate? Which state or observable property changed? Which views depend on that state? Is the view identity stable? Are expensive calculations happening during body evaluation? Is a side effect repeatedly modifying state? **Senior engineer principle:** Measure and identify the cause before optimizing.
+```swift
+Text("NPay")
+    .frame(maxWidth: .infinity, maxHeight: .infinity,
+           alignment: .topLeading)
+```
 
-### 25. Debugging view identity
+Now the text should move toward the top-leading position of the available layout area. The visible position may also be influenced by safe-area behavior. We'll study `.frame` deeply in the layout lessons.
 
-(Code: `BalanceCard().id(UUID())`.) Why is this dangerous? Every evaluation creates a new UUID. That can cause SwiftUI to treat the child view as having a new identity, potentially resetting state and triggering unnecessary work. A better approach is to use a stable identity when explicit identity is needed: `BalanceCard().id(accountId)`. Even here, .id(accountId) is only appropriate when changing accounts should deliberately change the view's identity.
+## 9. How does SwiftUI measure text?
 
-**Trainer question.** Should we add .id() to every SwiftUI view? No. SwiftUI already uses structural identity. Explicit identity is useful for specific cases, not as a universal requirement.
+This is where the layout engine becomes interesting.
 
-### 26. Debugging the main thread
+Text has an intrinsic content size under given constraints. For example, "NPay" at a small font requires less space than "Welcome to NPay" at a large font.
 
-(Code: `DashboardView` with `@State private var result = 0` and a `Button("Calculate") { result = expensiveCalculation() }`.)
+SwiftUI uses a layout process in which parents propose sizes, children choose sizes, and parents position children.
 
-If expensiveCalculation() takes several seconds and executes on the main actor, the UI may become unresponsive, because the main thread needs opportunities to process user events and UI work. (Main-thread responsiveness: blocking work / asynchronous work.)
+[Text layout experiment: an "Available width" slider (260px) over the text "Welcome to NPay. Payments made simple." Narrower space may cause additional line wrapping, increasing the height needed for text. Browser-based illustration, not SwiftUI's exact text measurement.]
 
-**Important nuance.** Adding async to a function does not automatically move CPU-intensive work to a background thread. You must understand actor isolation and the execution context of the work.
+**Behind the scenes.** Text measurement considers font metrics, glyph advances, line breaks, language, and the proposed available size. The text system determines a suitable layout, and SwiftUI positions that result. This is why text can respond naturally to different device widths.
 
-### 27. Debugging with Instruments
+## 10. Experiment — introduce font styling
 
-- **Time Profiler** — Identify CPU-intensive call paths and expensive application work.
-- **Animation and rendering diagnostics** — Investigate frame timing, animation hitches, and rendering-related performance.
-- **Allocations and Memory Graph** — Investigate memory growth, object retention, and ownership problems.
+```swift
+Text("NPay")
+    .font(.largeTitle)
+```
 
-The exact diagnostic instruments and templates available depend on the Xcode version and target platform.
+What is `.font()`? It's a SwiftUI modifier. What is `.largeTitle`? A semantic font style resolved through the expected Font type. The longer form is `Text("NPay").font(Font.largeTitle)`.
 
-**Trainer note.** For performance discussions, always separate three different costs: computing view descriptions, laying out the interface, and rendering/presenting frames. They can have different bottlenecks.
+Why does Swift understand `.largeTitle`? Because the compiler knows the modifier expects a font value. This is contextual type inference, which we learned in Unit 1.
 
-### 28. Final experiment — Trace a complete SwiftUI update
+**Why use semantic fonts?** Styles such as `.body`, `.title`, and `.largeTitle` integrate with platform typography conventions and Dynamic Type. Dynamic Type allows users to choose preferred text sizes for accessibility.
 
-(Code: the NPayDashboard from Section 22, simplified.) Trace one button tap (Step 1 / 6: Input and event handling — the user taps the button; the system delivers the interaction to the application, and SwiftUI invokes the button action.)
+## 11. Experiment — inspect modifier return types
 
-The key relationship is: Event → State mutation → Dependency invalidation → View reevaluation → Required UI updates → Visible frame. This is a conceptual pipeline, not a claim about the exact private order of every SwiftUI implementation detail.
+Add this temporary experiment inside an appropriate SwiftUI-capable execution context, such as a Playground or a button action:
 
-### 29. Final knowledge check
+```swift
+let original = Text("NPay")
+let styled = original.font(.largeTitle)
+let padded = original.padding()
 
-1. Does creating a SwiftUI View struct immediately draw pixels?
-2. Can SwiftUI reevaluate body without redrawing the entire screen?
-3. Can changing view identity reset associated @State?
-4. Does @Binding create an independent copy of state?
-5. Does @Observable automatically make mutable state thread-safe?
-6. Is expensive synchronous work inside body a good design?
+print(type(of: original))
+print(type(of: styled))
+print(type(of: padded))
+```
 
-### 30. Lesson 2.1 — Final mental model
+What do you expect? `original` is Text. For the text-specific `.font()` overload, `styled` is also Text. `padding()` returns a modified view type rather than plain Text.
 
-SwiftUI View (a value describing desired UI) → State and dependencies (determine when relevant descriptions may change) → Identity (associates state with the correct view) → Body evaluation (computes child view descriptions) → Reconciliation and layout (necessary interface updates and geometry) → Rendering and presentation (visible screen output).
+**Why is this interesting?** Not every modifier produces the same concrete type. Some text-specific modifiers preserve Text, while general View modifiers commonly create wrapper descriptions. This is an example of how SwiftUI combines protocol extensions, generics, and overload resolution.
 
-You should be able to explain why SwiftUI is declarative, what the View protocol represents, why body can be reevaluated, how state differs from a view value, why identity matters, and how layout and rendering turn descriptions into visible UI. Most importantly: "When the user taps a button in NPay, how does a change in Swift state become an updated pixel on the iPhone?"
+## 12. Experiment — modifier order matters
 
-**Next — Lesson 2.2: Xcode Project Structure & SwiftUI App Entry.** Create the NPay project and explore Xcode: project navigator, targets, schemes, build settings, assets, @main, WindowGroup, previews, simulator, build pipeline, and debugging.
+```swift
+Text("NPay")
+    .padding()
+    .background(.yellow)
+```
 
-*(text ends here as shared)*
+compared with:
+
+```swift
+Text("NPay")
+    .background(.yellow)
+    .padding()
+```
+
+The output differs because modifiers are applied in sequence. (Illustration: padding then background — the background covers the padded region; background then padding — the background covers only the text.)
+
+This is a crucial SwiftUI concept. Modifiers aren't just visual decorations. Their order changes the structure and layout behavior of the resulting view description.
+
+## 13. What about Unicode and localization?
+
+NPay may eventually support multiple languages. Consider:
+
+```swift
+Text("Welcome to NPay")
+Text("வணக்கம்")
+Text("नमस्ते")
+```
+
+SwiftUI's text infrastructure supports Unicode text, shaping, line breaking, and language-specific layout behavior. A visible glyph isn't necessarily equivalent to one byte or one Unicode scalar.
+
+**Localization distinction.** `Text("Welcome to NPay")` can participate in SwiftUI localization. But `Text(verbatim: "Welcome to NPay")` explicitly treats the string as verbatim content. We'll study localization deeply when building NPay's multilingual interface.
+
+## 14. Final NPay code — Lesson 2.1
+
+Now keep the application in this state:
+
+```swift
+import SwiftUI
+
+struct ContentView: View {
+
+    var body: some View {
+        Text("NPay")
+            .font(.largeTitle)
+            .bold()
+            .foregroundStyle(.blue)
+    }
+}
+
+#Preview {
+    ContentView()
+}
+```
+
+We've added semantic typography, bold styling, and foreground color. Our application still has only one view, but we now understand its foundation.
+
+## 15. Senior engineer knowledge check
+
+SwiftUI Text · Protocols · Type System · Layout · Rendering · Modifiers. Answer these 10 questions.
+
+1. What does `Text("NPay")` create? — A UILabel instance / **A SwiftUI Text value** / Pixels directly in a graphics buffer
+2. Why can `ContentView.body` return Text? — Text inherits from ContentView / **Text conforms to View** / Text is a special Swift keyword
+3. What does `some View` mean? — Any different View type at runtime / **One underlying concrete type conforming to View** / A dynamically typed object
+4. Does evaluating body necessarily redraw the entire screen? — Yes / **No**
+5. Why does `.largeTitle` work without writing `Font.largeTitle`? — Runtime reflection / **Contextual type inference** / Implicit global variable
+6. What does `.padding()` generally do? — Mutates the original Text object / **Returns a padded view description** / Adds spaces to the string
+7. Does modifier order affect layout? — **Yes** / No
+8. What influences Text measurement? — Only the number of characters / **Font, content, proposed size and layout constraints** / Only the screen resolution
+9. Does every Text value create a separate UILabel? — Yes / **Not guaranteed**
+10. Which API explicitly displays text without localization-key interpretation? — `Text("Welcome")` / **`Text(verbatim: "Welcome")`** / `Text.localized()`
+
+(Answers in bold were not marked in the shared text; they follow from the lesson.)
+
+## 16. Final practical challenge — Predict the result
+
+Version A:
+
+```swift
+Text("NPay")
+    .padding(24)
+    .background(.yellow)
+```
+
+Version B:
+
+```swift
+Text("NPay")
+    .background(.yellow)
+    .padding(24)
+```
+
+Which version has the larger yellow background? [Reveal explanation — not included in the shared text.]
+
+**Lesson 2.1 complete.** We've now covered Text as a Swift struct, the View protocol, `some View`, initializer resolution, localization, text measurement, rendering, modifiers, and modifier order.
+
+Next, we'll continue Lesson 2.2 — Image and SF Symbols, building on this screen without discarding what we've already developed.
 
 ## Deck changes
 
-The deck (`index.html`, built by `tools/gen2_1.py`) follows Sections 11–30, with these changes.
+The deck (`index.html`, built by `tools/gen2_1.py`, 44 slides) follows Sections 1–16, grouped into 8 Parts:
+the first screen (1–2), what is Text (3–4), View and some View (5–6), from value to pixels (7), layout (8–9),
+modifiers (10–12), Unicode and localization (13), final code (14); then recap, the review (15–16), next, lab, end.
 
-**Evidence from the iOS Simulator** (iPhone 17, iOS 26.5; scripted app in `tools/sim2_1/`, rerun with `sh tools/sim2_1/run.sh`)
-- Section 12: with a `print` in `body`, changing the balance twice logged the dashboard's body **3** times and an independent `HeaderView`'s body **once**.
-- Section 24: `Self._printChanges()` logged `@self, @identity, _count changed.` then `_count changed.` on each update.
-- Section 14: switching branches reset the counter — "StandardCounterView appeared, count = 0", "Standard counted to 3", "PremiumCounterView appeared, count = 0", … "StandardCounterView appeared, count = 0".
-- Section 25: with `.id(UUID())`, three parent updates gave **4** fresh card states; with a stable id, **1**.
-- Section 22: real screenshots of the dashboard at launch (₹25,000) and after one tap (₹26,000 plus "Demo balance updated").
+**Evidence instead of illustrations** (iPhone 17 simulator, iOS 26.5; app in `tools/sim2_1/`, rerun with `sh tools/sim2_1/run.sh`)
+- Section 2: screenshot of the first `ContentView` (NPay centred). Section 8: screenshot with the top-leading frame.
+- Section 4: the real iOS 26.5 SDK interface: `@frozen public struct Text : Equatable, Sendable` lives in SwiftUICore, the View conformance is an extension, and SwiftUI re-exports SwiftUICore (`@_exported import SwiftUICore`). The text's expectation `public struct Text: View` is shown as a note.
+- Section 5: the real requirement lines (`associatedtype Body : View`, `@ViewBuilder @MainActor var body: Self.Body { get }`) next to the teaching approximation.
+- Section 6: `type(of: body)` printed `Text` for ContentView, and `ModifiedContent<Text, _FlexFrameLayout>` with the frame.
+- Section 9: the browser width slider is replaced by measured sizes: "NPay" .body 39.7 × 24.3 pt, .largeTitle 77.3 × 48.7 pt; the sentence offered 260 pt chose 221.0 × 50.3 pt (2 lines), offered 140 pt chose 140.0 × 76.3 pt (3 lines). Grey borders added to show the frames.
+- Section 11: real console `Text`, `Text`, `ModifiedContent<Text, _PaddingLayout>` (run in a view's `.task`).
+- Section 12: screenshot of both orders (shown at `.largeTitle`); both measured 109.3 × 80.7 pt.
+- Section 13: screenshot of the three greetings; counts: NPay 4/4/4, வணக்கம் 5 characters / 7 scalars / 21 UTF-8 bytes, नमस्ते 3 / 6 / 18. Localization shown with a Tamil `Localizable.strings` (**authored translation** "NPay-க்கு வரவேற்கிறோம்") and the device language set to Tamil: `Text("…")` translated, `Text(verbatim:)` did not.
+- Section 14: screenshots at the default text size and at Accessibility XL (Dynamic Type); 82.7 × 48.7 pt → 125.3 × 74.0 pt; `type(of: body)` is `Text`.
 
-**Structure**
-- Part 1 (Sections 1–10) was not shared. One authored "Starting point" slide recalls that a view is a description (Lessons 1.5–1.6).
-- Sections 11–30 grouped into **8 Parts**: reconciliation (11); body evaluation and structs (12–13); identity (14–15); ownership (16–17); observation and the main actor (18–19); rendering and performance (20–21); the dashboard (22); debugging (24–28, with 30's mental model in the tap trace).
-- The architecture review (23) and knowledge check (29) are merged into one 8-question review (no more than two "No" answers; multiple choice and predict-the-output; one spaced item from 1.9).
+**Authored (flagged)**
+- Section 7's walkthrough: only step 1 was shared; steps 2–6 (scene shows ContentView, body read, layout, rendering, on screen) are authored and the slide is marked conceptual.
+- Section 15/16 answers (not marked in the shared text) and every "why" / "common trap"; Q5 noted as spaced review from Unit 01.
+- Outcomes, "Where we are" (Unit 02 progress strip: only 2.1 and 2.2 are named, since the unit restarted), recap, "Where this goes next" (2.2 plus the text's own forward pointers), lab "Investigate Text yourself".
+- The learning loop on the Part 1 slide comes from the text's introduction.
 
-**Corrections and canon**
-- `NPayDashboard` / `NPayViewModel` → `DashboardView` / `DashboardViewModel` (course names). Amounts in paise (`balanceMinor: Int64`); the dashboard formats `Decimal(balanceMinor) / 100` as INR; the ViewModel exposes `balanceText`. The ViewModel is `@MainActor @Observable final class` with `refresh()` (was `loadBalance()`), and its button is "Refresh balance". The demo button keeps "Add Demo ₹1,000".
-- `BalanceCard` takes `balanceText` (formatted by the ViewModel) instead of `Int`.
-- The "Better" performance example uses `.task` with an owned service (`calculator`, illustrative).
-
-**Authored additions (flagged)**
-- Outcomes, "Where we are" (Unit 02 progress strip, bridge to 1.10), "Starting point", recap.
-- Diagrams: old/new descriptions, branch swap, shared owner, rendering pipeline, the six-step tap trace (with the real screenshot as step 6).
-- "Where this goes next": 2.2, 2.4, 2.5, 3.1, 3.2, 3.9.
-- Lab "Make SwiftUI explain itself" (reproduce each log in your own simulator).
-- End slide: "Next: Lesson 2.2 — Xcode Projects, Simulator & Previews" (plan title; the text calls it "Xcode Project Structure & SwiftUI App Entry").
+**Wording**
+- "Trainer question" / "Trainer insight" became neutral callouts; "Senior engineer knowledge check" became "Check your understanding". `ContentView` kept (the Xcode template name the text uses).

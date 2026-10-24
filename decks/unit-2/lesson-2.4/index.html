@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.4 — HStack &amp; Spacer</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.4 — HStack &amp; Spacer">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.4</p>
+    <h1 style="font-size:54px;line-height:1.05">HStack, Horizontal Layout<br>&amp; Spacer</h1>
+    <p class="lead" style="max-width:760px">Three payment actions side by side. Who decides <b>how wide</b> each one is, and where the <b>spare space</b> goes?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In 2.3 we learned how VStack arranges views vertically, how @ViewBuilder builds the content, and how SwiftUI negotiates sizes. Now NPay needs its first horizontal interface: payment actions side by side, well spaced, and adapting to different iPhone widths. We investigate HStack, Spacer, proposals, alignment and flexible space, all measured in the iOS Simulator.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.4 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p><code>HStack</code> as VStack&rsquo;s <b>horizontal twin</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></span><p>How an HStack <b>shares out width</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Why children don&rsquo;t get <b>equal</b> widths by default</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p>What <code>Spacer</code> does, and how it differs from padding</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p><code>VerticalAlignment</code>: top, center, bottom</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p><code>.layoutPriority</code> when space runs out</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.4 &middot; Where we are</p>
+  <h2>Today: a row of actions</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.4 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Text</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">2.2</text><text x="107.364" y="50" style="font-size:14px">Image &amp;</text><text x="107.364" y="68" style="font-size:14px">SF Symbols</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">2.3</text><text x="202.727" y="50" style="font-size:14px">VStack &amp;</text><text x="202.727" y="68" style="font-size:14px">@ViewBuilder</text></g>
+        <g class="nd lit"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">2.4</text><text x="298.091" y="50" style="font-size:14px">HStack &amp;</text><text x="298.091" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd ghost"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">2.5</text><text x="393.455" y="50" style="font-size:14px">ZStack &amp;</text><text x="393.455" y="68" style="font-size:14px">layers</text></g>
+        <g class="nd ghost"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">2.6</text><text x="488.818" y="50" style="font-size:14px">View</text><text x="488.818" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">2.7</text><text x="584.182" y="50" style="font-size:14px">Button &amp;</text><text x="584.182" y="68" style="font-size:14px">events</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">2.8</text><text x="679.545" y="50" style="font-size:14px">@State</text><text x="679.545" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">2.9</text><text x="774.909" y="50" style="font-size:14px">@Binding</text><text x="774.909" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">2.10</text><text x="870.273" y="50" style="font-size:14px">ForEach</text><text x="870.273" y="68" style="font-size:14px">&amp; List</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">2.11</text><text x="965.636" y="50" style="font-size:14px">TextField</text><text x="965.636" y="68" style="font-size:14px">&amp; focus</text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">2.12</text><text x="1061" y="50" style="font-size:14px">Payment</text><text x="1061" y="68" style="font-size:14px">flow</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.3: a <code>VStack</code>: icon, title, subtitle.</span><span><b>Today</b>An <code>HStack</code> row: Send, Request, History.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson the welcome screen became a VStack with an icon, a title and a subtitle. Today we add NPay&rsquo;s first horizontal layout, a row of three quick actions, and learn how horizontal layout differs.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone first.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The next milestone</h2>
+    <p class="lead">Quick actions in a row</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three labels side by side below the subtitle.</p>
+    <span class="notes-label">CONNECT</span><p>Before and after.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our next NPay milestone (section 1)</p>
+  <h2>Milestone 2.4: a quick-action row</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px 190px;gap:36px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Add</span><ul style="margin:6px 0 0"><li>Three quick actions: <b>Send</b>, <b>Request</b>, <b>History</b></li><li>Side by side, below the subtitle</li></ul></div>
+        <div class="card accent"><span class="label">Not yet</span><ul style="margin:6px 0 0"><li>Visual only, not buttons</li><li>Button behaviour: <b>Lesson 2.7</b></li></ul></div>
+      </div>
+      <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/before.png" alt="Before: Lesson 2.3"></div><p class="shot-cap">Before: Lesson 2.3</p></div>
+      <div class="step"><div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/final.png" alt="After: Milestone 2.4"></div><p class="shot-cap">After: Milestone 2.4</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We have a welcome screen with an icon, a title and a subtitle. Now we want three quick-action labels in a row: Send, Request and History.</p>
+    <span class="notes-label">SAY</span><p>Click: that is where we finish today. For now they are visual elements, not buttons; buttons come in Lesson 2.7.</p>
+    <span class="notes-label">CONNECT</span><p>The tool for a row: HStack.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>HStack</h2>
+    <p class="lead">VStack, turned sideways</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Same pattern as VStack, on the other axis.</p>
+    <span class="notes-label">CONNECT</span><p>Read the declaration.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What exactly is HStack? (section 2)</p>
+  <h2>A generic struct, like VStack</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Interface excerpt, iOS 26.5 SDK (body omitted)</span></div><pre class="cb" style="font-size:13.5px">@frozen public struct HStack&lt;Content&gt; : View
+        where Content : View {
+    public init(alignment: VerticalAlignment = .center,
+                spacing: CGFloat? = nil,
+                @ViewBuilder content: () -&gt; Content)
+}</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">type(of:) in the simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">HStack { Send; Request; History }:<br>HStack&lt;TupleView&lt;(Text, Text, Text)&gt;&gt;</p></div></div></div>
+      <div><table class="tbl compact"><thead><tr><th></th><th>VStack</th><th>HStack</th></tr></thead><tbody><tr><td>Main axis</td><td>vertical</td><td>horizontal</td></tr><tr><td>Cross-axis alignment</td><td><code>HorizontalAlignment</code></td><td><code>VerticalAlignment</code></td></tr><tr><td>Spacing</td><td>between vertical children</td><td>between horizontal children</td></tr><tr><td>Content</td><td><code>@ViewBuilder</code> closure</td><td><code>@ViewBuilder</code> closure</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="rule step" data-label="The closure?"><ul style="margin:6px 0 0"><li>Returns the <b>content</b>; the initializer builds the <code>HStack</code></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Like VStack, HStack is a generic SwiftUI struct conforming to View. Here is its real declaration from the SDK: the same shape as VStack&rsquo;s, except alignment is a VerticalAlignment.</p>
+    <span class="notes-label">SAY</span><p>The table: the main axis is horizontal instead of vertical; cross-axis alignment is VerticalAlignment instead of HorizontalAlignment; spacing goes between horizontal children; and the content is the same @ViewBuilder closure.</p>
+    <span class="notes-label">SAY</span><p>Click: we printed the type of our three-label row: HStack of a TupleView of three Texts. Exactly the pattern from 2.3.</p>
+    <span class="notes-label">SAY</span><p>Click: does the closure return the HStack? No. The closure produces the child content; the initializer constructs the stack.</p>
+    <span class="notes-label">CONNECT</span><p>First experiment: spacing.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; First experiment (section 3)</p>
+  <h2>Change the spacing: 0, 20, 40</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift (body)</span></div><pre class="cb" style="font-size:16px">HStack(spacing: 20) {
+    Text(&quot;Send&quot;)
+    Text(&quot;Request&quot;)
+    Text(&quot;History&quot;)
+}
+.padding()</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">Row width, measured</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">spacing 0: 156.7 pt<br>spacing 20: 196.7 pt<br>spacing 40: 236.7 pt</p></div></div></div>
+      <div><div style="width:440px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/spacing.png" alt="Grey border = each Text"></div><p class="shot-cap">Grey border = each Text</p></div>
+        <div class="rule step" data-label="What changes" style="margin-top:12px"><ul style="margin:6px 0 0"><li>+40 pt per step: <b>two gaps</b> × 20</li><li>The labels and the outside: unchanged</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Replace the body with an HStack of three Texts, spacing 20, padded. Then try spacing 0 and 40. On the right, all three runs, with a grey border on each Text.</p>
+    <span class="notes-label">SAY</span><p>Click: the row measured 156.7 points at spacing 0, 196.7 at 20, and 236.7 at 40.</p>
+    <span class="notes-label">SAY</span><p>Click: each step adds 40 points: two gaps, 20 points more each. Only the distance between adjacent children changes; the labels stay the same size, and spacing adds nothing around the row.</p>
+    <span class="notes-label">CONNECT</span><p>So how does an HStack decide widths when space is limited?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Sharing out width</h2>
+    <p class="lead">Proposals, not equal shares</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A parent offers 350 points. Who gets what?</p>
+    <span class="notes-label">CONNECT</span><p>The negotiation.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; HStack&rsquo;s layout negotiation (section 4)</p>
+  <h2>How an HStack shares out width</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 120" style="max-height:150px" role="img" aria-labelledby="neg">
+        <title id="neg">The parent proposes a width, spacing is subtracted, children get proposals, children choose sizes, the stack positions them</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="208" height="120" rx="14"/><use href="#i-frame" x="90" y="14" width="28" height="28"/><text x="104" y="84" text-anchor="middle">Parent proposes</text><text class="sm" x="104" y="104" text-anchor="middle">e.g. 350 pt wide</text></g>
+        <path class="wire" d="M210 60H228M221 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="232" y="0" width="208" height="120" rx="14"/><use href="#i-diff" x="322" y="14" width="28" height="28"/><text x="336" y="84" text-anchor="middle">Spacing first</text><text class="sm" x="336" y="104" text-anchor="middle">2 gaps × 20 = 40 pt</text></g>
+        <path class="wire" d="M442 60H460M453 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="464" y="0" width="208" height="120" rx="14"/><use href="#i-link" x="554" y="14" width="28" height="28"/><text x="568" y="84" text-anchor="middle">Children get proposals</text><text class="sm" x="568" y="104" text-anchor="middle">by sizing and flexibility</text></g>
+        <path class="wire" d="M674 60H692M685 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="696" y="0" width="208" height="120" rx="14"/><use href="#i-code" x="786" y="14" width="28" height="28"/><text x="800" y="84" text-anchor="middle">Children choose</text><text class="sm" x="800" y="104" text-anchor="middle">and report sizes</text></g>
+        <path class="wire" d="M906 60H924M917 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="928" y="0" width="208" height="120" rx="14"/><use href="#i-layout" x="1018" y="14" width="28" height="28"/><text x="1032" y="84" text-anchor="middle">HStack positions</text><text class="sm" x="1032" y="104" text-anchor="middle">with alignment, spacing</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">The arithmetic</span><ul style="margin:6px 0 0"><li>Spacing: 2 × 20 = <b>40 pt</b></li><li>Left for children: 350 &minus; 40 = <b>310 pt</b></li></ul></div>
+      <div class="rule" data-label="But"><ul style="margin:6px 0 0"><li>Not 310 &divide; 3 = 103.3 pt each</li><li>Each child has its <b>own sizing</b></li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Layout uses size proposals. For a horizontal stack, the container decides how to distribute width. Click: the parent proposes a size, say 350 points wide. Click: the stack accounts for spacing: two gaps of 20 take 40 points. Click: the children receive proposals, depending on each child&rsquo;s sizing behaviour and flexibility. Click: they choose sizes and report them. Click: the stack positions them with alignment and spacing.</p>
+    <span class="notes-label">SAY</span><p>Click: the numbers. 350 minus 40 leaves 310 points for the children. But that does not mean each child gets 103.3 points. Each child has its own sizing behaviour. A simplified model; real stacks also weigh ideal sizes and priorities.</p>
+    <span class="notes-label">CONNECT</span><p>We measured both cases.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Equal widths? (sections 4&ndash;5)</p>
+  <h2>Plain Text vs equal flexible widths, in 350 pt</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Equal flexible widths</span></div><pre class="cb" style="font-size:13.5px">HStack(spacing: 20) {
+    Text(&quot;Send&quot;)
+        .frame(maxWidth: .infinity)
+    Text(&quot;Request&quot;)
+        .frame(maxWidth: .infinity)
+    Text(&quot;History&quot;)
+        .frame(maxWidth: .infinity)
+}
+.frame(width: 350)</pre></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Design rule"><ul style="margin:6px 0 0"><li>Plain Text does <b>not</b> share equally</li><li>Equal widths: ask for them, with a flexible frame</li></ul></div></div>
+      <div><div style="width:460px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/widths.png" alt="Blue = the 350 pt stack; grey = each child"></div><p class="shot-cap">Blue = the 350 pt stack; grey = each child</p></div>
+        <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:12px">
+          <div class="card accent"><span class="label">plain Text</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Send: 39.3 pt<br>Request: 62.7 pt<br>History: 54.7 pt</p></div>
+          <div class="card accent"><span class="label">maxWidth: .infinity</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">Send: 103.3 pt<br>Request: 103.3 pt<br>History: 103.3 pt</p></div>
+        </div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Both rows sit in a stack 350 points wide with spacing 20, so 310 points are left for children. The top row has plain Texts; the bottom row gives every Text a flexible frame with infinite max width. This replaces the text&rsquo;s browser explorer, which deliberately gave equal flexible widths.</p>
+    <span class="notes-label">SAY</span><p>Click: measured. Plain Texts take what they need: 39.3, 62.7 and 54.7 points, and the stack centres them in the leftover space. With flexible frames, each child gets exactly 103.3 points: 310 divided by 3.</p>
+    <span class="notes-label">SAY</span><p>Click: a plain HStack of Texts does not distribute space equally. When a reusable layout needs equal columns, ask for flexibility explicitly.</p>
+    <span class="notes-label">CONNECT</span><p>Flexible space has its own view: Spacer.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Spacer</h2>
+    <p class="lead">Flexible space</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay on the left, an account icon on the right.</p>
+    <span class="notes-label">CONNECT</span><p>Add a Spacer.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; What is Spacer? (sections 6&ndash;7)</p>
+  <h2>Spacer takes the leftover space</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Header.swift</span></div><pre class="cb" style="font-size:16px">HStack {
+    Text(&quot;NPay&quot;)
+
+    Spacer()
+
+    Image(systemName: &quot;person.circle&quot;)
+}</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Spacer</span><ul style="margin:6px 0 0"><li>A <b>flexible</b> view along the stack&rsquo;s main axis</li><li>No visible content of its own</li></ul></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">type(of:)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">HStack&lt;TupleView&lt;(Text, Spacer, Image)&gt;&gt;</p></div></div></div>
+      <div><div style="width:460px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/spacer.png" alt="Blue = the HStack (.title2, padded screen)"></div><p class="shot-cap">Blue = the HStack (.title2, padded screen)</p></div>
+        <div class="step" style="margin-top:12px"><div class="card accent"><span class="label">Row width, measured</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">without Spacer: 84.3 pt<br>with Spacer: 370.0 pt (+285.7)</p></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The NPay title on the left and an account icon on the right: put a Spacer between them. Spacer is a SwiftUI view that expands along the stack&rsquo;s main axis when space is available. It draws nothing itself; the stack can give it the remaining space, subject to layout constraints.</p>
+    <span class="notes-label">SAY</span><p>On the right, the text&rsquo;s checkbox experiment for real: the top row has no Spacer, the bottom row has one. The blue border is the HStack. Click: without the Spacer, the row is just its content, 84.3 points. With it, 370 points: the Spacer absorbed 285.7 points and pushed the icon to the far edge.</p>
+    <span class="notes-label">SAY</span><p>Click: and the Spacer is a real child in the content type: a TupleView of Text, Spacer and Image.</p>
+    <span class="notes-label">CONNECT</span><p>Is a Spacer just padding?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Spacer vs padding (section 6)</p>
+  <h2><code>Spacer()</code> is not <code>.padding(20)</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">.padding(20)</span><ul style="margin:6px 0 0"><li>A <b>fixed</b> amount</li><li><b>Around</b> one view</li><li>Same on every screen</li></ul></div>
+      <div class="card accent"><span class="label">Spacer()</span><ul style="margin:6px 0 0"><li><b>Flexible</b>: grows into leftover space</li><li><b>Between</b> siblings in a stack</li><li>Wider screen, wider Spacer</li></ul></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Measured"><ul style="margin:6px 0 0"><li>Spacer took <b>285.7 pt</b> here; on another iPhone width, a different amount</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Is Spacer() the same as .padding(20)? No. Padding adds a specified amount of space around a view, the same on every screen. A Spacer is flexible: it sits between siblings in a stack and expands to consume the available space.</p>
+    <span class="notes-label">SAY</span><p>Click: in our run the Spacer took 285.7 points; on a narrower or wider iPhone it would take a different amount, which is exactly why NPay&rsquo;s header adapts to the device.</p>
+    <span class="notes-label">CONNECT</span><p>Next: children of different heights.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Vertical alignment</h2>
+    <p class="lead">Top, center, bottom</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two texts with very different heights in one row.</p>
+    <span class="notes-label">CONNECT</span><p>Align them.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Why HStack uses VerticalAlignment (section 8)</p>
+  <h2>Different heights, three alignments</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 300px;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:15px">HStack(alignment: .top, spacing: 20) {
+    Text(&quot;Send&quot;)
+        .font(.largeTitle)
+
+    Text(&quot;Request&quot;)
+        .font(.caption)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Each aligns</span><ul style="margin:6px 0 0"><li><code>.top</code>: top edges</li><li><code>.center</code>: vertical centres</li><li><code>.bottom</code>: bottom edges</li></ul></div>
+        <div class="rule step" data-label="Later"><ul style="margin:6px 0 0"><li>Text <b>baseline</b> alignment: a later experiment</li></ul></div></div>
+      <div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/align.png" alt="Grey = each Text; blue = the row"></div><p class="shot-cap">Grey = each Text; blue = the row</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Send in largeTitle and Request in caption: very different heights. HStack&rsquo;s cross axis is vertical, so its alignment is a VerticalAlignment. .top lines up the top edges, .center the vertical centres, .bottom the bottom edges. On the right, all three in the simulator; the row is as tall as its tallest child.</p>
+    <span class="notes-label">SAY</span><p>When children differ in size, this choice changes how the row looks. Click: for text in different font sizes you often want the text baseline instead; SwiftUI supports that, and we come back to it in a later layout experiment.</p>
+    <span class="notes-label">CONNECT</span><p>What if the row does not fit at all?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>When space runs out</h2>
+    <p class="lead">Compression and priority</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A smaller iPhone, or longer labels.</p>
+    <span class="notes-label">CONNECT</span><p>Squeeze a row.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Too narrow: layoutPriority (section 9)</p>
+  <h2>Who gets the space when there isn&rsquo;t enough</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>BalanceRow.swift</span></div><pre class="cb" style="font-size:15px">HStack {
+    Text(&quot;Available Balance&quot;)
+        .layoutPriority(1)
+
+    Text(&quot;₹25,000&quot;)
+}</pre></div>
+        <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:12px">
+          <div class="card accent"><span class="label">no priority</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">label: 82.3 pt, 2 lines<br>amount: 75.3 pt, 1 line</p></div>
+          <div class="card accent"><span class="label">label priority 1</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">label: 152.0 pt, 1 line<br>amount: 39.3 pt, 2 lines</p></div>
+        </div>
+        <div class="rule step" data-label="Not &ldquo;bigger&rdquo;" style="margin-top:12px"><ul style="margin:6px 0 0"><li>Priority decides who is <b>served first</b> when space is short</li><li>Here it squeezed the <b>amount</b></li></ul></div></div>
+      <div><div style="width:420px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/narrow.png" alt="Both rows squeezed into 200 pt (.title3)"></div><p class="shot-cap">Both rows squeezed into 200 pt (.title3)</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>On a smaller iPhone, a row may not fit. SwiftUI has to resolve the layout within the width it has: text may compress, wrap or truncate, depending on the views and their modifiers. We squeezed the text&rsquo;s balance row into 200 points, at title3 so it clearly does not fit.</p>
+    <span class="notes-label">SAY</span><p>Top row, no priority: the label wrapped onto two lines and the amount kept one line. Bottom row, the label has layoutPriority(1): it is served first and keeps one line, 152 points, and the amount is left with 39 points and wraps: "₹25," above "000".</p>
+    <span class="notes-label">SAY</span><p>Click: so layoutPriority is not an instruction to make a view larger. It decides who gets space first when space is short, and here it produced a worse result for the balance. Use it deliberately, and check the result.</p>
+    <span class="notes-label">CONNECT</span><p>Now build NPay&rsquo;s row.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>NPay quick actions</h2>
+    <p class="lead">Milestone 2.4</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Keep the welcome screen; add a row of three actions.</p>
+    <span class="notes-label">CONNECT</span><p>The code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; The quick-action row (section 10)</p>
+  <h2>An HStack of three small VStacks</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Added below the subtitle, in VStack(spacing: 24)</span></div><pre class="cb" style="font-size:13px">HStack(spacing: 24) {
+    VStack(spacing: 8) {
+        Image(systemName: &quot;arrow.up.right&quot;)
+        Text(&quot;Send&quot;)
+    }
+    VStack(spacing: 8) {
+        Image(systemName: &quot;arrow.down.left&quot;)
+        Text(&quot;Request&quot;)
+    }
+    VStack(spacing: 8) {
+        Image(systemName: &quot;clock&quot;)
+        Text(&quot;History&quot;)
+    }
+}
+.font(.subheadline)
+.foregroundStyle(.blue)</pre></div></div>
+      <div class="cols" style="grid-template-columns:150px minmax(0,1fr);gap:16px;align-items:start">
+        <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/final.png" alt="Milestone 2.4"></div><p class="shot-cap">Milestone 2.4</p></div>
+        <div class="step"><div class="card accent"><span class="label">Structure</span><ul style="margin:6px 0 0"><li><b>HStack</b>: the row</li><li><b>VStack</b> per action: icon over label</li><li>Outer <b>VStack</b>: the screen</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The welcome screen stays: symbol, title, subtitle, now in a VStack with spacing 24 and the title as largeTitle.bold(). Below the subtitle we add this HStack. Each action is a small VStack with an SF Symbol over a label: arrow up-right for Send, arrow down-left for Request, a clock for History. On the left, just the new part; the full code is in the lesson text and the lab.</p>
+    <span class="notes-label">SAY</span><p>Click: three levels. The HStack arranges the actions horizontally; each nested VStack puts an icon over a label; the outer VStack arranges the whole screen vertically. The real screen: Milestone 2.4.</p>
+    <span class="notes-label">CONNECT</span><p>One thing is new: .font and .foregroundStyle on the HStack reached every child. How?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Why .font(.subheadline) reaches the children (section 10)</p>
+  <h2>Modifiers on a container flow down</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="card accent"><span class="label">type(of:) in the simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">row.font(.subheadline):<br>ModifiedContent&lt;HStack&lt;&hellip;&gt;,<br>  _EnvironmentKeyWritingModifier&lt;Optional&lt;Font&gt;&gt;&gt;</p></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Same as on an Image (2.2)</span><ul style="margin:6px 0 0"><li><code>.font</code> on a non-Text view <b>writes the environment</b></li></ul></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">The environment</span><ul style="margin:6px 0 0"><li>Font is an <b>environment</b>-driven style</li><li>Every descendant reads it</li><li>unless it sets its own</li></ul></div></div>
+        <div class="rule step" data-label="Later"><ul style="margin:6px 0 0"><li>The modifiers lesson goes deep on this</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Why does .font(.subheadline) on the HStack change the labels inside it, and size the symbols too? We printed the type: the HStack wrapped in an environment-writing modifier for an optional Font, the same thing we saw on an Image in 2.2.</p>
+    <span class="notes-label">SAY</span><p>Click: font is an environment-driven style. A font modifier on a container puts the font into the environment, and every descendant that does not set its own font reads it. The same happens with foregroundStyle, which is why all three actions are blue.</p>
+    <span class="notes-label">SAY</span><p>Click: this is an important concept; the modifiers lesson explores it properly.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.4 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p style="font-size:23px"><b>HStack = sideways VStack</b><br><span class="muted" style="font-size:19px">VerticalAlignment, horizontal spacing</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></span><p style="font-size:23px"><b>Width is negotiated</b><br><span class="muted" style="font-size:19px">children size themselves; not equal shares</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p style="font-size:23px"><b>Spacer and priority</b><br><span class="muted" style="font-size:19px">flexible space; who is served first</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. HStack is VStack&rsquo;s horizontal twin: a generic struct, a @ViewBuilder closure, spacing between horizontal children and a VerticalAlignment. Width is negotiated: after spacing, children size themselves, so plain Texts do not get equal shares unless you ask for flexibility. And Spacer is flexible space that takes what is left, while layoutPriority decides who is served first when space runs out.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>7 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is HStack?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is <code>HStack</code>?</p><ol class="q-opts"><li>A Swift function</li><li>A generic struct conforming to <code>View</code></li><li>A UIKit controller</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>@frozen public struct HStack&lt;Content&gt; : View</code>, built like VStack.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading the call as a function call.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. <code>@frozen public struct HStack&lt;Content&gt; : View</code>, built like VStack.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does HStack give every child an equal width by default?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>HStack</code> give every child an equal width by default?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">In 350 pt, plain Texts took 39.3, 62.7 and 54.7 pt; only flexible frames gave 103.3 pt each.</p>
+          <p class="q-trap"><b>Common trap:</b> Imagining equal columns.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. In 350 pt, plain Texts took 39.3, 62.7 and 54.7 pt; only flexible frames gave 103.3 pt each.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does Spacer do?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>Spacer()</code> do?</p><ol class="q-opts"><li>Adds a fixed 20-point gap</li><li>Expands flexibly when space is available</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">It took 285.7 pt in our header row; a different width on another iPhone.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating it as fixed padding.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. It took 285.7 pt in our header row; a different width on another iPhone.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which alignment type does HStack use?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Which alignment type does <code>HStack</code> use?</p><ol class="q-opts"><li><code>HorizontalAlignment</code></li><li><code>VerticalAlignment</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Its main axis is horizontal, so its cross axis is vertical.</p>
+          <p class="q-trap"><b>Common trap:</b> Matching the name &ldquo;H&rdquo; to horizontal alignment.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Its main axis is horizontal, so its cross axis is vertical.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does layoutPriority guarantee a fixed width?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>.layoutPriority(1)</code> guarantee a view a fixed width?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It only decides who is served first when space is short; the label kept one line, the amount wrapped.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating priority as a size.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It only decides who is served first when space is short; the label kept one line, the amount wrapped.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Spacing 0 to 40 in a three-Text row: how much wider?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">A row of three Texts goes from <code>spacing: 0</code> to <code>spacing: 40</code>. How much wider is it?</p><ol class="q-opts"><li>40 pt</li><li>80 pt</li><li>120 pt</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Two gaps &times; 40 pt: measured 156.7 &rarr; 236.7 pt.</p>
+          <p class="q-trap"><b>Common trap:</b> Counting a gap per child, or around the row.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick C.</p>
+    <span class="notes-label">SAY</span><p>B. Two gaps &times; 40 pt: measured 156.7 &rarr; 236.7 pt.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.3: does VStack spacing add space around the stack?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 7</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 2.3: does a <code>VStack</code>&rsquo;s <code>spacing</code> add space around the whole stack?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Only between adjacent children; padding is separate. The same holds for HStack.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing spacing with padding.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.3.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Only between adjacent children; padding is separate. The same holds for HStack.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.4 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.5</td><td><b>ZStack &amp; layered layouts</b></td><td>NPay&rsquo;s balance card: Z-order, overlays, backgrounds</td></tr><tr><td class="mono">2.7</td><td><b>Buttons</b></td><td>making Send, Request and History tappable</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Next lesson builds NPay&rsquo;s first balance card with a ZStack: text and icons over a coloured background, Z-axis ordering, overlays and backgrounds. And in 2.7 today&rsquo;s labels become real buttons.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.4 &middot; Lab</p>
+  <h2>Measure the row</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Predict each result, then check it with borders.</p><ol class="lab"><li>Section 3: spacing 0, 20, 40.</li><li>Equal widths: add <code>.frame(maxWidth: .infinity)</code>.</li><li>Header with and without <code>Spacer()</code>.</li><li>Alignment: <code>.top</code>, <code>.center</code>, <code>.bottom</code>.</li><li>Squeeze the balance row; try <code>.layoutPriority(1)</code>.</li><li>Build the Section 10 quick-action row.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Screenshots with borders</li><li>One measured width you predicted</li><li>One sentence on what layoutPriority did</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our simulator runs: each spacing step of 20 adds 40 pt (two gaps); plain Texts keep their own widths, flexible frames share equally; the Spacer pushes the icon to the edge; the row is as tall as its tallest child; in a narrow row priority keeps the label on one line and the amount wraps; the quick actions inherit .subheadline and blue from the HStack.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.4 complete</p>
+    <h2>HStack, Horizontal Layout<br>&amp; Spacer</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 2.5 &mdash; ZStack &amp; Layered Layouts</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain HStack as VStack&rsquo;s horizontal twin, how an HStack shares out width, why plain children do not get equal widths, what Spacer does and how it differs from padding, how vertical alignment works, and what layoutPriority does when space runs out. NPay has its quick-action row.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 2.5: ZStack and layered layouts. NPay&rsquo;s first balance card: text and icons over a coloured background, Z-axis ordering, layout sizing, overlays and backgrounds.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

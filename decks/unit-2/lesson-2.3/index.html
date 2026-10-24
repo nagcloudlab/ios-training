@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2.3 — VStack &amp; @ViewBuilder</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 02 · Lesson 2.3 — VStack &amp; @ViewBuilder">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 02 &middot; Lesson 2.3</p>
+    <h1 style="font-size:54px;line-height:1.05">VStack &amp;<br>@ViewBuilder Internals</h1>
+    <p class="lead" style="max-width:760px">Two views, one column. How does <b>one closure</b> hand SwiftUI <b>two views</b>, and who decides where they go?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In 2.1 we built Text("NPay"); in 2.2 we added Image(systemName: "creditcard.fill"). Now we have two independent views. Today: how to arrange them vertically, how to control the space between them, and what SwiftUI does inside: VStack&rsquo;s initializer, its generic type, the trailing closure, @ViewBuilder, and layout negotiation. Every screenshot, measurement and printed type came from the iOS Simulator.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.3 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Why <code>VStack</code> is a <b>generic struct</b>, not a function</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>How the <b>trailing closure</b> supplies content</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>How <code>@ViewBuilder</code> turns many views into <b>one</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>How the compiler infers <code>VStack&lt;Content&gt;</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></span><p>Spacing, padding and alignment: <b>who does what</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p>How a stack <b>sizes itself</b>, and resizes</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.3 &middot; Where we are</p>
+  <h2>Today: arrange the views</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 02 &middot; SwiftUI Fundamentals</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 02 progress: lesson 2.3 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">2.1</text><text x="12" y="50" style="font-size:14px">Text</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">2.2</text><text x="107.364" y="50" style="font-size:14px">Image &amp;</text><text x="107.364" y="68" style="font-size:14px">SF Symbols</text></g>
+        <g class="nd lit"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">2.3</text><text x="202.727" y="50" style="font-size:14px">VStack &amp;</text><text x="202.727" y="68" style="font-size:14px">@ViewBuilder</text></g>
+        <g class="nd ghost"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">2.4</text><text x="298.091" y="50" style="font-size:14px">HStack &amp;</text><text x="298.091" y="68" style="font-size:14px">layout</text></g>
+        <g class="nd ghost"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">2.5</text><text x="393.455" y="50" style="font-size:14px">ZStack &amp;</text><text x="393.455" y="68" style="font-size:14px">layers</text></g>
+        <g class="nd ghost"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">2.6</text><text x="488.818" y="50" style="font-size:14px">View</text><text x="488.818" y="68" style="font-size:14px">modifiers</text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">2.7</text><text x="584.182" y="50" style="font-size:14px">Button &amp;</text><text x="584.182" y="68" style="font-size:14px">events</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">2.8</text><text x="679.545" y="50" style="font-size:14px">@State</text><text x="679.545" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">2.9</text><text x="774.909" y="50" style="font-size:14px">@Binding</text><text x="774.909" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">2.10</text><text x="870.273" y="50" style="font-size:14px">ForEach</text><text x="870.273" y="68" style="font-size:14px">&amp; List</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">2.11</text><text x="965.636" y="50" style="font-size:14px">TextField</text><text x="965.636" y="68" style="font-size:14px">&amp; focus</text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">2.12</text><text x="1061" y="50" style="font-size:14px">Payment</text><text x="1061" y="68" style="font-size:14px">flow</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.2: <code>Image(systemName:)</code> above the title, in a <code>VStack</code> we didn&rsquo;t explain.</span><span><b>Today</b>Open up <code>VStack</code>: Swift first, then layout.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last lesson we put the symbol above the title with a VStack and promised to explain it. Today we keep that promise, first from the Swift language side, then from SwiftUI&rsquo;s layout side.</p>
+    <span class="notes-label">CONNECT</span><p>Start with the problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>A vertical layout</h2>
+    <p class="lead">Two views, one column</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two independent views. We need them in a column.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The problem (section 1)</p>
+  <h2>NPay needs a vertical layout</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px;gap:36px;align-items:center">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:17px">VStack(spacing: 20) {
+    Image(systemName: &quot;creditcard.fill&quot;)
+    Text(&quot;NPay&quot;)
+}</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">Three questions</span><ul style="margin:6px 0 0"><li>Is <code>VStack</code> a <b>function</b>?</li><li>Is the content a <b>closure</b>?</li><li>How does a closure return <b>two</b> views?</li></ul></div></div></div>
+      <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/before.png" alt="Where 2.2 ended"></div><p class="shot-cap">Where 2.2 ended</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We have two views, the symbol and the title, and we need a container that arranges its children vertically. SwiftUI provides VStack. On the right, the screen from the end of Lesson 2.2.</p>
+    <span class="notes-label">SAY</span><p>Click: but what exactly is this expression? Is VStack a function? Is the part in braces a closure? And if it is, how does one closure return two views? Those three questions are today&rsquo;s first half.</p>
+    <span class="notes-label">CONNECT</span><p>First question: function or not?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>A generic struct</h2>
+    <p class="lead">Not a function</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>VStack(spacing: 20) { } looks like a function call.</p>
+    <span class="notes-label">CONNECT</span><p>Read the declaration.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; VStack is not a function (section 2)</p>
+  <h2><code>VStack(&hellip;)</code> calls an initializer</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Interface excerpt, iOS 26.5 SDK (body omitted)</span></div><pre class="cb" style="font-size:14px">@frozen public struct VStack&lt;Content&gt; : View
+        where Content : View {
+    public init(alignment: HorizontalAlignment = .center,
+                spacing: CGFloat? = nil,
+                @ViewBuilder content: () -&gt; Content)
+}</pre></div>
+        <div class="gap"></div>
+        <div class="step"><table class="tbl"><thead><tr><th>In the declaration</th><th>Means</th></tr></thead><tbody><tr><td><code>struct VStack</code></td><td>a <b>struct</b></td></tr><tr><td><code>&lt;Content&gt;</code></td><td>a <b>generic</b> type parameter</td></tr><tr><td><code>spacing:</code></td><td>an initializer <b>argument</b></td></tr><tr><td><code>@ViewBuilder content:</code></td><td>a <b>closure</b>, built by a result builder</td></tr></tbody></table></div></div>
+      <div class="step"><div class="cw"><div class="ch"><span>Unit 01</span></div><pre class="cb" style="font-size:14px">struct Account {
+    let balance: Int
+}
+
+let account = Account(balance: 25000)</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Same move</span><ul style="margin:6px 0 0"><li><code>Account(balance:)</code> calls an initializer</li><li><code>VStack(spacing:)</code> calls a <b>generic</b> struct&rsquo;s initializer</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>It looks like a function call, but VStack is a generic struct and we are calling its initializer. This is the real declaration from the iOS 26.5 SDK, with the body left out; the lesson text shows a simplified version of the same thing.</p>
+    <span class="notes-label">SAY</span><p>Click: four things to read off it. VStack is a struct. Content is a generic type parameter, constrained to View. spacing is an initializer argument, optional with a default of nil. And content is a closure marked @ViewBuilder.</p>
+    <span class="notes-label">SAY</span><p>Click: you have done this since Unit 01. Account(balance: 25000) calls Account&rsquo;s initializer. VStack(spacing: 20) calls a generic struct&rsquo;s initializer. Same syntax, same mechanism.</p>
+    <span class="notes-label">CONNECT</span><p>So what about the braces after it?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>The trailing closure</h2>
+    <p class="lead">It supplies the content</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The braces are the content argument.</p>
+    <span class="notes-label">CONNECT</span><p>Write it the long way.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; The trailing closure (section 3)</p>
+  <h2>The closure supplies the content</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div class="cw"><div class="ch"><span>Trailing closure</span></div><pre class="cb" style="font-size:16px">VStack(spacing: 20) {
+    Text(&quot;NPay&quot;)
+}</pre></div>
+      <div class="step"><div class="cw"><div class="ch"><span>Same call, written out</span></div><pre class="cb" style="font-size:16px">VStack(
+    spacing: 20,
+    content: {
+        Text(&quot;NPay&quot;)
+    }
+)</pre></div></div>
+    </div>
+    <div class="gap"></div>
+    <div class="step"><div class="diagram">
+      <svg class="art" viewBox="0 0 1004 56" style="max-height:70px" role="img" aria-labelledby="tc">
+        <title id="tc">The content closure returns Content, the initializer uses it, the result is a VStack of Content</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="300" height="56" rx="12"/><use href="#i-code" x="14" y="15" width="26" height="26"/><text x="52" y="25">Content closure</text><text class="sm" x="52" y="43">returns Content</text></g>
+        <path class="wire" d="M304 28H346M339 21l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="352" y="0" width="300" height="56" rx="12"/><use href="#i-gear" x="366" y="15" width="26" height="26"/><text x="404" y="25">VStack initializer</text><text class="sm" x="404" y="43">uses the Content</text></g>
+        <path class="wire" d="M656 28H698M691 21l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="704" y="0" width="300" height="56" rx="12"/><use href="#i-layers" x="718" y="15" width="26" height="26"/><text x="756" y="25">VStack&lt;Content&gt;</text><text class="sm" x="756" y="43">the value you get</text></g>
+      </svg>
+    </div></div>
+    <div class="rule step" data-label="Not a VStack" style="margin-top:12px"><ul style="margin:6px 0 0"><li>The closure returns <b>Content</b>; the <b>initializer</b> returns the <code>VStack</code></li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swift lets you write a closure argument after the parentheses when a function or initializer takes a closure: trailing closure syntax.</p>
+    <span class="notes-label">SAY</span><p>Click: so this is the same call written out: spacing 20, and a content argument whose value is a closure returning Text("NPay").</p>
+    <span class="notes-label">SAY</span><p>Click: the flow. The content closure returns a Content value; the VStack initializer uses it; the result is a value of type VStack of Content.</p>
+    <span class="notes-label">SAY</span><p>Click: a common confusion: the closure does not return a VStack. It returns the content. The initializer produces the VStack.</p>
+    <span class="notes-label">CONNECT</span><p>Now the real puzzle: two views in one closure.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>@ViewBuilder</h2>
+    <p class="lead">Many expressions, one value</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A closure returns one value. This one has two expressions.</p>
+    <span class="notes-label">CONNECT</span><p>Compare.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; The mystery (section 4)</p>
+  <h2>How can one closure return two views?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>A normal closure</span></div><pre class="cb" style="font-size:16px">let calculate = {
+    10 + 20
+}
+
+print(calculate()) // 30</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">swiftc, then run</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">30</p></div></div>
+      <div><div class="cw"><div class="ch"><span>A view closure</span></div><pre class="cb" style="font-size:16px">VStack {
+    Text(&quot;NPay&quot;)
+    Image(systemName: &quot;creditcard.fill&quot;)
+}</pre></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Two expressions"><ul style="margin:6px 0 0"><li>One closure, <b>two</b> results?</li><li>The answer: <code>@ViewBuilder</code></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A normal Swift closure returns one result. This one adds 10 and 20; we ran it, and it prints 30.</p>
+    <span class="notes-label">SAY</span><p>Click: the VStack closure has two expressions on two lines, a Text and an Image, and no return. How does one closure produce both? That is what @ViewBuilder is for.</p>
+    <span class="notes-label">CONNECT</span><p>What is @ViewBuilder?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; What is @ViewBuilder? (section 5)</p>
+  <h2>A result builder: many views in, one value out</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 56" style="max-height:70px" role="img" aria-labelledby="vb">
+        <title id="vb">Source expressions go through the ViewBuilder transformation into one composite Content value</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="330" height="56" rx="12"/><use href="#i-code" x="14" y="15" width="26" height="26"/><text x="52" y="25">Source expressions</text><text class="sm" x="52" y="43">Image · Text · Button</text></g>
+        <path class="wire" d="M334 28H374M367 21l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="380" y="0" width="330" height="56" rx="12"/><use href="#i-gear" x="394" y="15" width="26" height="26"/><text x="432" y="25">@ViewBuilder</text><text class="sm" x="432" y="43">compile-time transformation</text></g>
+        <path class="wire" d="M714 28H754M747 21l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="760" y="0" width="376" height="56" rx="12"/><use href="#i-layers" x="774" y="15" width="26" height="26"/><text x="812" y="25">One composite Content</text><text class="sm" x="812" y="43">then VStack&lt;Content&gt;</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">An array?</span><ul style="margin:6px 0 0"><li>No <code>[View]</code></li><li>A <b>strongly typed</b> composite value</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">When?</span><ul style="margin:6px 0 0"><li>At <b>compile time</b>: a language transformation</li><li>Not a run-time loop or reflection</li></ul></div></div>
+      </div>
+      <div class="step"><div class="cw"><div class="ch"><span>Interface excerpt</span></div><pre class="cb" style="font-size:13.5px">// ViewBuilder (excerpt, iOS 26.5 SDK)
+static func buildBlock&lt;each Content&gt;(
+    _ content: repeat each Content
+) -&gt; TupleView&lt;(repeat each Content)&gt;
+    where repeat each Content : View</pre></div>
+        <p class="small muted" style="margin:8px 0 0">Exact representation varies by SwiftUI version.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>@ViewBuilder is a Swift result builder used by SwiftUI. You write several view expressions in a block, and it combines them into a single composite view value; that value is the Content of the VStack.</p>
+    <span class="notes-label">SAY</span><p>Click: is it an array of views? No. It does not build [View]; it builds one strongly typed value. Click: and it happens at compile time: a language-supported transformation, not a run-time loop discovering child views by reflection.</p>
+    <span class="notes-label">SAY</span><p>Click: the SDK shows it. ViewBuilder&rsquo;s buildBlock takes a parameter pack, any number of views each with its own type, and returns a TupleView of exactly those types. That is the tuple-based content the text mentions. The exact representation can change between SwiftUI versions.</p>
+    <span class="notes-label">CONNECT</span><p>The mechanism is plain Swift. Let&rsquo;s build our own.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Our own result builder (section 6)</p>
+  <h2>Build one: three strings, one message</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:28px;align-items:start">
+      <div class="cw"><div class="ch"><span>StringBuilder.swift</span></div><pre class="cb" style="font-size:14px">@resultBuilder
+struct StringBuilder {
+    static func buildBlock(_ parts: String...) -&gt; String {
+        parts.joined(separator: &quot; &quot;)
+    }
+}
+
+func makeMessage(@StringBuilder content: () -&gt; String) -&gt; String {
+    content()
+}
+
+let message = makeMessage {
+    &quot;Welcome&quot;
+    &quot;to&quot;
+    &quot;NPay&quot;
+}
+print(message)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">swiftc, then run</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:16px;line-height:1.55">Welcome to NPay</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">The same mechanism</span><ul style="margin:6px 0 0"><li><code>buildBlock</code> gets <b>every</b> expression</li><li>and returns <b>one</b> result</li><li><code>@ViewBuilder</code>: richer rules, for views</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Before going further into SwiftUI, the plain Swift feature. A struct marked @resultBuilder with a static buildBlock that joins strings with spaces. A function whose closure parameter is marked @StringBuilder. And a call with three string expressions on three lines.</p>
+    <span class="notes-label">SAY</span><p>Click: we compiled and ran it: "Welcome to NPay". The compiler passed all three expressions to buildBlock, which returned one String.</p>
+    <span class="notes-label">SAY</span><p>Click: @ViewBuilder is the same mechanism with a much richer set of rules for composing views; its buildBlock returns a TupleView instead of a String.</p>
+    <span class="notes-label">CONNECT</span><p>Which brings us to the type of the VStack itself.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>The Content type</h2>
+    <p class="lead">Inferred, concrete, printed</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What is the full type of a VStack?</p>
+    <span class="notes-label">CONNECT</span><p>Print it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; The generic Content type (sections 7, 13)</p>
+  <h2>The compiler infers <code>Content</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Experiment.swift</span></div><pre class="cb" style="font-size:14px">let stack = VStack(spacing: 20) {
+    Text(&quot;NPay&quot;)
+    Text(&quot;Payments made simple&quot;)
+}
+print(type(of: stack))</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">Why it matters</span><ul style="margin:6px 0 0"><li>Static <b>checking</b> and efficient composition</li><li>Also why SwiftUI errors can be <b>long</b></li></ul></div></div></div>
+      <div><table class="tbl"><thead><tr><th>Content</th><th>type(of:) in the simulator</th></tr></thead><tbody><tr><td><code>VStack { Text }</code></td><td><code>VStack&lt;Text&gt;</code></td></tr><tr><td><code>VStack { Text; Image }</code></td><td><code>VStack&lt;TupleView&lt;(Text, Image)&gt;&gt;</code></td></tr><tr><td>Section 13: two Texts</td><td><code>VStack&lt;TupleView&lt;(Text, Text)&gt;&gt;</code></td></tr><tr><td>Nested stacks (section 14)</td><td><code>VStack&lt;VStack&lt;Text&gt;&gt;</code></td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="rule step" data-label="So"><ul style="margin:6px 0 0"><li>Not a collection assembled at run time</li><li>One <b>concrete generic</b> type, built by <code>@ViewBuilder</code></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>With one child, the compiler infers that the closure produces Text, so the stack is VStack of Text. With two children, the builder combines them, and the stack is still strongly typed. We printed the types in the simulator, as Section 13 suggests: one child gives VStack of Text; Text and Image give VStack of TupleView of Text and Image; Section 13&rsquo;s two Texts give a TupleView of Text and Text; and a stack in a stack is VStack of VStack of Text.</p>
+    <span class="notes-label">SAY</span><p>Click: SwiftUI uses this compile-time type information extensively, for static checking and efficient composition. It is also why a mistake inside a big SwiftUI expression can produce a long, confusing compiler message: the types are long.</p>
+    <span class="notes-label">SAY</span><p>Click: so a VStack is not a dynamically assembled collection of arbitrary objects. It is one concrete generic type whose content @ViewBuilder built. The printed names can vary between compiler and SwiftUI versions.</p>
+    <span class="notes-label">CONNECT</span><p>That was the Swift side. Now the layout side: how does a VStack arrange its children?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Spacing, padding, alignment</h2>
+    <p class="lead">How a VStack arranges children</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>From Swift internals to layout internals.</p>
+    <span class="notes-label">CONNECT</span><p>The process.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; How VStack arranges children (section 8)</p>
+  <h2>Five steps, no Y coordinates</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 120" style="max-height:150px" role="img" aria-labelledby="arr">
+        <title id="arr">Receive a proposal, measure the children, add spacing, choose its size, position the children</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="208" height="120" rx="14"/><use href="#i-frame" x="90" y="14" width="28" height="28"/><text x="104" y="84" text-anchor="middle">Receive a proposal</text><text class="sm" x="104" y="104" text-anchor="middle">from the parent</text></g>
+        <path class="wire" d="M210 60H228M221 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="232" y="0" width="208" height="120" rx="14"/><use href="#i-code" x="322" y="14" width="28" height="28"/><text x="336" y="84" text-anchor="middle">Measure the children</text><text class="sm" x="336" y="104" text-anchor="middle">the space they need</text></g>
+        <path class="wire" d="M442 60H460M453 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="464" y="0" width="208" height="120" rx="14"/><use href="#i-diff" x="554" y="14" width="28" height="28"/><text x="568" y="84" text-anchor="middle">Add spacing</text><text class="sm" x="568" y="104" text-anchor="middle">and layout priorities</text></g>
+        <path class="wire" d="M674 60H692M685 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="696" y="0" width="208" height="120" rx="14"/><use href="#i-layout" x="786" y="14" width="28" height="28"/><text x="800" y="84" text-anchor="middle">Choose its size</text><text class="sm" x="800" y="104" text-anchor="middle">its own size</text></g>
+        <path class="wire" d="M906 60H924M917 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="928" y="0" width="208" height="120" rx="14"/><use href="#i-layers" x="1018" y="14" width="28" height="28"/><text x="1032" y="84" text-anchor="middle">Position children</text><text class="sm" x="1032" y="104" text-anchor="middle">top to bottom</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="rule step" data-label="spacing: 20"><ul style="margin:6px 0 0"><li>Space <b>between</b> adjacent children</li><li><b>Not</b> padding around the stack</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>VStack is a layout container; its job is to arrange children along the vertical axis. A simplified process. Click: it receives a size proposal from its parent. Click: it works out the space its children need. Click: it accounts for spacing and layout priorities. Click: it chooses its own size. Click: it positions the children vertically. You never give a child a Y coordinate.</p>
+    <span class="notes-label">SAY</span><p>Click: spacing: 20 means 20 points between adjacent arranged children. It does not add 20 points around the whole stack. Spacing and padding solve different problems; the next slides show both.</p>
+    <span class="notes-label">CONNECT</span><p>See the rectangles with borders.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Borders show the layout (sections 8, 18)</p>
+  <h2>Spacing 20, then 50</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 230px 230px;gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Borders.swift</span></div><pre class="cb" style="font-size:12.5px">VStack(spacing: 20) {
+    Image(systemName: &quot;creditcard.fill&quot;)
+        .font(.system(size: 64))
+        .border(.red)
+    Text(&quot;NPay&quot;)
+        .font(.largeTitle)
+        .border(.green)
+    Text(&quot;Payments made simple&quot;)
+        .border(.orange)
+}
+.border(.blue)
+.padding()</pre></div></div>
+      <div><div style="width:230px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/borders20.png" alt="spacing: 20"></div><p class="shot-cap">spacing: 20</p></div></div>
+      <div class="step"><div style="width:230px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/borders50.png" alt="spacing: 50"></div><p class="shot-cap">spacing: 50</p></div></div>
+    </div>
+    <div class="cols step" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin-top:12px">
+      <div class="card accent"><span class="label">Measured (stack + padding)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">spacing 20: 207.7 × 207.3 pt<br>spacing 50: 207.7 × 267.3 pt</p></div>
+      <div class="card accent"><span class="label">Why +60</span><ul style="margin:6px 0 0"><li>Two gaps × 30 pt more</li><li>The children didn&rsquo;t change</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A debugging technique: give each view a border. Red around the symbol, green around the title, orange around the subtitle, blue around the stack, then padding. The borders show each view&rsquo;s layout rectangle at that point in the modifier chain; the blue border is around the stack, not the screen.</p>
+    <span class="notes-label">SAY</span><p>Click: the same code with spacing 50. The gaps grow; the children&rsquo;s own boxes do not change.</p>
+    <span class="notes-label">SAY</span><p>Click: measured: 207.3 points tall at spacing 20, 267.3 at spacing 50. Exactly 60 more: two gaps, 30 points each. Spacing separates children; it does not change their content.</p>
+    <span class="notes-label">CONNECT</span><p>Padding is a different tool. Where you put it matters.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; spacing vs .padding() (sections 9, 19)</p>
+  <h2>Padding on the stack, or on each child</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px;gap:14px;align-items:start"><div class="cw"><div class="ch"><span>A: on the stack</span></div><pre class="cb" style="font-size:13px">VStack(spacing: 20) {
+    Text(&quot;NPay&quot;)
+    Text(&quot;Payments made simple&quot;)
+}
+.padding(30)
+.background(.yellow)</pre></div>
+        <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/padA.png" alt="A: 235.7 × 128.7 pt"></div><p class="shot-cap">A: 235.7 × 128.7 pt</p></div></div>
+      <div class="cols step" style="grid-template-columns:minmax(0,1fr) 190px;gap:14px;align-items:start"><div class="cw"><div class="ch"><span>B: on each child</span></div><pre class="cb" style="font-size:13px">VStack(spacing: 20) {
+    Text(&quot;NPay&quot;)
+        .padding(30)
+    Text(&quot;Payments made simple&quot;)
+        .padding(30)
+}
+.background(.yellow)</pre></div>
+        <div style="width:190px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/padB.png" alt="B: 235.7 × 188.7 pt"></div><p class="shot-cap">B: 235.7 × 188.7 pt</p></div></div>
+    </div>
+    <div class="rule step" data-label="The closure?" style="margin-top:10px"><ul style="margin:6px 0 0"><li><code>.padding()</code> after <code>}</code> modifies the <b>VStack</b>, not the closure</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Version A: spacing 20 between the two texts, then padding 30 around the resulting stack, then a yellow background so we can see it. Measured 235.7 by 128.7 points.</p>
+    <span class="notes-label">SAY</span><p>Click: version B puts padding 30 on each child instead. Each child&rsquo;s own layout size grows, so the stack is 60 points taller: 188.7. Same width, because the widest child plus 60 is the same either way. Not equivalent: modifiers affect layout composition.</p>
+    <span class="notes-label">SAY</span><p>Click: and to answer the text&rsquo;s question: .padding written after the closing brace is not applied to the closure. The closure produces the content; the initializer produces the VStack; .padding is called on that VStack.</p>
+    <span class="notes-label">CONNECT</span><p>The other initializer argument: alignment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Alignment (section 10)</p>
+  <h2><code>.leading</code>, <code>.center</code>, <code>.trailing</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr) 260px;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:14px">VStack(
+    alignment: .leading,
+    spacing: 20
+) {
+    Text(&quot;NPay&quot;)
+    Text(&quot;Payments made simple&quot;)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Type inference again</span><ul style="margin:6px 0 0"><li><code>alignment:</code> expects a <code>HorizontalAlignment</code></li><li>so <code>.leading</code> is <code>HorizontalAlignment.leading</code></li></ul></div>
+        <div class="rule step" data-label="Why horizontal?"><ul style="margin:6px 0 0"><li>VStack stacks <b>vertically</b>; its cross axis is <b>horizontal</b></li><li>HStack: vertical alignment (2.4)</li></ul></div></div>
+      <div style="width:260px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/align.png" alt="Grey border = stack width"></div><p class="shot-cap">Grey border = stack width</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>VStack also takes an alignment. .leading is a static member found through the expected type, HorizontalAlignment: contextual type inference once more.</p>
+    <span class="notes-label">SAY</span><p>Instead of the text&rsquo;s buttons, the simulator: three stacks with the text&rsquo;s three lines, aligned leading, center and trailing. The grey border is each stack&rsquo;s own width, set by its widest child, "Payments made simple"; the shorter lines move within it.</p>
+    <span class="notes-label">SAY</span><p>Click: why is it called HorizontalAlignment? Because a VStack arranges children vertically, so its cross-axis alignment is horizontal. HStack, next lesson, is the other way round.</p>
+    <span class="notes-label">CONNECT</span><p>Notice the stack was only as wide as its widest child. Does a stack ever fill the screen?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>How a stack sizes itself</h2>
+    <p class="lead">Proposals, children, changes</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A stack is as big as its content, unless asked otherwise.</p>
+    <span class="notes-label">CONNECT</span><p>Hug or fill.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Why VStack doesn&rsquo;t fill the screen (section 11)</p>
+  <h2>It hugs its children</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 170px 170px;gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Hug</span></div><pre class="cb" style="font-size:15px">VStack {
+    Text(&quot;NPay&quot;)
+}
+.border(.blue)</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="cw"><div class="ch"><span>Fill</span></div><pre class="cb" style="font-size:13px">VStack {
+    Text(&quot;NPay&quot;)
+}
+.frame(maxWidth: .infinity, maxHeight: .infinity)
+.border(.blue)</pre></div></div>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Not CSS"><ul style="margin:6px 0 0"><li>Layout is <b>proposal-driven</b></li><li>Containers don&rsquo;t fill their parent by default</li></ul></div></div>
+      <div><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/hug.png" alt="39.7 × 24.3 pt"></div><p class="shot-cap">39.7 × 24.3 pt</p></div></div>
+      <div class="step"><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/fill.png" alt="402.0 × 778.0 pt"></div><p class="shot-cap">402.0 × 778.0 pt</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A VStack with one Text and a blue border. The stack is only as big as its child: 39.7 by 24.3 points, the size of the word. Its ideal size comes from its children and the parent&rsquo;s proposal.</p>
+    <span class="notes-label">SAY</span><p>Click: add .frame with infinite max width and height, then the border. Now the framed view takes everything the parent offers: 402 by 778 points, the safe area of this iPhone. We study frames properly later.</p>
+    <span class="notes-label">SAY</span><p>Click: a common beginner mistake is to assume every container fills its parent, as a block does in CSS. SwiftUI layout is proposal-driven.</p>
+    <span class="notes-label">CONNECT</span><p>So how does a stack compute its height? With numbers.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Layout negotiation (section 16)</p>
+  <h2>Stack height = children + spacing</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:15px">VStack(spacing: 20) {
+    Text(&quot;NPay&quot;)
+        .font(.largeTitle)
+    Text(&quot;Payments made simple&quot;)
+        .font(.subheadline)
+}</pre></div>
+        <div class="gap"></div>
+        <p style="font-size:24px;margin:0">H<sub>stack</sub> &asymp; H<sub>1</sub> + H<sub>2</sub> + S</p>
+        <p class="small muted" style="margin:6px 0 0">The text&rsquo;s illustration: 41 + 20 + 20 = 81 pt.</p></div>
+      <div><div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/calc.png" alt="iPhone 17 simulator, iOS 26.5"></div><p class="shot-cap">iPhone 17 simulator, iOS 26.5</p></div>
+        <div class="step" style="margin-top:12px"><div class="card accent"><span class="label">Measured</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">title: 77.3 × 48.7 pt<br>subtitle: 158.0 × 21.0 pt<br>stack: 158.0 × 89.7 pt<br>48.7 + 21.0 + 20 = 89.7</p></div></div>
+        <div class="takeaway step" style="margin-top:10px">Positions come from <b>sizes + spacing + alignment</b>.</div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>How does SwiftUI decide this stack&rsquo;s height? A simplified model: the stack&rsquo;s height is about the first child&rsquo;s height, plus the second&rsquo;s, plus the spacing. The text illustrates it with 41, 20 and 20, giving 81 points.</p>
+    <span class="notes-label">SAY</span><p>Click: we measured the real thing. The title chose 48.7 points, the subtitle 21.0, the spacing is 20, and the stack is 89.7 points: exactly the sum. The stack&rsquo;s width, 158, is its widest child. Real layout also considers proposals, flexibility and priorities, which did not come into play here.</p>
+    <span class="notes-label">SAY</span><p>Click: that is why you never give a child a Y coordinate. The container computes positions from child sizes, spacing and alignment.</p>
+    <span class="notes-label">CONNECT</span><p>And if a child changes size while the app runs?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; When a child changes size (section 17)</p>
+  <h2>Dynamic Type: measured again, placed again</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 520 262" style="max-height:300px" role="img" aria-labelledby="dt">
+        <title id="dt">Text size changes, environment changes, text measures again, VStack lays out again, children move</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="520" height="46" rx="12"/><use href="#i-eye" x="14" y="10" width="26" height="26"/><text x="52" y="20">Text size preference changes</text><text class="sm" x="52" y="38">Settings: larger text</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="54" width="520" height="46" rx="12"/><use href="#i-gear" x="14" y="64" width="26" height="26"/><text x="52" y="74">Environment changes</text><text class="sm" x="52" y="92">the new size reaches the views</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="108" width="520" height="46" rx="12"/><use href="#i-code" x="14" y="118" width="26" height="26"/><text x="52" y="128">Text measures again</text><text class="sm" x="52" y="146">taller lines</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="162" width="520" height="46" rx="12"/><use href="#i-layout" x="14" y="172" width="26" height="26"/><text x="52" y="182">VStack lays out again</text><text class="sm" x="52" y="200">sizes + spacing</text></g>
+        <g class="nd" data-lit="5+"><rect class="sh" x="0" y="216" width="520" height="46" rx="12"/><use href="#i-check" x="14" y="226" width="26" height="26"/><text x="52" y="236">Children move</text><text class="sm" x="52" y="254">new positions</text></g>
+      </svg>
+    </div>
+      <div class="step"><div style="width:380px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/calc-ax.png" alt="Accessibility XL text size"></div><p class="shot-cap">Accessibility XL text size</p></div>
+        <div style="margin-top:12px"><div class="card accent"><span class="label">Measured again</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">title: 74.0 pt, subtitle: 49.7 pt<br>stack: 74.0 + 49.7 + 20 = 143.7 pt</p></div></div></div>
+    </div>
+    <div class="rule step" data-label="No rebuild" style="margin-top:10px"><ul style="margin:6px 0 0"><li>Same running app: only <b>layout</b> runs again</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay supports Dynamic Type because it uses semantic fonts. Click: the user raises the text size. Click: that environment information reaches the views. Click: the text needs different dimensions. Click: the VStack lays out again with the new child sizes and the same spacing. Click: the children get new positions.</p>
+    <span class="notes-label">SAY</span><p>We set the simulator to Accessibility Extra Large: the title became 74 points tall, the subtitle 49.7, the spacing stayed 20, and the stack became 143.7, again exactly the sum.</p>
+    <span class="notes-label">SAY</span><p>Click: none of this needs a new process or a rebuild. It happens inside the running SwiftUI interface.</p>
+    <span class="notes-label">CONNECT</span><p>One more question people ask about stacks: are nested stacks expensive?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Nested stacks (section 14)</p>
+  <h2>Is nesting stacks bad?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Nested.swift</span></div><pre class="cb" style="font-size:17px">VStack {
+    VStack {
+        Text(&quot;NPay&quot;)
+    }
+}</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">type(of:)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">VStack&lt;VStack&lt;Text&gt;&gt;</p></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Not by itself</span><ul style="margin:6px 0 0"><li>SwiftUI is built for <b>composition</b></li><li>Cost depends on hierarchy, layout, dependencies, rendering</li></ul></div>
+        <div class="rule step" data-label="So"><ul style="margin:6px 0 0"><li>Don&rsquo;t optimise by counting <code>VStack</code>s</li><li><b>Profile</b> real bottlenecks</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A stack inside a stack: its type is simply VStack of VStack of Text. Is nesting always bad? No. SwiftUI is designed for compositional layouts, and the real cost depends on the view hierarchy, layout complexity, dependencies and rendering.</p>
+    <span class="notes-label">SAY</span><p>Click: avoid premature optimisation based only on how many VStacks you wrote. For complex layouts, profile and investigate actual bottlenecks; Instruments comes later in the course.</p>
+    <span class="notes-label">CONNECT</span><p>Back to NPay.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>NPay welcome screen</h2>
+    <p class="lead">Milestone 2.3</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Keep the symbol and title; add a subtitle; configure the stack.</p>
+    <span class="notes-label">CONNECT</span><p>The code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Final NPay code (sections 12, 20)</p>
+  <h2>Milestone 2.3: a structured welcome screen</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>ContentView.swift</span></div><pre class="cb" style="font-size:13px">struct ContentView: View {
+    var body: some View {
+        VStack(alignment: .center, spacing: 20) {
+            Image(systemName: &quot;creditcard.fill&quot;)
+                .font(.system(size: 64))
+                .foregroundStyle(.blue)
+            Text(&quot;NPay&quot;)
+                .font(.largeTitle)
+                .bold()
+                .foregroundStyle(.blue)
+            Text(&quot;Payments made simple&quot;)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+    }
+}</pre></div></div>
+      <div><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/final.png" alt="Milestone 2.3"></div><p class="shot-cap">Milestone 2.3</p></div>
+        <div class="step" style="margin-top:8px"><div class="card accent"><span class="label">What changed</span><ul style="margin:6px 0 0"><li>Explicit <b>alignment</b>, <b>spacing</b></li><li>A <b>subtitle</b></li><li><b>Padding</b> on the stack</li></ul></div></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The NPay code after the experiments. We kept the symbol and the title from 2.2, configured the VStack&rsquo;s alignment and spacing explicitly, added a subtitle in the subheadline font with a secondary style, and padded the whole stack. On the right, the real screen. #Preview and import SwiftUI are unchanged and left off the slide.</p>
+    <span class="notes-label">SAY</span><p>Click: those are the four changes. And this body&rsquo;s printed type is now ModifiedContent of a VStack of a TupleView of the symbol and two Texts, with a padding layout around it: every part of it is something you can now explain.</p>
+    <span class="notes-label">CONNECT</span><p>Pull the lesson together.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.3 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p style="font-size:23px"><b>VStack is a generic struct</b><br><span class="muted" style="font-size:19px">the closure supplies Content</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>@ViewBuilder builds one value</b><br><span class="muted" style="font-size:19px">a typed TupleView, at compile time</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></span><p style="font-size:23px"><b>Layout from sizes</b><br><span class="muted" style="font-size:19px">children + spacing; padding is separate</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. VStack is a generic struct: VStack(spacing:) calls its initializer, and the trailing closure supplies the Content. @ViewBuilder is a result builder that turns several view expressions into one strongly typed value at compile time, such as a TupleView. And the stack lays itself out from its children&rsquo;s sizes plus spacing; padding, alignment and frames are separate decisions.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is VStack?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is <code>VStack</code>?</p><ol class="q-opts"><li>A Swift function</li><li>A generic struct conforming to <code>View</code></li><li>A UIKit class</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>@frozen public struct VStack&lt;Content&gt; : View</code>: <code>VStack(&hellip;)</code> calls its initializer.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading the call syntax as a function call.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. <code>@frozen public struct VStack&lt;Content&gt; : View</code>: <code>VStack(&hellip;)</code> calls its initializer.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does the trailing closure supply?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does the trailing closure supply?</p><ol class="q-opts"><li>The <code>VStack</code> itself</li><li>The child <code>Content</code> value</li><li>The app&rsquo;s main function</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The closure returns Content; the initializer produces the <code>VStack&lt;Content&gt;</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the closure returns the stack.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The closure returns Content; the initializer produces the <code>VStack&lt;Content&gt;</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is @ViewBuilder?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is <code>@ViewBuilder</code>?</p><ol class="q-opts"><li>A run-time reflection API</li><li>A Swift result builder</li><li>A memory allocator</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A compile-time transformation, like our <code>StringBuilder</code>, with view-composition rules.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking SwiftUI discovers children at run time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. A compile-time transformation, like our <code>StringBuilder</code>, with view-composition rules.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does @ViewBuilder just return an array of View values?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>@ViewBuilder</code> simply return an array of <code>View</code> values?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It returns one typed value: Text and Image printed as <code>TupleView&lt;(Text, Image)&gt;</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Picturing <code>[View]</code>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It returns one typed value: Text and Image printed as <code>TupleView&lt;(Text, Image)&gt;</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does VStack spacing control?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>VStack</code>&rsquo;s <code>spacing</code> control?</p><ol class="q-opts"><li>Distance between arranged children</li><li>Padding around the entire stack</li><li>Font size</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Spacing 20 &rarr; 50 added exactly 60 pt: two gaps, nothing around the stack.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing spacing with padding.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. Spacing 20 &rarr; 50 added exactly 60 pt: two gaps, nothing around the stack.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does VStack(alignment: .leading) configure?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>VStack(alignment: .leading)</code> configure?</p><ol class="q-opts"><li>Vertical alignment</li><li>Horizontal alignment of the children</li><li>Text colour</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A VStack&rsquo;s cross axis is horizontal: <code>HorizontalAlignment</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking &ldquo;VStack&rdquo; means vertical alignment.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. A VStack&rsquo;s cross axis is horizontal: <code>HorizontalAlignment</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does .padding() after the closure modify the closure?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>.padding()</code> written after the closing brace modify the closure?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It is called on the <code>VStack</code> value the initializer returned.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading the modifier as part of the content.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It is called on the <code>VStack</code> value the initializer returned.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does VStack always fill its parent&#x27;s height?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does a <code>VStack</code> always fill its parent&rsquo;s entire height?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why"><code>VStack { Text("NPay") }</code> measured 39.7 &times; 24.3 pt; only a frame made it fill.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming CSS block behaviour.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. <code>VStack { Text("NPay") }</code> measured 39.7 &times; 24.3 pt; only a frame made it fill.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Title 48.7 pt, subtitle 21.0 pt, spacing 20: stack height?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">A title measures 48.7 pt tall and a subtitle 21.0 pt, in <code>VStack(spacing: 20)</code>. How tall is the stack?</p><ol class="q-opts"><li>69.7 pt</li><li>89.7 pt</li><li>109.7 pt</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">48.7 + 21.0 + one gap of 20 = 89.7 pt, as measured.</p>
+          <p class="q-trap"><b>Common trap:</b> Counting spacing above and below as well.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick C.</p>
+    <span class="notes-label">SAY</span><p>B. 48.7 + 21.0 + one gap of 20 = 89.7 pt, as measured.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.2: does .font on an Image return an Image?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 2.2: does <code>Image(systemName: &hellip;).font(.system(size: 64))</code> still have the type <code>Image</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It printed <code>ModifiedContent&lt;Image, _EnvironmentKeyWritingModifier&lt;&hellip;&gt;&gt;</code>; only Text keeps its type.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting Image to behave like Text.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.2.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It printed <code>ModifiedContent&lt;Image, _EnvironmentKeyWritingModifier&lt;&hellip;&gt;&gt;</code>; only Text keeps its type.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.3 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">2.4</td><td><b>HStack &amp; horizontal layout</b></td><td>a row of quick actions: alignment, flexible space, priorities, <code>Spacer</code></td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Next lesson turns the stack on its side: a row of NPay quick actions in an HStack, and how horizontal layout differs: vertical alignment, flexible space, layout priorities and Spacer.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 2.3 &middot; Lab</p>
+  <h2>Make the layout visible</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Use borders and measurements to check each claim. Predict first.</p><ol class="lab"><li>Section 18 borders; spacing 20 &rarr; 50.</li><li>Section 19 versions A and B.</li><li>Each <code>alignment</code>: leading, center, trailing.</li><li>A filling <code>.frame</code> with a border.</li><li><code>type(of:)</code>: one child, two children.</li><li>Larger text size; then restore Section 20.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Screenshots with borders, before and after</li><li>Your two printed types, each explained</li><li>One stack height, checked by adding</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our simulator runs: spacing 50 adds 60 pt to the stack (two gaps); B is 60 pt taller than A; alignment moves the shorter lines inside a stack as wide as its widest child; the frame makes the border fill the safe area; types VStack&lt;Text&gt; and VStack&lt;TupleView&lt;(Text, Image)&gt;&gt;; at a larger text size the stack height is still the children plus spacing.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 2.3 complete</p>
+    <h2>VStack &amp;<br>@ViewBuilder Internals</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 2.4 &mdash; HStack &amp; Horizontal Layout</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain why VStack is a generic struct rather than a function, how the trailing closure supplies its content, how @ViewBuilder combines several views into one typed value, how the compiler infers VStack&lt;Content&gt;, how spacing, alignment and padding differ, and how a stack resizes when its children do. NPay now has a structured welcome screen.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 2.4: HStack and horizontal layout. A row of NPay quick actions, and how horizontal layout differs: alignment, flexible space, layout priorities, and HStack with Spacer.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

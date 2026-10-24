@@ -1,123 +1,128 @@
 import SwiftUI
 
+// Lesson 2.1 evidence app. Each launch argument runs one experiment from the lesson text.
 @main
 struct LabApp: App {
     var body: some Scene {
         WindowGroup {
             let args = ProcessInfo.processInfo.arguments
-            if args.contains("body") { BodyScenario() }
-            else if args.contains("changes") { ChangesScenario() }
-            else if args.contains("identity") { IdentityScenario() }
-            else if args.contains("uuid") { UUIDScenario(stable: false) }
-            else if args.contains("stableid") { UUIDScenario(stable: true) }
-            else if args.contains("tapped") { DashboardView(autoTap: true) }
-            else { DashboardView(autoTap: false) }
+            if args.contains("topleading") { TopLeadingView() }
+            else if args.contains("measure") { MeasureView() }
+            else if args.contains("types") { TypesView() }
+            else if args.contains("order") { OrderView() }
+            else if args.contains("unicode") { UnicodeView() }
+            else if args.contains("l10n") { LocalizationView() }
+            else if args.contains("final") { FinalView().logSize("final title") }
+            else { ContentView() }
         }
     }
 }
 
-// 12: body evaluation; a child that depends on nothing
-struct BodyScenario: View {
-    @State private var balanceMinor: Int64 = 2_500_000
+// Section 2: the first screen
+struct ContentView: View {
     var body: some View {
-        let _ = print("DashboardView body evaluated, balance \(balanceMinor / 100)")
-        VStack {
-            HeaderView()
-            Text("₹\(balanceMinor / 100)")
+        Text("NPay")
+    }
+}
+
+// Section 8: move it with a frame
+struct TopLeadingView: View {
+    var body: some View {
+        Text("NPay")
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+extension View {
+    func logSize(_ label: String) -> some View {
+        onGeometryChange(for: CGSize.self) { $0.size } action: { s in
+            print("\(label): \(Double(s.width).formatted(.number.precision(.fractionLength(1)))) × \(Double(s.height).formatted(.number.precision(.fractionLength(1)))) pt")
         }
-        .task {
-            for _ in 0..<2 {
-                try? await Task.sleep(for: .milliseconds(400))
-                balanceMinor += 100_000
+    }
+}
+
+// Section 9: the same text, measured under different proposed widths
+struct MeasureView: View {
+    let line = "Welcome to NPay. Payments made simple."
+    var body: some View {
+        VStack(spacing: 40) {
+            Text("NPay").logSize("\"NPay\", .body")
+            Text("NPay").font(.largeTitle).logSize("\"NPay\", .largeTitle")
+            Text(line).logSize("proposed width 260").frame(width: 260).border(.gray)
+            Text(line).logSize("proposed width 140").frame(width: 140).border(.gray)
+        }
+    }
+}
+
+// Section 11: modifier return types; Section 6: the body's hidden concrete type
+struct TypesView: View {
+    var body: some View {
+        Text("Types printed to the console")
+            .task {
+                let original = Text("NPay")
+                let styled = original.font(.largeTitle)
+                let padded = original.padding()
+                print(type(of: original))
+                print(type(of: styled))
+                print(type(of: padded))
+                print("ContentView.body:", type(of: ContentView().body))
+                print("FinalView.body:", type(of: FinalView().body))
+                print("TopLeadingView.body:", type(of: TopLeadingView().body))
             }
+    }
+}
+
+// Sections 12 and 16: modifier order
+struct OrderView: View {
+    var body: some View {
+        VStack(spacing: 48) {
+            Text("NPay")
+                .padding()
+                .background(.yellow)
+                .logSize("A: padding, then background")
+            Text("NPay")
+                .background(.yellow)
+                .padding()
+                .logSize("B: background, then padding")
         }
-    }
-}
-struct HeaderView: View {
-    var body: some View {
-        let _ = print("HeaderView body evaluated")
-        Text("NPay").font(.largeTitle)
+        .font(.largeTitle)
     }
 }
 
-// 24: _printChanges
-struct ChangesScenario: View {
-    @State private var count = 0
-    var body: some View {
-        let _ = Self._printChanges()
-        Text("Count: \(count)")
-            .task { for _ in 0..<2 { try? await Task.sleep(for: .milliseconds(400)); count += 1 } }
-    }
-}
-
-// 14: structural identity
-struct IdentityScenario: View {
-    @State private var showPremium = false
-    var body: some View {
-        VStack {
-            if showPremium { CounterView(name: "Premium") } else { CounterView(name: "Standard") }
-        }
-        .task {
-            try? await Task.sleep(for: .milliseconds(1500)); showPremium = true
-            try? await Task.sleep(for: .milliseconds(1500)); showPremium = false
-        }
-    }
-}
-struct CounterView: View {
-    let name: String
-    @State private var count = 0
-    var body: some View {
-        Text("\(name): \(count)")
-            .onAppear { print("\(name)CounterView appeared, count = \(count)") }
-            .task { for _ in 0..<3 { try? await Task.sleep(for: .milliseconds(200)); count += 1 }; print("\(name) counted to \(count)") }
-    }
-}
-
-// 25: .id(UUID()) vs stable id
-@MainActor enum Made { static var cards = 0 }
-struct UUIDScenario: View {
-    let stable: Bool
-    @State private var tick = 0
-    var body: some View {
-        VStack {
-            if stable { BalanceCard().id("NP1001") } else { BalanceCard().id(UUID()) }
-            Text("tick \(tick)")
-        }
-        .task { for _ in 0..<3 { try? await Task.sleep(for: .milliseconds(400)); tick += 1 } }
-    }
-}
-struct BalanceCard: View {
-    @State private var instance = 0
-    var body: some View {
-        Text("card")
-            .onAppear { Made.cards += 1; instance = Made.cards; print("BalanceCard appeared: fresh state #\(instance)") }
-    }
-}
-
-// 22: the dashboard
-struct DashboardView: View {
-    let autoTap: Bool
-    @State private var balanceMinor: Int64 = 2_500_000     // paise
-    @State private var showMessage = false
-
+// Section 13: Unicode
+struct UnicodeView: View {
     var body: some View {
         VStack(spacing: 24) {
-            Text("NPay").font(.largeTitle.bold())
-            Text("Available Balance").foregroundStyle(.secondary)
-            Text(Decimal(balanceMinor) / 100,
-                 format: .currency(code: "INR").precision(.fractionLength(0)))
-                .font(.system(size: 38, weight: .bold))
-            Button("Add Demo ₹1,000") {
-                balanceMinor += 100_000
-                showMessage = true
-            }
-            .buttonStyle(.borderedProminent)
-            if showMessage {
-                Text("Demo balance updated").foregroundStyle(.green)
-            }
-            Spacer()
+            Text("Welcome to NPay")
+            Text("வணக்கம்")
+            Text("नमस्ते")
         }
-        .padding()
-        .task { if autoTap { balanceMinor += 100_000; showMessage = true } }
+        .font(.largeTitle)
+        .task {
+            for s in ["NPay", "வணக்கம்", "नमस्ते"] {
+                print("\(s): \(s.count) characters, \(s.unicodeScalars.count) scalars, \(s.utf8.count) UTF-8 bytes")
+            }
+        }
+    }
+}
+
+// Section 13: localization lookup vs verbatim (run with -AppleLanguages "(ta)")
+struct LocalizationView: View {
+    var body: some View {
+        VStack(spacing: 24) {
+            Text("Welcome to NPay")
+            Text(verbatim: "Welcome to NPay")
+        }
+        .font(.title)
+    }
+}
+
+// Section 14: the lesson's final code
+struct FinalView: View {
+    var body: some View {
+        Text("NPay")
+            .font(.largeTitle)
+            .bold()
+            .foregroundStyle(.blue)
     }
 }

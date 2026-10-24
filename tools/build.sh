@@ -1,5 +1,5 @@
 #!/bin/sh
-# Regenerate Lessons 0.2–0.10, 1.1–1.10 and 2.1 from their generators (Lesson 0.1 is hand-edited HTML).
+# Regenerate Lessons 0.2–0.10, 1.1–1.10 and 2.1–2.12 from their generators (Lesson 0.1 is hand-edited HTML).
 # Run from the repo root:  sh tools/build.sh
 # Then check:  python3 tools/structure.py decks/*/index.html
 set -e
@@ -22,3 +22,14 @@ $PY tools/gen1_8.py decks/unit-1/lesson-1.8/index.html
 $PY tools/gen1_9.py decks/unit-1/lesson-1.9/index.html
 $PY tools/gen1_10.py decks/unit-1/lesson-1.10/index.html
 $PY tools/gen2_1.py decks/unit-2/lesson-2.1/index.html
+$PY tools/gen2_2.py decks/unit-2/lesson-2.2/index.html
+$PY tools/gen2_3.py decks/unit-2/lesson-2.3/index.html
+$PY tools/gen2_4.py decks/unit-2/lesson-2.4/index.html
+$PY tools/gen2_5.py decks/unit-2/lesson-2.5/index.html
+$PY tools/gen2_6.py decks/unit-2/lesson-2.6/index.html
+$PY tools/gen2_7.py decks/unit-2/lesson-2.7/index.html
+$PY tools/gen2_8.py decks/unit-2/lesson-2.8/index.html
+$PY tools/gen2_9.py decks/unit-2/lesson-2.9/index.html
+$PY tools/gen2_10.py decks/unit-2/lesson-2.10/index.html
+$PY tools/gen2_11.py decks/unit-2/lesson-2.11/index.html
+$PY tools/gen2_12.py decks/unit-2/lesson-2.12/index.html
