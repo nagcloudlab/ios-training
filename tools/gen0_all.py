@@ -1290,9 +1290,284 @@ part(7, 'Security', 'Sandbox, entitlements, signing, Keychain, Secure Enclave',
      ('sandbox', 'keychain', 'kernel', 'hardware'),
      'Memory inside NPay&rsquo;s process.', 'The walls around that process: sandbox, signing, Keychain and the Secure Enclave.',
      'The teal is on the walls: NPay&rsquo;s sandbox, the Keychain, the kernel that enforces the rules, and the hardware with the Secure Enclave.')
-for i in (5, 7, 9, 11, 12, 14, 16, 18):
-    take(7, i, 7)
-take(7, 20, 7, connect='Let&rsquo;s recap Part 7.')
+take(7, 5, 7)
+# rebuilt (user review, concrete style): each security layer with what it does for NPay, one per click
+SEC = [('code', 'Application security', 'NPay&#8217;s own code', 'Signs the user in; keeps the token in the Keychain'),
+       ('eye', 'Privacy &amp; permissions', 'the user decides', 'Asks before using the camera to scan a cheque'),
+       ('lock', 'Sandbox &amp; entitlements', 'boundaries', 'Other apps cannot read NPay&#8217;s files'),
+       ('file', 'Code signing', 'integrity', 'iOS checks NPay is from its team and unchanged'),
+       ('chip', 'Kernel &amp; hardware', 'the foundation', 'Keeps apps apart; the Secure Enclave guards keys')]
+P = ['<text class="mono" x="0" y="14">LAYER</text><text class="mono" x="560" y="14">WHAT IT DOES FOR NPAY</text>']
+for k, (ic, t, sub, ex) in enumerate(SEC):
+    y = 26 + k * 66
+    P.append(f'<g class="nd" data-lit="{k + 1}"><rect class="sh" x="0" y="{y}" width="1136" height="56" rx="12"/><use href="#i-{ic}" x="14" y="{y + 15}" width="26" height="26"/>'
+             f'<text x="52" y="{y + 25}">{t}</text><text class="sm" x="52" y="{y + 43}">{sub}</text></g>')
+    P.append(f'<text class="fade" data-lit="{k + 1}+" x="560" y="{y + 34}" style="font-size:18px">{ex}</text>')
+S.append(slide('Part 7 &middot; Layers &middot; conceptual', 'iOS security architecture', f"""  <div class="body">
+    {svg('0 0 1136 352', 'Five security layers, each with what it does for NPay: application security, privacy and permissions, sandbox and entitlements, code signing, kernel and hardware', 'seclayers', P)}{cues(5)}
+    <div class="analogy step"><div class="icon"><svg viewBox="0 0 24 24"><use href="#i-building"/></svg></div><p>Like the <b>hotel</b>: the front desk checks who you are, your <b>key</b> opens only your room, valuables go in the <b>safe</b>. Passing one check does <b>not</b> open every door.</p></div>
+  </div>""", notes(
+    ('SAY', 'iOS protects NPay with several layers, each guarding something different. One per click. Application security is NPay&rsquo;s own job: signing the user in and keeping the token safe in the Keychain. Privacy and permissions put the user in charge: NPay must ask before using the camera to scan a cheque.'),
+    ('SAY', 'The sandbox keeps other apps out of NPay&rsquo;s files. Code signing lets iOS check that NPay really comes from its team and has not been changed. And the kernel and hardware are the foundation: they keep apps apart, and the Secure Enclave guards the most sensitive keys.'),
+    ('SAY', 'Click: like the hotel from Part 1. The front desk checks who you are, your key opens only your room, and valuables go in the safe. Passing one check does not open every door: a signed app still cannot use every device capability. The layers overlap and work together.'),
+    ('CONNECT', 'Start with the boundary every app lives inside: the sandbox.'))))
+# rebuilt (user review, concrete style): two app containers; what ShopEasy can and cannot reach, one attempt per click
+def fileb(x, y, t, cls=''):
+    return (f'<g class="nd{(" " + cls) if cls else ""}"><rect class="sh" x="{x}" y="{y}" width="330" height="40" rx="8"/>'
+            f'<use href="#i-file" x="{x + 10}" y="{y + 9}" width="22" height="22"/><text class="sm" x="{x + 40}" y="{y + 25}">{t}</text></g>')
+P = ['<rect class="wire dash" style="fill:none" x="0" y="0" width="390" height="210" rx="16"/>',
+     '<use href="#i-bank" x="16" y="14" width="24" height="24"/><text x="48" y="32">NPay&#8217;s container</text>',
+     fileb(30, 54, 'account data'), fileb(30, 104, 'statement.pdf'),
+     '<rect class="wire dash" style="fill:none" x="746" y="0" width="390" height="210" rx="16"/>',
+     '<use href="#i-app" x="762" y="14" width="24" height="24"/><text x="794" y="32">ShopEasy&#8217;s container</text>',
+     fileb(776, 54, 'cart, orders', ''),
+     '<g class="fade" data-lit="1"><g class="nd lit"><rect class="sh" x="776" y="54" width="330" height="40" rx="8"/><use href="#i-file" x="786" y="63" width="22" height="22"/><text class="sm" x="816" y="79">cart, orders</text></g>'
+     '<text class="sm fill-teal" x="941" y="124" text-anchor="middle">reads its own files: allowed</text></g>',
+     '<g class="fade" data-lit="2"><path class="wire" d="M742 74H436"/><g class="nd alert"><rect class="sh" x="396" y="50" width="70" height="48" rx="10"/><use href="#i-lock" x="418" y="61" width="26" height="26"/></g>'
+     '<text class="sm" x="568" y="128" text-anchor="middle">reaching into NPay&#8217;s files: blocked by the sandbox</text></g>',
+     '<g class="fade" data-lit="3+"><path class="wire" d="M362 124H470V256H508M501 249l7 7-7 7"/>'
+     '<g class="nd lit"><rect class="sh" x="512" y="230" width="112" height="52" rx="12"/><text x="568" y="261" text-anchor="middle">Share</text></g>'
+     '<path class="wire" d="M628 256H700V172H770M763 165l7 7-7 7"/>'
+     + fileb(776, 152, 'statement.pdf (a copy)', 'lit') +
+     '<text class="sm" x="568" y="304" text-anchor="middle">the user shares it through iOS: allowed</text></g>']
+for k, cap in enumerate(['ShopEasy reads its own files: allowed',
+                         'ShopEasy tries to read NPay&#8217;s files directly: the sandbox blocks it',
+                         'The user shares NPay&#8217;s statement through iOS: ShopEasy gets a copy']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="346" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 7 &middot; Sandbox &middot; conceptual', 'The sandbox: each app in its own container', f"""  <div class="body">
+    {svg('0 0 1136 358', 'NPay and ShopEasy each have a private container. ShopEasy can read its own files, is blocked from NPay&rsquo;s, and gets a copy of NPay&rsquo;s statement only when the user shares it through iOS.', 'sandbox2', P, 'max-height:400px')}{cues(3)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="Sandbox">Apps never reach into each other. Data crosses only when the <b>user and iOS</b> hand it over.</div>
+  </div>""", notes(
+    ('SAY', 'Every app lives in its own container, its own room in the hotel. NPay keeps its account data and statements there; ShopEasy keeps its cart. Click: ShopEasy reads its own files: allowed.'),
+    ('SAY', 'Click: ShopEasy tries to reach into NPay&rsquo;s container and read its files directly. The sandbox blocks it: no app can browse another app&rsquo;s private files.'),
+    ('SAY', 'Click: the user opens NPay&rsquo;s statement and taps Share. iOS hands a copy to ShopEasy, because the user chose to. Data can cross, but only through iOS and with the user&rsquo;s choice.'),
+    ('SAY', 'Click: apps never reach into each other. There are other approved routes too, such as an App Group that lets NPay share data with its own widget; that needs an approved capability, which brings us to entitlements.'),
+    ('ASK', 'Could a malicious app on the same phone read NPay&rsquo;s saved token file?'),
+    ('EXPECT', 'No: the sandbox blocks access to NPay&rsquo;s container. Sensitive data also goes in the Keychain.'),
+    ('CONNECT', 'How does an app get approved capabilities like an App Group? Entitlements.'))))
+# rebuilt (user review, concrete style): the entitlement drawn as a signed slip inside the app; iOS checks it; NPay's widget shows the balance, ShopEasy is refused
+def bundle(y, name, ic, slip, slip_lit, seal_lit, cls=''):
+    o = (f'<rect class="wire dash" style="fill:none" x="0" y="{y}" width="360" height="132" rx="16"/>'
+         f'<use href="#i-{ic}" x="16" y="{y + 14}" width="24" height="24"/><text x="48" y="{y + 32}">{name}</text>'
+         f'<g class="fade" data-lit="{slip_lit}"><g class="nd{(" " + cls) if cls else ""}"><rect class="sh" x="22" y="{y + 50}" width="316" height="66" rx="10"/>'
+         f'<use href="#i-file" x="34" y="{y + 70}" width="24" height="24"/><text class="sm" x="66" y="{y + 76}">Entitlements</text><text x="66" y="{y + 98}">{slip}</text></g></g>')
+    if seal_lit:
+        o += (f'<g class="fade" data-lit="{seal_lit}"><circle class="wire lit" style="fill:var(--paper)" cx="322" cy="{y + 28}" r="24"/>'
+              f'<text class="mono fill-teal" x="322" y="{y + 32}" text-anchor="middle" style="font-size:10px">SIGNED</text></g>')
+    return o
+P = [bundle(0, 'NPay.app', 'bank', 'App Group: shared with the widget', '1+', '2+'),
+     '<g class="fade" data-lit="3+"><path class="wire" d="M364 66H452M445 59l7 7-7 7"/></g>',
+     '<g class="nd" data-lit="3-4"><rect class="sh" x="458" y="22" width="200" height="88" rx="14"/><use href="#i-shield" x="544" y="34" width="28" height="28"/>'
+     '<text x="558" y="82" text-anchor="middle">iOS checks</text><text class="sm" x="558" y="100" text-anchor="middle">reads the signed slip</text></g>',
+     '<g class="fade" data-lit="3+"><path class="wire" d="M662 66H770M763 59l7 7-7 7"/>'
+     '<use href="#d-iphone" x="830" y="0" width="120" height="240"/>'
+     + ''.join(f'<rect class="mute" x="{850 + c * 28}" y="{150 + r * 28}" width="20" height="20" rx="5"/>' for r in range(2) for c in range(3)) +
+     '<g class="nd lit"><rect class="sh" x="848" y="40" width="84" height="96" rx="12"/></g>'
+     '<text class="sm" x="890" y="64" text-anchor="middle">NPay</text><text x="890" y="96" text-anchor="middle" style="font-size:14px;font-weight:700">&#8377;25,000</text>'
+     '<text class="sm" x="890" y="118" text-anchor="middle" style="font-size:9px">widget</text>'
+     '<text class="fill-teal" x="972" y="96">allowed:</text><text class="sm fill-teal" x="972" y="116">the widget shows</text><text class="sm fill-teal" x="972" y="134">the balance</text></g>',
+     '<g class="fade" data-lit="4+">' + bundle(186, 'ShopEasy.app', 'app', 'no App Group', '4+', '') +
+     '<path class="wire" d="M364 252H558V114M551 121l7-7 7 7"/>'
+     '<g class="nd alert"><rect class="sh" x="440" y="270" width="236" height="48" rx="12"/><use href="#i-cross" x="454" y="281" width="26" height="26"/>'
+     '<text x="490" y="300">refused</text></g>'
+     '<text class="sm" x="690" y="300">asks for NPay&#8217;s shared folder</text></g>']
+for k, cap in enumerate(['NPay&#8217;s team writes the request: an App Group shared with the widget',
+                         'At build time it is signed into the app: nobody can change it later',
+                         'iOS reads the signed slip: the widget may use the shared folder and show the balance',
+                         'ShopEasy&#8217;s slip has no App Group: iOS refuses']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}" x="568" y="356" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 7 &middot; Entitlements &middot; conceptual', 'Entitlements: a signed permission slip', f"""  <div class="body">
+    {svg('0 0 1136 368', 'NPay.app carries a signed entitlement slip for an App Group; iOS checks it and the NPay widget shows the balance; ShopEasy&rsquo;s slip has no App Group, so iOS refuses.', 'ent3', P, 'max-height:390px')}{cues(4)}
+    <div class="rule step" data-label="Not a switch">An app cannot switch an entitlement on at run time. If it is <b>not on the signed slip</b>, iOS refuses.</div>
+  </div>""", notes(
+    ('SAY', 'NPay wants a home-screen widget that shows the balance. The app and the widget need a folder they share, and that needs a special capability: an entitlement. Think of it as a permission slip inside the app. Click: NPay&rsquo;s team writes the request in Xcode: an App Group shared with the widget.'),
+    ('SAY', 'Click: at build time the slip is signed into NPay.app, sealed with the signature, so nobody can change it later. Click: at run time iOS reads the signed slip, and the widget may use the shared folder: there is the balance on the home screen.'),
+    ('SAY', 'Click: ShopEasy asks for NPay&rsquo;s shared folder, but its slip has no App Group, so iOS refuses. Click: an entitlement is not a switch an app turns on at run time; what is not on the signed slip, iOS refuses.'),
+    ('ASK', 'Can NPay add an entitlement to itself after the user installs it?'),
+    ('EXPECT', 'No. The slip is sealed into the signature at build time; changing it breaks the signature.'),
+    ('CONNECT', 'Entitlements are often confused with permissions. Compare them.'))))
+# rebuilt (user review, same style as entitlements): who decides: the signed slip (team, build time) vs the user's choice on the phone (run time)
+P = ['<text class="mono" x="0" y="14">ENTITLEMENT &#183; NPAY&#8217;S TEAM DECIDES, AT BUILD TIME</text>', '<path class="wire faint" d="M566 4V300"/>',
+     '<text class="mono" x="600" y="14">PRIVACY PERMISSION &#183; THE USER DECIDES, AT RUN TIME</text>',
+     '<g class="fade" data-lit="1+"><rect class="wire dash" style="fill:none" x="20" y="40" width="440" height="140" rx="16"/>'
+     '<use href="#i-bank" x="36" y="54" width="24" height="24"/><text x="68" y="72">NPay.app</text>'
+     '<g class="nd lit"><rect class="sh" x="42" y="92" width="396" height="66" rx="10"/><use href="#i-file" x="54" y="112" width="24" height="24"/>'
+     '<text class="sm" x="86" y="118">Entitlements</text><text x="86" y="140">App Group: shared with the widget</text></g>'
+     '<circle class="wire lit" style="fill:var(--paper)" cx="430" cy="68" r="24"/><text class="mono fill-teal" x="430" y="72" text-anchor="middle" style="font-size:10px">SIGNED</text>'
+     '<text class="sm" x="240" y="214" text-anchor="middle">fixed in the app; the user never sees it</text></g>',
+     '<g class="fade" data-lit="2+"><use href="#d-iphone" x="790" y="26" width="140" height="280"/>'
+     '<g class="nd"><rect class="sh" x="800" y="110" width="120" height="112" rx="12"/></g>'
+     '<text x="860" y="134" text-anchor="middle" style="font-size:11px;font-weight:700">&#8220;NPay&#8221; would</text>'
+     '<text x="860" y="148" text-anchor="middle" style="font-size:11px;font-weight:700">like to use</text>'
+     '<text x="860" y="162" text-anchor="middle" style="font-size:11px;font-weight:700">the camera</text>'
+     '<text class="sm" x="860" y="180" text-anchor="middle" style="font-size:9px">To scan cheques</text>'
+     '<path class="wire faint" d="M800 190H920M860 190V222"/>'
+     '<text class="sm" x="830" y="210" text-anchor="middle" style="font-size:9px">Don&#8217;t Allow</text></g>',
+     '<g class="fade" data-lit="2"><text class="sm" x="890" y="210" text-anchor="middle" style="font-size:9px">Allow</text></g>',
+     '<g class="fade" data-lit="3+"><g class="nd lit"><rect class="sh" x="862" y="194" width="56" height="26" rx="6"/></g>'
+     '<text class="sm fill-teal" x="890" y="211" text-anchor="middle" style="font-size:9px;font-weight:700">Allow</text>'
+     '<use href="#i-tap" x="906" y="208" width="24" height="24"/>'
+     '<text class="sm" x="960" y="160">the user chose;</text><text class="sm" x="960" y="178">can change it later</text><text class="sm" x="960" y="196">in Settings</text></g>']
+for k, cap in enumerate(['An entitlement: NPay&#8217;s team writes it, and it is signed into the app',
+                         'A permission: when NPay first needs the camera, iOS asks the user',
+                         'The user taps Allow; they can take it back any time in Settings']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="340" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 7 &middot; Comparison', 'Entitlements vs privacy permissions', f"""  <div class="body">
+    {svg('0 0 1136 352', 'Left: an entitlement is a signed slip inside NPay.app, decided by the team at build time. Right: a privacy permission is the user&rsquo;s choice on an iOS prompt at run time, for example the camera.', 'entperm', P, 'max-height:400px')}{cues(3)}
+    <div class="rule step" data-label="Who decides?">Entitlement: <b>the team</b>, at build time. Permission: <b>the user</b>, at run time. Some features need <b>both</b>.</div>
+  </div>""", notes(
+    ('SAY', 'Two things that sound alike but differ in one question: who decides? Click: an entitlement, like the App Group from the last slide. NPay&rsquo;s team writes it and it is signed into the app; it is fixed, and the user never sees it.'),
+    ('SAY', 'Click: a privacy permission. The first time NPay needs the camera, to scan a cheque, iOS shows the user a prompt with NPay&rsquo;s reason. Click: the user taps Allow, and can take it back at any time in Settings.'),
+    ('SAY', 'Click: so an entitlement is decided by the team at build time, a permission by the user at run time. Some features need both: a signed capability and the user&rsquo;s yes.'),
+    ('ASK', 'Can NPay turn the camera on without asking, because it is a signed, trusted app?'),
+    ('EXPECT', 'No. Signing does not replace the user&rsquo;s permission.'),
+    ('CONNECT', 'Let&rsquo;s follow that camera permission more closely: scanning a cheque.'))))
+# rebuilt (user review): 0.7's "Scanning a cheque" refocused on the "no" path; three phones, one per click
+def prompt(c, choose):
+    o = (f'<g class="nd"><rect class="sh" x="{c - 60}" y="104" width="120" height="112" rx="12"/></g>'
+         f'<text x="{c}" y="128" text-anchor="middle" style="font-size:11px;font-weight:700">&#8220;NPay&#8221; would</text>'
+         f'<text x="{c}" y="142" text-anchor="middle" style="font-size:11px;font-weight:700">like to use</text>'
+         f'<text x="{c}" y="156" text-anchor="middle" style="font-size:11px;font-weight:700">the camera</text>'
+         f'<text class="sm" x="{c}" y="174" text-anchor="middle" style="font-size:9px">To scan cheques</text>'
+         f'<path class="wire faint" d="M{c - 60} 184H{c + 60}M{c} 184V216"/>'
+         f'<text class="sm" x="{c + 30}" y="204" text-anchor="middle" style="font-size:9px">Allow</text>')
+    o += (f'<g class="nd lit"><rect class="sh" x="{c - 58}" y="188" width="56" height="26" rx="6"/></g>'
+          f'<text class="sm fill-teal" x="{c - 30}" y="205" text-anchor="middle" style="font-size:9px;font-weight:700">Don&#8217;t Allow</text>'
+          f'<use href="#i-tap" x="{c - 30}" y="214" width="22" height="22"/>' if choose else
+          f'<text class="sm" x="{c - 30}" y="204" text-anchor="middle" style="font-size:9px">Don&#8217;t Allow</text>')
+    return o
+phone = lambda c: f'<use href="#d-iphone" x="{c - 70}" y="20" width="140" height="280"/>'
+P = [f'<g class="fade" data-lit="1+">{phone(190)}{prompt(190, True)}<text class="mono" x="190" y="12" text-anchor="middle">FIRST TIME</text></g>',
+     '<g class="fade" data-lit="2+"><path class="wire" d="M270 160H488M481 153l7 7-7 7"/><text class="sm" x="379" y="148" text-anchor="middle">a week later</text>'
+     f'{phone(568)}<text class="mono" x="568" y="12" text-anchor="middle">TAPS SCAN AGAIN</text>'
+     '<text x="568" y="84" text-anchor="middle" style="font-size:14px;font-weight:800">NPay</text>'
+     '<rect class="wire" style="fill:none" x="512" y="100" width="112" height="26" rx="6"/><text class="sm" x="568" y="117" text-anchor="middle">Scan cheque</text>'
+     '<use href="#i-tap" x="590" y="124" width="22" height="22"/>'
+     '<text class="sm" x="568" y="176" text-anchor="middle">no prompt:</text><text class="sm" x="568" y="194" text-anchor="middle">iOS asks only once</text></g>',
+     '<g class="fade" data-lit="3+"><path class="wire" d="M648 160H866M859 153l7 7-7 7"/>'
+     f'{phone(946)}<text class="mono" x="946" y="12" text-anchor="middle">NPAY STILL WORKS</text>'
+     '<use href="#i-eye" x="932" y="70" width="28" height="28"/><text x="946" y="122" text-anchor="middle" style="font-size:12px;font-weight:700">Camera is off</text>'
+     '<g class="nd lit"><rect class="sh" x="888" y="140" width="116" height="30" rx="8"/><text class="sm" x="946" y="160" text-anchor="middle">Enter details</text></g>'
+     '<rect class="wire" style="fill:none" x="888" y="180" width="116" height="30" rx="8"/><text class="sm" x="946" y="200" text-anchor="middle">Open Settings</text></g>']
+for k, cap in enumerate(['The first time, the user taps Don&#8217;t Allow',
+                         'A week later they tap Scan again: iOS shows no prompt. It asks only once',
+                         'So NPay offers another way: type the cheque details, or turn the camera on in Settings']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="340" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 7 &middot; Camera permission', 'When the user says no', f"""  <div class="body">
+    {svg('0 0 1136 352', 'The user taps Don&rsquo;t Allow on the camera prompt; a week later tapping Scan shows no prompt because iOS asks only once; NPay offers to enter the cheque details or open Settings.', 'sayno', P, 'max-height:400px')}{cues(3)}
+    <div class="rule step" data-label="Design for no">The user can refuse, and NPay must <b>still work</b>. Explain the reason <b>before</b> iOS asks: you only get one prompt.</div>
+  </div>""", notes(
+    ('SAY', 'The last slide showed the user saying yes. What if they say no? Click: the first time NPay needs the camera, the user taps Don&rsquo;t Allow.'),
+    ('SAY', 'Click: a week later they tap Scan cheque again. No prompt appears: iOS asks only once. NPay cannot nag the user with the prompt again.'),
+    ('SAY', 'Click: so NPay must still work: it offers to type the cheque details by hand, and a button that opens Settings, where only the user can switch the camera on.'),
+    ('SAY', 'Click: design for no. And because you only get one prompt, explain the reason in your own screen before iOS asks. The reason text on the prompt itself is required too: an app that asks for the camera without one is stopped by iOS. Unit 11, lesson 11.8, covers privacy declarations.'),
+    ('ASK', 'Can NPay secretly switch the camera on, as we asked at the start of this Part?'),
+    ('EXPECT', 'No. Camera access goes through iOS and the user&rsquo;s choice.'),
+    ('CONNECT', 'Now the third question: can a malicious app replace another app&rsquo;s executable?'))))
+# rebuilt (user review, same style as entitlements): the app sealed on the Mac; iOS checks the seal before it runs; a changed app is refused
+def appbox(y, name, sub, seal, seal_cls, lit_):
+    return (f'<g class="fade" data-lit="{lit_}"><rect class="wire dash" style="fill:none" x="0" y="{y}" width="360" height="110" rx="16"/>'
+            f'<use href="#i-bank" x="16" y="{y + 16}" width="24" height="24"/><text x="48" y="{y + 34}">{name}</text>'
+            f'<text class="sm" x="48" y="{y + 54}">{sub}</text>'
+            f'<circle class="wire {seal_cls}" style="fill:var(--paper)" cx="310" cy="{y + 56}" r="30"/>'
+            f'<text class="mono{" fill-teal" if seal_cls == "lit" else ""}" x="310" y="{y + 60}" text-anchor="middle" style="font-size:10px">{seal}</text></g>')
+P = ['<text class="mono" x="0" y="14">ON THE MAC &#183; BUILD TIME</text><text class="mono" x="458" y="14">ON THE IPHONE &#183; EVERY LAUNCH</text>',
+     appbox(30, 'NPay.app', 'built by NPay&#8217;s team', 'SIGNED', 'lit', '1+'),
+     '<g class="fade" data-lit="2+"><path class="wire" d="M364 85H452M445 78l7 7-7 7"/></g>',
+     '<g class="nd" data-lit="2"><rect class="sh" x="458" y="40" width="210" height="90" rx="14"/><use href="#i-shield" x="549" y="52" width="28" height="28"/>'
+     '<text x="563" y="100" text-anchor="middle">iOS checks the seal</text><text class="sm" x="563" y="118" text-anchor="middle">who built it? unchanged?</text></g>',
+     '<g class="fade" data-lit="3+"><g class="nd"><rect class="sh" x="458" y="40" width="210" height="90" rx="14"/><use href="#i-shield" x="549" y="52" width="28" height="28"/>'
+     '<text x="563" y="100" text-anchor="middle">iOS checks the seal</text><text class="sm" x="563" y="118" text-anchor="middle">who built it? unchanged?</text></g></g>',
+     '<g class="fade" data-lit="2+"><path class="wire" d="M672 85H760M753 78l7 7-7 7"/>'
+     '<g class="nd lit"><rect class="sh" x="766" y="50" width="370" height="70" rx="12"/><use href="#i-check" x="780" y="72" width="26" height="26"/>'
+     '<text x="818" y="81">Seal intact: NPay runs</text><text class="sm" x="818" y="100">still inside its sandbox and permissions</text></g></g>',
+     appbox(176, 'NPay.app, changed', 'someone altered one file', 'BROKEN', 'dash', '3+'),
+     '<g class="fade" data-lit="3+"><path class="wire" d="M364 231H563V136M556 143l7-7 7 7"/>'
+     '<g class="nd alert"><rect class="sh" x="766" y="196" width="370" height="70" rx="12"/><use href="#i-cross" x="780" y="218" width="26" height="26"/>'
+     '<text x="818" y="227">Seal broken: it will not launch</text><text class="sm" x="818" y="246">iOS refuses the changed code</text></g>'
+     '<path class="wire" d="M672 120V231H760M753 224l7 7-7 7"/></g>']
+for k, cap in enumerate(['On the Mac, NPay&#8217;s team seals the app with its signature',
+                         'Every launch, iOS checks the seal: built by NPay&#8217;s team and unchanged, so it runs',
+                         'If anyone changes the app, the seal breaks and iOS will not launch it']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="314" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 7 &middot; Code signing &middot; conceptual', 'Code signing: a seal iOS checks', f"""  <div class="body">
+    {svg('0 0 1136 326', 'NPay.app is sealed with its signature on the Mac; at every launch iOS checks the seal: intact, it runs; changed, the seal is broken and iOS refuses to launch it.', 'sign2', P)}{cues(3)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="Identity, not safety">The seal proves <b>who built it</b> and that it is <b>unchanged</b>. It does not prove the code is <b>secure</b>.</div>
+  </div>""", notes(
+    ('SAY', 'The third question from the start of this Part: can a malicious app replace another app&rsquo;s code? Click: on the Mac, NPay&rsquo;s team seals the finished app with its signature, like the wax seal on a letter.'),
+    ('SAY', 'Click: every time NPay launches, iOS checks the seal. It was built by NPay&rsquo;s team and nothing has changed, so NPay runs, still inside its sandbox and permissions: signing does not bypass those.'),
+    ('SAY', 'Click: if anyone changes even one file in the app, the seal breaks, and iOS will not launch it. So a malicious app cannot swap in its own code.'),
+    ('SAY', 'Click: but be careful. The seal proves who built the app and that it is unchanged. It does not prove NPay&rsquo;s own code has no security bugs.'),
+    ('ASK', 'Does a valid signature mean NPay has no security vulnerabilities?'),
+    ('EXPECT', 'No. It proves identity and integrity, not that the logic is secure.'),
+    ('CONNECT', 'Inside a secure app: where should secrets live?'))))
+# rebuilt (user review, concrete style): what each store actually holds after sign-in; a token in the plain file vs locked in the Keychain
+P = ['<rect class="wire dash" style="fill:none" x="0" y="0" width="540" height="250" rx="16"/>',
+     '<text class="mono" x="20" y="30">NPAY&#8217;S CONTAINER &#183; SANDBOX</text>',
+     '<g class="nd" data-lit="1"><rect class="sh" x="30" y="48" width="480" height="180" rx="14"/></g>',
+     '<use href="#i-file" x="48" y="64" width="26" height="26"/><text x="86" y="83">UserDefaults</text><text class="sm" x="210" y="83">a plain preferences file</text>',
+     '<g class="fade" data-lit="1+"><text class="mono" x="52" y="122" style="font-size:15px">theme: dark</text><text class="mono" x="52" y="148" style="font-size:15px">onboardingDone: true</text></g>',
+     '<g class="fade" data-lit="2"><g class="nd alert"><rect class="sh" x="44" y="164" width="452" height="50" rx="10"/>'
+     '<text class="mono" x="60" y="186" style="font-size:15px">token: 7f3a9c&#8230;e21b</text><text class="sm" x="60" y="205">readable as plain text, e.g. from a backup</text></g></g>',
+     '<text class="mono" x="620" y="30">MANAGED BY IOS &#183; OUTSIDE THE CONTAINER</text>',
+     '<g class="nd" data-lit="3+"><rect class="sh" x="620" y="48" width="516" height="180" rx="14"/></g>',
+     '<use href="#i-key" x="638" y="64" width="26" height="26"/><text x="676" y="83">Keychain</text><text class="sm" x="772" y="83">an encrypted store</text>',
+     '<g class="fade" data-lit="3+"><path class="wire" d="M500 189H612M605 182l7 7-7 7"/><text class="sm" x="580" y="210" text-anchor="middle">move it</text>'
+     '<text class="mono" x="644" y="130" style="font-size:15px">token: &#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</text>'
+     '<text class="sm" x="644" y="152">encrypted; only NPay can read it</text>'
+     '<use href="#i-lock" x="644" y="172" width="22" height="22"/><text class="sm" x="674" y="188">readable only while the phone is unlocked</text></g>']
+for k, cap in enumerate(['UserDefaults: a plain file for small settings, like the theme',
+                         'Put the sign-in token there, and anyone with a copy of the file can read it',
+                         'The Keychain keeps it encrypted, outside the app, and locked with the phone']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="288" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 7 &middot; Storage choice &middot; conceptual', 'UserDefaults vs Keychain', f"""  <div class="body">
+    {svg('0 0 1136 300', 'UserDefaults is a plain preferences file in NPay&rsquo;s container holding the theme; a token stored there is readable; the Keychain, managed by iOS outside the container, keeps the token encrypted and readable only while the phone is unlocked.', 'kc2', P)}{cues(3)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="The token goes in the Keychain">Settings in <b>UserDefaults</b>; secrets in the <b>Keychain</b>. Never put a token in a plain file.</div>
+  </div>""", notes(
+    ('ASK', 'After sign-in, NPay has a token that proves who the user is. Where should it go?'),
+    ('SAY', 'Click: UserDefaults is a plain preferences file inside NPay&rsquo;s container, perfect for small settings such as the theme or whether onboarding is done.'),
+    ('SAY', 'Click: put the token there and it sits in that file as plain text. Anyone who gets a copy of the file, for example from an unencrypted backup or a debugging tool, can read it and act as the user.'),
+    ('SAY', 'Click: the Keychain is managed by iOS, outside the app&rsquo;s container, and encrypts every item. Only NPay can read its own items, and an item can be set to be readable only while the phone is unlocked. Unit 07, lesson 7.3, goes deeper.'),
+    ('SAY', 'Click: settings in UserDefaults, secrets in the Keychain.'),
+    ('CONNECT', 'Who protects the keys that encrypt the Keychain? Hardware.'))))
+# rebuilt (user review, concrete style): Face ID approving a payment; secrets stay inside the Secure Enclave, only answers come out
+P = ['<use href="#d-iphone" x="40" y="10" width="140" height="280"/>',
+     '<text x="110" y="74" text-anchor="middle" style="font-size:13px;font-weight:800">NPay</text>',
+     '<text class="sm" x="110" y="98" text-anchor="middle">Pay ravi@npay</text><text x="110" y="122" text-anchor="middle" style="font-size:16px;font-weight:700">&#8377;1,500</text>',
+     '<g class="fade" data-lit="1-2"><g class="nd lit"><rect class="sh" x="62" y="148" width="96" height="64" rx="12"/></g><use href="#i-user" x="98" y="156" width="24" height="24"/>'
+     '<text class="sm fill-teal" x="110" y="200" text-anchor="middle">Face ID</text></g>',
+     '<g class="fade" data-lit="3+"><text class="sm fill-teal" x="110" y="188" text-anchor="middle">Approved</text></g>',
+     '<text class="mono" x="440" y="22" text-anchor="middle">INSIDE THE IPHONE&#8217;S CHIP</text>',
+     '<g class="nd" data-lit="2-3"><rect class="sh" x="300" y="34" width="280" height="160" rx="16"/></g>',
+     '<use href="#i-chip" x="316" y="50" width="26" height="26"/><text x="354" y="69">Secure Enclave</text><text class="sm" x="354" y="88">a sealed vault</text>',
+     '<g class="fade" data-lit="2+"><path class="wire" d="M184 180H294M287 173l7 7-7 7"/><text class="sm" x="240" y="168" text-anchor="middle">your face</text>'
+     '<text class="sm" x="320" y="124">&#10003; face matched inside</text><text class="sm" x="320" y="144">face data never leaves</text></g>',
+     '<g class="fade" data-lit="3+"><use href="#i-key" x="320" y="154" width="22" height="22"/><text class="sm" x="348" y="170">NPay&#8217;s private key signs it</text>'
+     '<path class="wire" d="M584 114H700M693 107l7 7-7 7"/><text class="sm" x="642" y="102" text-anchor="middle">only the</text><text class="sm" x="642" y="134" text-anchor="middle">signature</text>'
+     '<g class="nd lit"><rect class="sh" x="706" y="80" width="300" height="70" rx="12"/><use href="#i-bank" x="720" y="102" width="26" height="26"/>'
+     '<text x="758" y="110">Bank API server</text><text class="sm" x="758" y="130">checks the signature: approved</text></g></g>',
+     '<g class="fade" data-lit="4+"><path class="wire dash" d="M440 198V236"/><g class="nd"><rect class="sh" x="300" y="240" width="360" height="62" rx="12"/>'
+     '<use href="#i-key" x="316" y="258" width="26" height="26"/><text x="354" y="266">Keychain: token &#8226;&#8226;&#8226;&#8226;</text>'
+     '<text class="sm" x="354" y="286">stored outside; the Enclave guards its key</text></g></g>']
+for k, cap in enumerate(['The user confirms a &#8377;1,500 payment with Face ID',
+                         'The face is matched inside the Secure Enclave: face data never leaves it',
+                         'NPay&#8217;s private key, kept inside, signs the payment: only the signature goes out',
+                         'The Keychain token is stored outside: the Enclave guards the key that encrypts it']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 3 else ""}" x="568" y="336" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 7 &middot; Secure Enclave &middot; conceptual', 'The Secure Enclave: a vault for keys', f"""  <div class="body">
+    {svg('0 0 1136 348', 'The user confirms a payment with Face ID; the face is matched inside the Secure Enclave; NPay&rsquo;s private key inside it signs the payment and only the signature goes to the bank; the Keychain token is stored outside, its key guarded by the Enclave.', 'enclave2', P, 'max-height:400px')}{cues(4)}
+    <div class="rule step" data-label="Vault, not database">Secrets stay <b>inside</b>; only answers come out. Keychain items are <b>not</b> stored there.</div>
+  </div>""", notes(
+    ('SAY', 'Who protects the most sensitive secrets? A separate part of the iPhone&rsquo;s chip, the Secure Enclave: a sealed vault. Click: the user confirms a &#8377;1,500 payment with Face ID.'),
+    ('SAY', 'Click: the face is matched inside the Secure Enclave. The face data never leaves it, not even to NPay or iOS. Click: NPay keeps a private key inside the Enclave; the key signs the payment, and only the signature goes out to the bank, which checks it. The key itself never leaves.'),
+    ('SAY', 'Click: and the Keychain token from the last slide? It is stored outside the Enclave, in the encrypted Keychain; the Enclave guards the key that encrypts it.'),
+    ('SAY', 'Click: so the Secure Enclave is a vault for keys, not a database: secrets stay inside, only answers come out. Unit 07, lesson 7.5, uses it from Swift.'),
+    ('ASK', 'Are Keychain items stored inside the Secure Enclave?'),
+    ('EXPECT', 'No. They are in the encrypted Keychain; the Enclave protects the keys.'),
+    ('CONNECT', 'Let&rsquo;s recap Part 7.'))))
 take(7, 21, 7, connect='Two quick questions on Part 7.')
 question(7, 23, 7, 0, 'Next question.')
 question(7, 26, 7, 1, 'Part 8: leaving the device. How does ₹25,000 reach NPay?')
@@ -1305,38 +1580,270 @@ part(8, 'Networking', 'From a Refresh tap to the bank&rsquo;s server and back',
      'The security walls around NPay.', 'The network path: Service, URLSession, HTTPS and the bank&rsquo;s server.',
      'The teal is on the path out of the device: the Service, the frameworks that do the networking, the HTTPS connection and the bank&rsquo;s server.')
 take(8, 5, 8)
-take(8, 7, 8)
+# rebuilt (Part 8 audit, concrete style): one Refresh tap from the phone to the bank and back, six plain steps
+P = ['<use href="#d-iphone" x="20" y="16" width="130" height="260"/>',
+     '<text x="85" y="78" text-anchor="middle" style="font-size:13px;font-weight:800">NPay</text>',
+     '<g class="fade" data-lit="0-5"><text x="85" y="112" text-anchor="middle" style="font-size:15px;font-weight:700">&#8377;25,000</text></g>',
+     '<g class="fade" data-lit="0"><text class="sm" x="85" y="136" text-anchor="middle">2 hours ago</text></g>',
+     '<g class="fade" data-lit="1-5"><text class="sm fill-teal" x="85" y="136" text-anchor="middle">Updating&#8230;</text></g>',
+     '<g class="fade" data-lit="6+"><text class="fill-teal" x="85" y="112" text-anchor="middle" style="font-size:15px;font-weight:700">&#8377;25,000</text><text class="sm fill-teal" x="85" y="136" text-anchor="middle">updated now</text></g>',
+     '<g class="nd" data-lit="1"><rect class="sh" x="40" y="150" width="90" height="28" rx="7"/><text class="sm" x="85" y="169" text-anchor="middle">Refresh</text></g>',
+     '<text class="mono" x="560" y="14" text-anchor="middle">GOING OUT</text><text class="mono" x="560" y="290" text-anchor="middle">COMING BACK</text>',
+     '<g class="nd" data-lit="2"><rect class="sh" x="210" y="34" width="250" height="70" rx="12"/><use href="#i-send" x="224" y="56" width="26" height="26"/><text x="262" y="64">NPay builds a request</text><text class="sm" x="262" y="84">balance of account 123 + token</text></g>',
+     '<path class="wire" d="M154 69H204M197 62l7 7-7 7M464 69H560M553 62l7 7-7 7"/>',
+     '<g class="nd" data-lit="3"><rect class="sh" x="566" y="34" width="210" height="70" rx="12"/><use href="#i-lock" x="580" y="56" width="26" height="26"/><text x="618" y="64">Over the internet</text><text class="sm" x="618" y="84">encrypted (HTTPS)</text></g>',
+     '<path class="wire" d="M780 69H866M859 62l7 7-7 7"/>',
+     '<g class="nd" data-lit="4"><rect class="sh" x="872" y="34" width="264" height="206" rx="14"/><use href="#i-bank" x="890" y="54" width="28" height="28"/><text x="928" y="74">Bank API server</text>'
+     '<text class="sm" x="890" y="110">checks the token</text><text class="sm" x="890" y="130">reads the real balance</text><text class="sm" x="890" y="150">replies with JSON</text></g>',
+     '<path class="wire" d="M866 206H780M787 199l-7 7 7 7"/>',
+     '<g class="nd" data-lit="4"><rect class="sh" x="566" y="172" width="210" height="70" rx="12"/><use href="#i-file" x="580" y="194" width="26" height="26"/><text x="618" y="202">The answer</text><text class="sm" x="618" y="222">the balance, in paise</text></g>',
+     '<path class="wire" d="M560 206H464M471 199l-7 7 7 7"/>',
+     '<g class="nd" data-lit="5"><rect class="sh" x="210" y="172" width="250" height="70" rx="12"/><use href="#i-check" x="224" y="194" width="26" height="26"/><text x="262" y="202">NPay decodes it</text><text class="sm" x="262" y="222">then formats &#8377;25,000</text></g>',
+     '<path class="wire" d="M204 206H158M165 199l-7 7 7 7"/>']
+for k, cap in enumerate(['The user taps Refresh: NPay shows Updating&#8230; and the main thread stays free',
+                         'NPay builds a request: the balance of account 123, with the sign-in token',
+                         'It travels over the internet, encrypted by HTTPS',
+                         'The bank checks the token and replies with the real balance, as JSON',
+                         'NPay checks the answer, decodes it and formats &#8377;25,000',
+                         'The screen shows the new balance']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 5 else ""}" x="568" y="326" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 8 &middot; Request journey &middot; conceptual', 'A Refresh tap, step by step', f"""  <div class="body">
+    {svg('0 0 1136 338', 'A Refresh tap: NPay builds a request with the token, it travels encrypted over the internet, the bank checks the token and replies with JSON, NPay decodes it and the screen shows the new balance.', 'journey6', P, 'max-height:420px')}{cues(6)}
+  </div>""", notes(
+    ('SAY', 'Six steps, one Refresh tap, out to the bank and back. Click: the user taps Refresh. NPay shows Updating, and from here the waiting happens off the main thread, so the app stays responsive.'),
+    ('SAY', 'Click: NPay builds a request: the balance of account 123, with the sign-in token attached. Click: it travels over the internet, encrypted by HTTPS. Click: the bank checks the token, reads the real balance, and replies with JSON: 2,500,000 paise.'),
+    ('SAY', 'Click: NPay checks the answer was a success, decodes it, and formats &#8377;25,000. Click: the screen shows the new balance. Notice who does what: the request itself is sent by Apple&rsquo;s networking framework, URLSession, not by SwiftUI.'),
+    ('ASK', 'During which steps can the user still scroll NPay?'),
+    ('EXPECT', 'All of them: the waiting happens off the main thread.'),
+    ('CONNECT', 'Look closer at the request NPay sends in step 2.'))))
 take(8, 9, 8)
-take(8, 10, 8)
-take(8, 12, 8)
-take(8, 13, 8, connect='Inside the app, who coordinates the request?')
+# rebuilt (Part 8 audit): read vs change, and why it matters for repeating a request
+P = ['<text class="mono" x="0" y="14">READ &#183; GET</text>', '<path class="wire faint" d="M566 4V250"/>', '<text class="mono" x="600" y="14">CHANGE &#183; POST</text>',
+     '<g class="fade" data-lit="1+"><g class="nd"><rect class="sh" x="0" y="32" width="250" height="60" rx="12"/><use href="#i-send" x="14" y="49" width="26" height="26"/><text x="52" y="58">Get the balance</text><text class="sm" x="52" y="78">sent twice</text></g>'
+     '<path class="wire" d="M254 62H300M293 55l7 7-7 7"/>'
+     '<g class="nd"><rect class="sh" x="306" y="32" width="230" height="60" rx="12"/><text x="322" y="58">&#8377;25,000</text><text class="sm" x="322" y="78">first answer</text></g>'
+     '<g class="nd"><rect class="sh" x="306" y="104" width="230" height="60" rx="12"/><text x="322" y="130">&#8377;25,000</text><text class="sm" x="322" y="150">same again</text></g>'
+     '<text class="fill-teal" x="0" y="206">Safe to repeat</text><text class="sm" x="0" y="228">nothing changes on the server</text></g>',
+     '<g class="fade" data-lit="2+"><g class="nd"><rect class="sh" x="600" y="32" width="250" height="60" rx="12"/><use href="#i-send" x="614" y="49" width="26" height="26"/><text x="652" y="58">Send &#8377;1,500</text><text class="sm" x="652" y="78">sent twice</text></g>'
+     '<path class="wire" d="M854 62H900M893 55l7 7-7 7"/>'
+     '<g class="nd"><rect class="sh" x="906" y="32" width="230" height="60" rx="12"/><text x="922" y="58">&#8722;&#8377;1,500</text><text class="sm" x="922" y="78">first payment</text></g>'
+     '<g class="nd alert"><rect class="sh" x="906" y="104" width="230" height="60" rx="12"/><text x="922" y="130">&#8722;&#8377;1,500 again</text><text class="sm" x="922" y="150">a second payment</text></g>'
+     '<text x="600" y="206">Not safe to repeat</text><text class="sm" x="600" y="228">each one moves money</text></g>']
+for k, cap in enumerate(['Reading the balance twice gives the same answer', 'Sending &#8377;1,500 twice sends two payments']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 1 else ""}" x="568" y="276" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 8 &middot; Methods', 'Read vs change: GET and POST', f"""  <div class="body">
+    {svg('0 0 1136 288', 'Getting the balance twice gives the same answer: safe to repeat. Sending 1,500 rupees twice makes two payments: not safe to repeat.', 'getpost', P)}{cues(2)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="Safe to repeat?">Safe to repeat is called <b>idempotent</b>. Never blindly repeat a request that <b>moves money</b>.</div>
+  </div>""", notes(
+    ('SAY', 'Every request says what it wants to do. The two you will see most: GET reads, POST changes. Click: GET the balance twice and you get the same answer twice; nothing changed on the server, so it is safe to repeat.'),
+    ('SAY', 'Click: POST a &#8377;1,500 payment twice and the bank makes two payments. Each one moves money, so it is not safe to repeat.'),
+    ('SAY', 'Click: a request that is safe to repeat is called idempotent. This matters when the network fails and the app wonders whether to try again; we come back to it on the failure slide. There are other methods, PUT, PATCH and DELETE; Unit 05, lesson 5.1, covers them. The server always decides and checks authorization.'),
+    ('CONNECT', 'How is the request protected on its way?'))))
+# rebuilt (Part 8 audit, concrete style): what someone on the same café Wi-Fi can see, without and with HTTPS
+P = ['<use href="#d-iphone" x="0" y="20" width="110" height="220"/><text x="55" y="80" text-anchor="middle" style="font-size:13px;font-weight:800">NPay</text>'
+     '<text x="55" y="108" text-anchor="middle" style="font-size:14px;font-weight:700">&#8377;25,000</text><text class="sm" x="55" y="132" text-anchor="middle">Updating&#8230;</text>',
+     '<g class="nd"><rect class="sh" x="936" y="80" width="200" height="90" rx="14"/><use href="#i-bank" x="1022" y="94" width="28" height="28"/><text x="1036" y="148" text-anchor="middle">Bank server</text></g>',
+     '<path class="wire" d="M118 125H930M923 118l7 7-7 7"/>',
+     '<g class="nd"><rect class="sh" x="400" y="20" width="300" height="56" rx="12"/><use href="#i-globe" x="414" y="35" width="26" height="26"/><text x="452" y="54">Caf&#233; Wi-Fi</text></g>',
+     '<use href="#i-user" x="530" y="170" width="28" height="28"/><text class="sm" x="544" y="214" text-anchor="middle">someone else on the Wi-Fi</text>',
+     '<g class="fade" data-lit="1"><g class="nd alert"><rect class="sh" x="300" y="226" width="500" height="54" rx="10"/><text class="mono" x="316" y="250" style="font-size:14px">token: 7f3a9c&#8230;  balance: 2500000</text><text class="sm" x="316" y="270">without HTTPS: readable</text></g></g>',
+     '<g class="fade" data-lit="2+"><g class="nd lit"><rect class="sh" x="300" y="226" width="500" height="54" rx="10"/><text class="mono" x="316" y="250" style="font-size:14px">x8#q!7&#8230;k2%Zp&#8230;</text><text class="sm" x="316" y="270">with HTTPS: scrambled</text></g>'
+     '<use href="#i-lock" x="500" y="112" width="26" height="26"/></g>',
+     '<g class="fade" data-lit="3+"><text class="sm fill-teal" x="1036" y="196" text-anchor="middle">&#10003; really the bank</text></g>']
+for k, cap in enumerate(['Without HTTPS, anyone on the same Wi-Fi could read the token and the balance',
+                         'With HTTPS the trip is encrypted: they see only scrambled data',
+                         'HTTPS also proves NPay is talking to the real bank, not an impostor']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="320" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 8 &middot; HTTPS &middot; conceptual', 'HTTPS: an encrypted, checked connection', f"""  <div class="body">
+    {svg('0 0 1136 332', 'NPay talks to the bank over caf&eacute; Wi-Fi. Without HTTPS someone else on the Wi-Fi can read the token and balance; with HTTPS they see scrambled data, and NPay knows it reached the real bank.', 'https2', P, 'max-height:400px')}{cues(3)}
+    <div class="rule step" data-label="One layer">HTTPS protects the <b>trip</b>. Sign-in, the token in the Keychain and the bank&rsquo;s own checks are still needed.</div>
+  </div>""", notes(
+    ('SAY', 'NPay is on caf&eacute; Wi-Fi, and someone else is on the same network. Click: without HTTPS, that person could read the token and the balance as they pass by. With the token, they could act as the user.'),
+    ('SAY', 'Click: with HTTPS, the trip is encrypted; they see only scrambled data. Click: and HTTPS checks the server&rsquo;s certificate, so NPay knows it is talking to the real bank, not an impostor.'),
+    ('SAY', 'Click: but HTTPS protects only the trip. Signing in, keeping the token in the Keychain and the bank&rsquo;s own checks are still needed: security is layered. iOS expects HTTPS by default; Unit 07, lesson 7.6, covers certificates.'),
+    ('ASK', 'Is HTTPS enough to make a banking app secure?'),
+    ('EXPECT', 'No. It protects the connection; the other layers are still needed.'),
+    ('CONNECT', 'HTTPS carries the sign-in too. Where does the token come from?'))))
+# rebuilt (user review, concrete style): sign in once, then the token is the pass for every request; an expired token means sign in again
+pc = 80
+scr = lambda lit_, body: f'<g class="fade" data-lit="{lit_}">{body}</g>'
+P = ['<use href="#d-iphone" x="10" y="10" width="140" height="280"/>',
+     scr('0-1', f'<text x="{pc}" y="70" text-anchor="middle" style="font-size:13px;font-weight:800">Sign in</text>'
+         f'<rect class="wire" style="fill:none" x="34" y="86" width="92" height="20" rx="5"/><text class="sm" x="40" y="100" style="font-size:9px">priya@npay</text>'
+         f'<rect class="wire" style="fill:none" x="34" y="114" width="92" height="20" rx="5"/><text class="sm" x="40" y="128" style="font-size:9px">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</text>'
+         f'<rect class="wire" style="fill:none" x="46" y="144" width="68" height="20" rx="6"/><text class="sm" x="{pc}" y="158" text-anchor="middle" style="font-size:9px">Sign in</text>'),
+     scr('2-4', f'<text x="{pc}" y="74" text-anchor="middle" style="font-size:13px;font-weight:800">NPay</text>'
+         f'<text x="{pc}" y="104" text-anchor="middle" style="font-size:15px;font-weight:700">&#8377;25,000</text>'),
+     scr('5+', f'<text x="{pc}" y="96" text-anchor="middle" style="font-size:11px;font-weight:700">Please sign</text>'
+         f'<text x="{pc}" y="112" text-anchor="middle" style="font-size:11px;font-weight:700">in again</text>'),
+     '<g class="nd"><rect class="sh" x="900" y="10" width="236" height="280" rx="16"/><use href="#i-bank" x="1004" y="26" width="28" height="28"/><text x="1018" y="76" text-anchor="middle">Bank server</text></g>',
+     '<g class="fade" data-lit="1+"><path class="wire" d="M156 60H894M887 53l7 7-7 7"/><text class="sm" x="525" y="50" text-anchor="middle">email + password, over HTTPS (once)</text></g>',
+     '<g class="fade" data-lit="2+"><path class="wire" d="M894 104H156M163 97l7 7-7 7"/><text class="sm" x="525" y="94" text-anchor="middle">password is right: here is a token</text>'
+     '<g class="nd lit"><rect class="sh" x="930" y="92" width="176" height="44" rx="10"/><use href="#i-key" x="942" y="102" width="22" height="22"/><text class="sm" x="972" y="112">token: Priya,</text><text class="sm" x="972" y="128">valid for a while</text></g></g>',
+     '<g class="fade" data-lit="3+"><path class="wire" d="M80 294V318H262"/><g class="nd lit"><rect class="sh" x="266" y="296" width="260" height="46" rx="10"/>'
+     '<use href="#i-key" x="278" y="308" width="22" height="22"/><text x="308" y="324">Keychain: the token</text></g>'
+     '<text class="sm" x="540" y="324">not the password</text></g>',
+     '<g class="fade" data-lit="4+"><path class="wire" d="M156 160H894M887 153l7 7-7 7"/><text class="sm" x="525" y="150" text-anchor="middle">&#8220;my balance?&#8221; + token</text>'
+     '<path class="wire" d="M894 196H156M163 189l7 7-7 7"/><text class="sm" x="525" y="186" text-anchor="middle">&#8377;25,000 (no password needed)</text></g>',
+     '<g class="fade" data-lit="5+"><path class="wire" d="M894 246H156M163 239l7 7-7 7"/>'
+     '<g class="nd alert"><rect class="sh" x="380" y="222" width="290" height="48" rx="10"/><text x="396" y="244">401: token expired</text><text class="sm" x="396" y="262">the user signs in again</text></g></g>']
+for k, cap in enumerate(['The user signs in once: email and password go to the bank over HTTPS',
+                         'The bank checks them and hands back a token: a pass that says &#8220;this is Priya&#8221;',
+                         'NPay keeps the token in the Keychain, never the password',
+                         'Every later request carries the token: no password needed',
+                         'When the token expires, the bank answers 401, and the user signs in again']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 4 else ""}" x="568" y="380" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 8 &middot; Signing in &middot; conceptual', 'Where the token comes from', f"""  <div class="body">
+    {svg('0 0 1136 392', 'The user signs in once; the bank returns a token; NPay stores it in the Keychain; later requests carry the token; when it expires the bank answers 401 and the user signs in again.', 'token2', P, 'max-height:440px')}{cues(5)}
+    <div class="rule step" data-label="Token">The password is used <b>once</b>; the token is the <b>pass</b> for every request after.</div>
+  </div>""", notes(
+    ('SAY', 'How does the bank know a request really comes from Priya? Click: she signs in once. Her email and password go to the bank, encrypted by HTTPS.'),
+    ('SAY', 'Click: the bank checks them and hands back a token: a pass that says &ldquo;this is Priya&rdquo;, valid for a while. Like a wristband at an event: you show your ticket once, then the wristband gets you in. Click: NPay keeps the token in the Keychain, as in Part 7, and never stores the password.'),
+    ('SAY', 'Click: every later request carries the token, so no password is needed. Click: tokens expire. When it does, the bank answers 401, unauthorized, and NPay asks the user to sign in again.'),
+    ('SAY', 'Click: the password is used once; the token is the pass for every request after. Real apps also refresh tokens and check authorization on the server; Unit 05, lesson 5.5, and Unit 07, lesson 7.10, build that.'),
+    ('ASK', 'Why does NPay keep the token and not the password?'),
+    ('EXPECT', 'A token can expire and be revoked; a leaked token is less damaging than a leaked password.'),
+    ('CONNECT', 'Inside the app, who coordinates the request?'))))
 
-# code-free: ViewModel in the request path, ViewModel duties in words
-vp = diagrams(8, 19)[0]
-S.append(slide('Part 8 &middot; MVVM &middot; conceptual', 'A ViewModel in the request path', f"""  <div class="body cols middle" style="grid-template-columns:1fr 1.1fr">
-    <div>
-      {vp}
-      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
-      <p class="small muted" style="margin:10px 0 0">The View owns its ViewModel.</p>
-    </div>
-    {card('DashboardViewModel', ul('Runs on the <b>main actor</b>: its state feeds the UI', 'Asks BalanceService for the balance and <b>waits without blocking</b>', 'Formats paise as <b>&#8377;25,000</b> for display', 'Stores an <b>error message</b> when the request fails'))}
-  </div>""", notes(('SAY', 'Click down: the view displays the balance and loading state; the ViewModel coordinates the call and updates observable state; the service talks to the network and decodes the response; the server returns authorized account information.'),
-                  ('SAY', 'The ViewModel runs on the main actor, so its state changes happen where the UI reads them. It waits for the service without blocking, formats the minor units as rupees for display, and on failure stores a message the view can show. Formatting is the ViewModel&rsquo;s job, not the view&rsquo;s.'),
-                  ('CONNECT', 'And when the response arrives, how does it reach the screen?'))))
+# ---- slides 110-113 rebuilt (user review, concrete style): who does what, UI = f(state), five outcomes on the phone, leaving mid-download
+def npay_phone(x, w=140, h=280):
+    return f'<use href="#d-iphone" x="{x}" y="10" width="{w}" height="{h}"/>'
 
-# code-free: 0.10's response-to-screen slide, keeping the JSON (data) and dropping the Swift type
-s = rekick(get(10, 17), 8)
-s = re.sub(r'\s*<div class="gap"></div>\s*<div class="cw"><div class="ch"><span>Balance\.swift.*?</pre></div>', '', s, count=1, flags=re.S)
-s = s.replace('through JSONDecoder into a Balance', 'through a decoder into a Balance model')
-S.append(set_connect(s, 'Not every request succeeds. What then?') + '\n\n')
-take(8, 21, 8)
-take(8, 23, 8)
-take(8, 24, 8, connect='Let&rsquo;s recap Part 8.')
-take(8, 25, 8, connect='Two quick questions on Part 8.')
+# 110: each layer with what it does during one Refresh tap
+LAY = [('phone', 'View', 'what the user sees', 'Shows the balance, a spinner, or a message'),
+       ('layout', 'ViewModel', 'the screen&#8217;s state', 'Sets &#8220;loading&#8221;, asks the Service, formats &#8377;25,000'),
+       ('link', 'Service', 'talks to the bank', 'Sends the request with the token, decodes the answer'),
+       ('bank', 'Bank server', 'owns the real data', 'Checks the token, replies with the balance')]
+P = ['<text class="mono" x="0" y="14">LAYER</text><text class="mono" x="460" y="14">ITS JOB IN ONE REFRESH TAP</text>']
+for k, (ic, t, sub, job) in enumerate(LAY):
+    y = 26 + k * 72
+    P.append(f'<g class="nd" data-lit="{k + 1}"><rect class="sh" x="0" y="{y}" width="1136" height="60" rx="12"/><use href="#i-{ic}" x="14" y="{y + 17}" width="26" height="26"/>'
+             f'<text x="52" y="{y + 27}">{t}</text><text class="sm" x="52" y="{y + 46}">{sub}</text></g>')
+    P.append(f'<text class="fade" data-lit="{k + 1}+" x="460" y="{y + 36}" style="font-size:18px">{job}</text>')
+    if k < 3:
+        P.append(f'<path class="wire" d="M300 {y + 60}V{y + 72}"/>')
+S.append(slide('Part 8 &middot; MVVM &middot; conceptual', 'Who does what in one Refresh', f"""  <div class="body">
+    {svg('0 0 1136 314', 'View, ViewModel, Service and bank server, each with its job in one Refresh tap', 'whodoes', P)}{cues(4)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="Each layer, one job">The View never talks to the bank; the Service never draws. The <b>ViewModel</b> sits between them.</div>
+  </div>""", notes(
+    ('SAY', 'Inside NPay, who does what during one Refresh tap? One layer per click. The View is what the user sees: the balance, a spinner, or a message.'),
+    ('SAY', 'The ViewModel holds the screen&rsquo;s state: it sets loading, asks the Service for the balance, and formats paise as &#8377;25,000. It runs on the main thread, because its state feeds the screen, and waits for the Service without blocking.'),
+    ('SAY', 'The Service talks to the bank: it sends the request with the token and decodes the answer. And the bank server owns the real data: it checks the token and replies.'),
+    ('SAY', 'Click: each layer has one job. The View never talks to the bank, the Service never draws; the ViewModel sits between them. This is MVVM, from Part 1; Unit 04 builds it.'),
+    ('CONNECT', 'And when the answer arrives, how does it reach the screen?'))))
+
+# 111: the screen as a function of the ViewModel's state
+STATES = [('loading: yes', 'balance: &#8377;25,000', 'error: none', [('sm fill-teal', 'Updating&#8230;')]),
+          ('loading: no', 'balance: &#8377;24,750', 'error: none', [('big', '&#8377;24,750')]),
+          ('loading: no', 'balance: &#8377;24,750', 'error: offline', [('sm', 'You&#8217;re offline'), ('big', '&#8377;24,750'), ('sm', 'last updated 9:05')])]
+P = ['<text class="mono" x="0" y="14">THE VIEWMODEL&#8217;S STATE</text><text class="mono" x="560" y="14">WHAT THE SCREEN SHOWS</text>',
+     '<path class="wire" d="M450 150H640M633 143l7 7-7 7"/><text class="sm" x="545" y="138" text-anchor="middle">SwiftUI draws it</text>',
+     npay_phone(780), '<text x="850" y="72" text-anchor="middle" style="font-size:13px;font-weight:800">NPay</text>']
+for k, (l1, l2, l3, scr) in enumerate(STATES):
+    lit_ = f'{k + 1}{"+" if k == 2 else ""}'
+    P.append(f'<g class="fade" data-lit="{lit_}"><g class="nd lit"><rect class="sh" x="0" y="44" width="420" height="200" rx="14"/></g>'
+             f'<text class="mono" x="24" y="96" style="font-size:17px">{l1}</text><text class="mono" x="24" y="140" style="font-size:17px">{l2}</text>'
+             f'<text class="mono" x="24" y="184" style="font-size:17px">{l3}</text>')
+    y = 104
+    for cls, t in scr:
+        if cls == 'big':
+            P.append(f'<text x="850" y="{y + 4}" text-anchor="middle" style="font-size:16px;font-weight:700">{t}</text>')
+        else:
+            P.append(f'<text class="{cls}" x="850" y="{y}" text-anchor="middle">{t}</text>')
+        y += 26
+    P.append('</g>')
+for k, cap in enumerate(['While loading, the screen shows Updating&#8230;',
+                         'The answer arrives: the state changes, and the screen follows',
+                         'Offline: the state says so, and the screen shows the last known balance']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="326" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 8 &middot; Response to screen &middot; conceptual', 'UI = f(state)', f"""  <div class="body">
+    {svg('0 0 1136 338', 'Three states of the ViewModel and the screen SwiftUI draws for each: loading shows Updating, a new balance shows 24,750 rupees, offline shows the last known balance.', 'uifstate', P, 'max-height:400px')}{cues(3)}
+    <div class="rule step" data-label="UI = f(state)">Change the <b>state</b>; SwiftUI redraws the screen to match, only the parts that changed.</div>
+  </div>""", notes(
+    ('SAY', 'The screen is a function of the state: UI equals f of state. On the left, three values the ViewModel holds; on the right, what SwiftUI draws for them. Click: while loading is yes, the screen shows Updating.'),
+    ('SAY', 'Click: the answer arrives, the balance becomes &#8377;24,750 and loading becomes no; nobody tells the screen what to do, it simply follows the state. Click: if the request fails offline, the state records the error, and the screen shows &ldquo;You&rsquo;re offline&rdquo; with the last known balance and its time.'),
+    ('SAY', 'Click: change the state, and SwiftUI redraws to match, only the parts that changed, as we saw in Part 5.'),
+    ('CONNECT', 'Not every request succeeds. What then?'))))
+
+# 112: five outcomes, each as what the phone shows
+OUT = [('Success', [('big', '&#8377;25,000'), ('sm', 'updated now')], 'nd lit'),
+       ('No network', [('sm', 'You&#8217;re offline'), ('big', '&#8377;25,000'), ('sm', 'as of 9:05'), ('btn', 'Retry')], 'nd'),
+       ('401', [('sm', 'Session expired'), ('btn', 'Sign in again')], 'nd'),
+       ('Timeout', [('sm', 'Taking longer'), ('sm', 'than expected'), ('btn', 'Try again')], 'nd'),
+       ('500', [('sm', 'Bank problem'), ('sm', 'not your fault'), ('sm', 'Try later')], 'nd')]
+P = []
+for k, (t, scr, cls) in enumerate(OUT):
+    x = k * 230
+    cx = x + 100
+    P.append(f'<g class="nd" data-lit="{k + 1}"><rect class="sh" x="{x + 10}" y="0" width="180" height="40" rx="10"/><text x="{cx}" y="26" text-anchor="middle">{t}</text></g>')
+    body = npay_phone(x + 40, 120, 240).replace('y="10"', 'y="52"') + f'<text x="{cx}" y="104" text-anchor="middle" style="font-size:12px;font-weight:800">NPay</text>'
+    y = 132
+    for c2, tx in scr:
+        if c2 == 'big':
+            body += f'<text x="{cx}" y="{y + 4}" text-anchor="middle" style="font-size:15px;font-weight:700">{tx}</text>'
+        elif c2 == 'btn':
+            body += f'<rect class="wire" style="fill:none" x="{cx - 42}" y="{y - 12}" width="84" height="22" rx="6"/><text class="sm" x="{cx}" y="{y + 3}" text-anchor="middle" style="font-size:10px">{tx}</text>'
+        else:
+            body += f'<text class="sm" x="{cx}" y="{y}" text-anchor="middle" style="font-size:10px">{tx}</text>'
+        y += 24
+    P.append(f'<g class="fade" data-lit="{k + 1}+">{body}</g>')
+for k, cap in enumerate(['Success: the new balance', 'No network: the last known balance, clearly dated, and Retry',
+                         '401: the token expired, so sign in again', 'Timeout: the outcome is unknown; check before trying again',
+                         '500: the bank had a problem, not the user; try later']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 4 else ""}" x="568" y="330" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 8 &middot; Failure explorer &middot; illustrative', 'Five possible outcomes', f"""  <div class="body">
+    {svg('0 0 1136 342', 'Five outcomes of a request and what NPay shows for each: success, no network, 401, timeout, server error.', 'five2', P, 'max-height:400px')}{cues(5)}
+    <div class="warn step" data-label="Payments">A payment that timed out <b>may already have gone through</b>. Never retry it automatically.</div>
+  </div>""", notes(
+    ('SAY', 'A request can end five ways, and each needs its own screen. Click: success, the new balance. Click: no network: show the last known balance, clearly dated, and a Retry button. Click: 401: the token expired, so ask the user to sign in again.'),
+    ('SAY', 'Click: timeout: no answer in time, so the outcome is unknown. For a balance, trying again is fine. Click: 500: the bank had a problem; not the user&rsquo;s fault, try later.'),
+    ('SAY', 'Click: the dangerous one. A payment that timed out may already have gone through. Retrying it automatically could send the money twice: remember GET versus POST. Real apps protect payments so a repeat can be detected; Unit 05, lesson 5.6, covers retries.'),
+    ('ASK', 'Should NPay automatically retry a payment that timed out?'),
+    ('EXPECT', 'No. It may have succeeded; check its status first.'),
+    ('CONNECT', 'One more case: the user leaves the app mid-request.'))))
+
+# 113: leaving the app mid-download, three phones
+P = [f'<g class="fade" data-lit="1+">{npay_phone(40)}<text class="mono" x="110" y="0" text-anchor="middle">STARTS DOWNLOAD</text>'
+     '<text x="110" y="72" text-anchor="middle" style="font-size:13px;font-weight:800">NPay</text><text class="sm" x="110" y="100" text-anchor="middle">Statement.pdf</text>'
+     '<rect class="mute" x="60" y="114" width="100" height="10" rx="5"/><g class="nd lit"><rect class="sh" x="60" y="114" width="40" height="10" rx="5"/></g>'
+     '<text class="sm" x="110" y="144" text-anchor="middle">40%</text></g>',
+     '<g class="fade" data-lit="2"><path class="wire" d="M184 150H370M363 143l7 7-7 7"/><text class="sm" x="277" y="138" text-anchor="middle">user leaves</text>'
+     f'{npay_phone(430)}<text class="mono" x="500" y="0" text-anchor="middle">ORDINARY REQUEST</text>'
+     '<text class="sm" x="500" y="100" text-anchor="middle">NPay suspended</text><g class="nd alert"><rect class="sh" x="440" y="120" width="120" height="48" rx="10"/>'
+     '<text x="500" y="141" text-anchor="middle" style="font-size:13px">download</text><text x="500" y="158" text-anchor="middle" style="font-size:13px">stops</text></g></g>',
+     '<g class="fade" data-lit="3+"><path class="wire" d="M184 150H370M363 143l7 7-7 7"/><text class="sm" x="277" y="138" text-anchor="middle">user leaves</text>'
+     f'{npay_phone(430)}<text class="mono" x="500" y="0" text-anchor="middle">BACKGROUND DOWNLOAD</text>'
+     '<text class="sm" x="500" y="100" text-anchor="middle">NPay suspended,</text><text class="sm" x="500" y="118" text-anchor="middle">iOS keeps going</text>'
+     '<rect class="mute" x="450" y="132" width="100" height="10" rx="5"/><g class="nd lit"><rect class="sh" x="450" y="132" width="100" height="10" rx="5"/></g>'
+     '<path class="wire" d="M574 150H760M753 143l7 7-7 7"/><text class="sm" x="667" y="138" text-anchor="middle">user returns</text>'
+     f'{npay_phone(820)}<text class="mono" x="890" y="0" text-anchor="middle">READY</text>'
+     '<text x="890" y="72" text-anchor="middle" style="font-size:13px;font-weight:800">NPay</text><g class="nd lit"><rect class="sh" x="836" y="96" width="108" height="40" rx="8"/>'
+     '<use href="#i-file" x="846" y="104" width="22" height="22"/><text class="sm" x="874" y="120">Statement</text></g></g>']
+for k, cap in enumerate(['The user starts downloading a statement in NPay',
+                         'They leave: an ordinary request stops when iOS suspends NPay',
+                         'A background download is handed to iOS, which finishes it: ready when they return']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="330" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 8 &middot; Background transfers', 'What happens when the app is backgrounded?', f"""  <div class="body">
+    {svg('0 0 1136 342', 'The user starts downloading a statement and leaves NPay: an ordinary request stops when NPay is suspended; a background download is finished by iOS and ready when the user returns.', 'bgdl', P, 'max-height:400px')}{cues(3)}
+    <div class="rule step" data-label="Downloads and uploads only">iOS finishes <b>transfers</b> for NPay; it does not keep NPay&rsquo;s own code running. A <b>force-quit</b> cancels them.</div>
+  </div>""", notes(
+    ('SAY', 'Click: the user starts downloading a monthly statement in NPay, then switches to another app halfway.'),
+    ('SAY', 'Click: with an ordinary request, iOS suspends NPay soon after, and the download stops. Click: with a background download, NPay hands the transfer to iOS, which keeps downloading while NPay is suspended, even if iOS ends NPay. When the user comes back, the statement is ready.'),
+    ('SAY', 'Click: but iOS only finishes uploads and downloads; it does not keep NPay&rsquo;s own code running. And if the user force-quits NPay from the app switcher, iOS cancels its transfers. Unit 05, lesson 5.8, builds one.'),
+    ('CONNECT', 'Let&rsquo;s recap Part 8.'))))
+# 0.8's "The complete path" dropped (Part 8 audit): the request-journey slide now shows the whole round trip
+take(8, 25, 8, connect='Two quick questions on Part 8.', subs=[
+     ('Validate, then decode', 'Encrypted, never blocking'), ('any 2xx status, then Codable into a Balance', 'HTTPS on the way; the main thread stays free'),
+     ('only when repeating is safe: idempotent requests', 'repeat only what is safe: never a payment'),
+     ('BalanceService validates the status, any 2xx, before decoding JSON into a Balance.', 'The request travels encrypted, and the waiting never blocks the main thread.')])
 question(8, 27, 8, 0, 'Next question.')
 question(8, 30, 8, 1, 'Part 9: what NPay keeps on the device, and where.',
          subs=[('Spaced review from 0.5. While <code>fetchBalance()</code> awaits the server', 'Spaced review from Part 5. While NPay awaits the balance from the server'),
-               ('While fetchBalance() awaits the server', 'While NPay awaits the balance from the server')])
+               ('While fetchBalance() awaits the server', 'While NPay awaits the balance from the server'),
+               ('The task is suspended at await, not blocking the thread, so the main thread keeps running its RunLoop.', 'The wait happens off the main thread, so its RunLoop keeps taking taps.', 2),
+               ('Treating await like a blocking call.', 'Thinking that waiting for the network freezes the app.')])
 
 
 # ================================================================== Part 9 · storage (0.9)
@@ -1345,24 +1852,141 @@ part(9, 'Data storage', 'What survives termination, and where it belongs',
      ('storage', 'keychain'),
      'The network path to the bank&rsquo;s server.', 'Storage on the device: UserDefaults, files, SwiftData and the Keychain.',
      'The teal is on storage and the Keychain, the two places NPay&rsquo;s data can outlive its process.')
-take(9, 5, 9)
-take(9, 7, 9, connect='Files have their own places inside the sandbox.')
+# ---- Part 9 rebuilt (user: same as Parts 7-8): memory vs storage, NPay's folders, which store for which data, cached vs current, the database stack
+def item(x, y, w, ic, t, sub, lit_, cls=''):
+    return (f'<g class="fade" data-lit="{lit_}"><g class="nd{(" " + cls) if cls else ""}"><rect class="sh" x="{x}" y="{y}" width="{w}" height="56" rx="12"/>'
+            f'<use href="#i-{ic}" x="{x + 14}" y="{y + 15}" width="26" height="26"/><text x="{x + 52}" y="{y + 25}">{t}</text><text class="sm" x="{x + 52}" y="{y + 43}">{sub}</text></g></g>')
 
-# code-free: sandbox directories, the table and rule without the code column
-s = get(9, 13)
-tbl = re.search(r'<table class="tbl".*?</table>', s, re.S).group(0)
-S.append(slide('Part 9 &middot; Sandbox directories', 'Where an app keeps its files', f"""  <div class="body">
-    {tbl}
+# 118: what survives a restart
+MEM = [('eye', '&#8377;25,000 on the screen', 'drawn from memory'), ('file', 'A half-typed note', '&#8220;Rent for Ma&#8230;&#8221;'), ('layers', 'Where the list was scrolled', 'screen position')]
+STO = [('gear', 'Dark mode: on', 'a setting'), ('db', 'Saved transactions', 'NPay&#8217;s database'), ('key', 'The sign-in token', 'in the Keychain')]
+P = ['<text class="mono" x="0" y="14">MEMORY (RAM) &#183; THE COUNTER</text>', '<path class="wire faint" d="M566 4V250"/>', '<text class="mono" x="600" y="14">STORAGE &#183; THE PANTRY</text>']
+for k, (ic, t, sub) in enumerate(MEM):
+    y = 30 + k * 70
+    P.append(item(0, y, 520, ic, t, sub, '1'))
+    P.append(item(0, y, 520, ic, t, 'gone', '2+', 'ghost'))
+for k, (ic, t, sub) in enumerate(STO):
+    y = 30 + k * 70
+    P.append(item(600, y, 536, ic, t, sub, '1'))
+    P.append(item(600, y, 536, ic, t, 'still there', '2+', 'lit'))
+for k, cap in enumerate(['NPay is open: some things live only in memory, some are saved in storage',
+                         'The phone restarts: memory is wiped, storage is still there']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 1 else ""}" x="568" y="270" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 9 &middot; Memory vs storage', 'What survives a restart?', f"""  <div class="body">
+    {svg('0 0 1136 282', 'While NPay runs, the balance on screen, a half-typed note and the scroll position live in memory; dark mode, saved transactions and the token are in storage. After a restart, memory is gone and storage is still there.', 'survive', P)}{cues(2)}
     <div class="gap"></div>
-    <div class="rule step">The system can remove cached and temporary content. Don&rsquo;t treat those directories as <b>permanent</b>.</div>
-    <p class="small muted" style="margin:10px 0 0">Files can also be protected so they stay encrypted while the device is locked. Unit 06 &middot; 6.5 covers backups and data protection.</p>
-  </div>""", notes(('SAY', 'Apps have directories inside their sandbox. Documents is for documents the user creates; it is backed up and can be shown in the Files app, so it is not the place for app internals. Application Support holds app-managed data, backed up but hidden. Caches holds content that can be downloaded again, and Temporary holds short-lived files; the system can remove both.'),
-                  ('SAY', 'NPay can download a statement again at any time, so it goes in Caches, written with file protection so it stays encrypted while the device is locked. App data such as a store goes in Application Support. Unit 06, lesson 6.5, goes deeper.'),
-                  ('CONNECT', 'So which storage for which data?'))))
-take(9, 15, 9)
-take(9, 17, 9)
-take(9, 19, 9)
-take(9, 21, 9, connect='Let&rsquo;s recap Part 9.')
+    <div class="rule step" data-label="Memory vs storage">Memory is the chef&rsquo;s <b>counter</b>, cleared every night. Storage is the <b>pantry</b>: still there tomorrow.</div>
+  </div>""", notes(
+    ('SAY', 'Two very different places for NPay&rsquo;s data. Click: while NPay is open, some things live only in memory: the balance drawn on screen, a half-typed note, where the list was scrolled. Others are saved in storage: the dark-mode setting, saved transactions, the sign-in token in the Keychain.'),
+    ('SAY', 'Click: the phone restarts, or iOS ends NPay as in Part 3. Memory is wiped; storage is still there. That is why anything that matters must be saved.'),
+    ('SAY', 'Click: in the kitchen, memory is the counter the chef works on, cleared every night; storage is the pantry, still there tomorrow.'),
+    ('CONNECT', 'Inside storage, NPay&rsquo;s files have their own places.'))))
+
+# 120: NPay's folders
+FOLD = [('Documents', 'files the user made', 'Receipt-June.pdf', 'backed up &#183; visible in Files'),
+        ('Application Support', 'NPay&#8217;s own data', 'npay.store', 'backed up &#183; hidden'),
+        ('Caches', 'can be downloaded again', 'Statement-May.pdf', 'not backed up &#183; iOS may delete'),
+        ('tmp', 'short-lived', 'upload-part.tmp', 'deleted soon')]
+P = ['<rect class="wire dash" style="fill:none" x="0" y="0" width="1136" height="276" rx="16"/>',
+     '<use href="#i-bank" x="16" y="14" width="24" height="24"/><text x="48" y="32">NPay&#8217;s container</text>']
+for k, (f, sub, fn, note) in enumerate(FOLD):
+    x = 20 + k * 278
+    gone = k >= 2
+    P.append(f'<g class="nd" data-lit="{k + 1}"><rect class="sh" x="{x}" y="50" width="262" height="76" rx="12"/><use href="#i-folder" x="{x + 14}" y="66" width="26" height="26"/>'
+             f'<text x="{x + 52}" y="78">{f}</text><text class="sm" x="{x + 52}" y="98">{sub}</text></g>')
+    P.append(f'<g class="fade" data-lit="{k + 1}{"-4" if gone else "+"}"><path class="wire" d="M{x + 131} 128V146"/>{item(x, 150, 262, "file", fn, note, "0+")}</g>'.replace('<g class="fade" data-lit="0+">', '<g>'))
+    if gone:
+        P.append(f'<g class="fade" data-lit="5+"><path class="wire" d="M{x + 131} 128V146"/>{item(x, 150, 262, "file", fn, "deleted: space was low", "0+", "ghost")}</g>'.replace('<g class="fade" data-lit="0+">', '<g>'))
+P.append('<g class="fade" data-lit="5+"><g class="nd alert"><rect class="sh" x="576" y="222" width="540" height="40" rx="10"/><text x="592" y="248">iPhone low on space: iOS clears Caches and tmp</text></g></g>')
+for k, cap in enumerate(['Documents: what the user made, like an exported receipt', 'Application Support: NPay&#8217;s own data, like its database',
+                         'Caches: things NPay can download again, like a statement', 'tmp: short-lived files', 'Space runs low: iOS may delete Caches and tmp, and NPay downloads again']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 4 else ""}" x="568" y="310" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 9 &middot; Sandbox directories', 'Where an app keeps its files', f"""  <div class="body">
+    {svg('0 0 1136 322', 'NPay&rsquo;s container has four folders: Documents with a receipt, Application Support with its database, Caches with a statement and tmp with a temporary file; when space is low, iOS clears Caches and tmp.', 'folders', P)}{cues(5)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="Folders">Keep what matters in <b>Documents</b> or <b>Application Support</b>. <b>Caches</b> and <b>tmp</b> can disappear.</div>
+  </div>""", notes(
+    ('SAY', 'Inside NPay&rsquo;s container are four folders, each with its own rules. Click: Documents holds what the user made, like an exported receipt; it is backed up and can be shown in the Files app. Click: Application Support holds NPay&rsquo;s own data, like its database: backed up, hidden from the user.'),
+    ('SAY', 'Click: Caches holds things NPay can download again, like a monthly statement: not backed up. Click: tmp holds short-lived files, such as part of an upload.'),
+    ('SAY', 'Click: when the iPhone runs low on space, iOS may delete Caches and tmp. NPay simply downloads the statement again. Files can also be protected so they stay encrypted while the phone is locked; Unit 06, lesson 6.5.'),
+    ('CONNECT', 'So which storage for which data?'))))
+
+# 121: which store for which data
+MAP = [('gear', 'Dark mode', 'a small setting', 'UserDefaults', 'a plain settings file'),
+       ('key', 'Sign-in token', 'a secret', 'Keychain', 'encrypted, managed by iOS'),
+       ('file', 'Monthly statement', 'can be downloaded again', 'Caches folder', 'iOS may delete it'),
+       ('db', 'Transaction notes', 'records to search and edit', 'SwiftData', 'NPay&#8217;s database')]
+P = ['<text class="mono" x="0" y="14">NPAY&#8217;S DATA</text><text class="mono" x="660" y="14">WHERE IT GOES</text>']
+for k, (ic, t, sub, st, ssub) in enumerate(MAP):
+    y = 28 + k * 72
+    P.append(f'<g class="nd"><rect class="sh" x="0" y="{y}" width="420" height="58" rx="12"/><use href="#i-{ic}" x="14" y="{y + 16}" width="26" height="26"/>'
+             f'<text x="52" y="{y + 26}">{t}</text><text class="sm" x="52" y="{y + 45}">{sub}</text></g>')
+    P.append(f'<g class="fade" data-lit="{k + 1}+"><path class="wire" d="M424 {y + 29}H654M647 {y + 22}l7 7-7 7"/></g>')
+    P.append(item(660, y, 476, ic, st, ssub, f'{k + 1}+', 'lit' if k == 1 else ''))
+for k, cap in enumerate(['Dark mode is a small setting: UserDefaults', 'The sign-in token is a secret: the Keychain',
+                         'A statement can be downloaded again: the Caches folder', 'Transaction notes are records to search and edit: SwiftData']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 3 else ""}" x="568" y="330" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 9 &middot; Choose the storage', 'Which storage for which data?', f"""  <div class="body">
+    {svg('0 0 1136 342', 'Dark mode goes in UserDefaults, the sign-in token in the Keychain, the statement in the Caches folder, transaction notes in SwiftData.', 'which4', P)}{cues(4)}
+    <div class="rule step" data-label="Ask first">Not &ldquo;which storage is best?&rdquo; but &ldquo;<b>what kind of data is this?</b>&rdquo; Small setting, secret, file or records.</div>
+  </div>""", notes(
+    ('SAY', 'Four kinds of NPay data, four homes. Click: dark mode is a small, non-secret setting: UserDefaults. Click: the sign-in token is a secret: the Keychain, as in Part 7.'),
+    ('SAY', 'Click: the monthly statement can be downloaded again: a file in the Caches folder. Click: transaction notes are records the user can search and edit: a database, SwiftData.'),
+    ('SAY', 'Click: so start with the question &ldquo;what kind of data is this?&rdquo;, not &ldquo;which API is best?&rdquo;. And save as you go, the rule from Part 3: iOS gives no last chance before it ends NPay.'),
+    ('CONNECT', 'Saved data raises a different question for a bank: is it still true?'))))
+# 0.9's "iOS storage choices" and "A draft that may not survive" dropped (Part 9 rebuild): the first repeated the store-by-data slide, the second Part 3's transitions and coming-back slides
+
+# 123: cached is not current
+def cphone(c, top, bal, sub, lit_):
+    return (f'<g class="fade" data-lit="{lit_}"><use href="#d-iphone" x="{c - 70}" y="30" width="140" height="280"/>'
+            f'<text x="{c}" y="92" text-anchor="middle" style="font-size:13px;font-weight:800">NPay</text>{top}'
+            f'<text x="{c}" y="150" text-anchor="middle" style="font-size:17px;font-weight:700">{bal}</text>{sub}</g>')
+P = ['<g class="nd"><rect class="sh" x="476" y="40" width="184" height="96" rx="14"/><use href="#i-bank" x="554" y="54" width="28" height="28"/>'
+     '<text x="568" y="104" text-anchor="middle">Bank: &#8377;23,500</text><text class="sm" x="568" y="124" text-anchor="middle">rent was paid at 11:00</text></g>',
+     '<g class="nd"><rect class="sh" x="476" y="170" width="184" height="56" rx="12"/><use href="#i-globe" x="490" y="185" width="26" height="26"/><text x="528" y="204">offline</text></g>',
+     cphone(200, '<text class="mono" x="200" y="20" text-anchor="middle">STALE AS CURRENT</text>', '&#8377;25,000', '', '1+'),
+     '<g class="fade" data-lit="1+"><g class="nd alert"><rect class="sh" x="110" y="176" width="180" height="40" rx="10"/><text class="sm" x="200" y="200" text-anchor="middle">looks current: it is not</text></g></g>',
+     cphone(936, '<text class="mono" x="936" y="20" text-anchor="middle">HONEST</text><text class="sm fill-teal" x="936" y="118" text-anchor="middle">You&#8217;re offline</text>',
+            '&#8377;25,000', '<text class="sm" x="936" y="172" text-anchor="middle">as of 9:05 AM</text>'
+            '<rect class="wire" style="fill:none" x="896" y="190" width="80" height="24" rx="6"/><text class="sm" x="936" y="206" text-anchor="middle">Retry</text>', '2+')]
+for k, cap in enumerate(['Offline, NPay shows this morning&#8217;s cached &#8377;25,000 as if it were current: the user overspends',
+                         'Honest: say it is offline, and show when the balance was last updated']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 1 else ""}" x="568" y="346" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 9 &middot; Freshness &middot; conceptual', 'Cached is not current', f"""  <div class="body">
+    {svg('0 0 1136 358', 'The bank now says 23,500 rupees, but NPay is offline with a cached 25,000. Left: shown as if current. Right: shown as offline with the time it was last updated.', 'cached2', P, 'max-height:420px')}{cues(2)}
+    <div class="rule step" data-label="The server decides">A cache is a <b>copy</b> with an age. Show the age; the bank&rsquo;s balance is the real one.</div>
+  </div>""", notes(
+    ('SAY', 'At 9:05 NPay saved the balance, &#8377;25,000. At 11:00 rent was paid from another device, so the bank now says &#8377;23,500. NPay is offline. Click: if NPay shows its cached &#8377;25,000 as if it were current, the user may spend money they do not have.'),
+    ('SAY', 'Click: the honest version says &ldquo;You&rsquo;re offline&rdquo;, shows the balance as of 9:05, and offers Retry.'),
+    ('SAY', 'Click: a cache is a copy with an age. Show the age, and remember the bank&rsquo;s balance is the real one, as in Part 8. Unit 06, lesson 6.6, builds freshness states.'),
+    ('ASK', 'Should NPay hide the cached balance completely while offline?'),
+    ('EXPECT', 'No: showing it, clearly dated, is more useful than nothing.'),
+    ('CONNECT', 'Finally, the database technologies you will hear about.'))))
+
+# 124: the database stack, with NPay
+STK = [('db', 'SwiftData', 'the modern choice for new SwiftUI apps', 'NPay saves its transaction notes here', '1+', 'lit'),
+       ('layers', 'Core Data', 'the older choice, still in many apps', 'does the same job in existing apps', '2+', ''),
+       ('file', 'SQLite database', 'what both write to underneath', 'one database file&#8230;', '3+', ''),
+       ('folder', 'npay.store', 'a file in Application Support', '&#8230;inside NPay&#8217;s container', '3+', '')]
+P = ['<text class="mono" x="0" y="14">EASIER TO USE &#8593;</text><text class="mono" x="0" y="330">&#8595; CLOSER TO THE DISK</text>']
+for k, (ic, t, sub, ex, lit_, cls) in enumerate(STK):
+    y = 26 + k * 72
+    P.append(f'<g class="fade" data-lit="{lit_}">' + f'<g class="nd{(" " + cls) if cls else ""}"><rect class="sh" x="0" y="{y}" width="560" height="60" rx="12"/><use href="#i-{ic}" x="14" y="{y + 17}" width="26" height="26"/>'
+             f'<text x="52" y="{y + 27}">{t}</text><text class="sm" x="52" y="{y + 46}">{sub}</text></g>'
+             f'<text x="620" y="{y + 36}" style="font-size:18px">{ex}</text></g>')
+    if k < 3:
+        P.append(f'<g class="fade" data-lit="{STK[k + 1][4]}"><path class="wire" d="M280 {y + 60}V{y + 72}"/></g>')
+for k, cap in enumerate(['SwiftData: what a new SwiftUI app like NPay starts with', 'Core Data: the same job, in many existing apps',
+                         'Underneath, both save to an SQLite database: a file in NPay&#8217;s container']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="370" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 9 &middot; Comparison &middot; conceptual', 'Where NPay&rsquo;s database lives', f"""  <div class="body">
+    {svg('0 0 1136 382', 'SwiftData and Core Data both save to an SQLite database, which is a file in Application Support inside NPay&rsquo;s container.', 'dbstack', P, 'max-height:420px')}{cues(3)}
+    <div class="rule step" data-label="In the end, a file">Every database is <b>a file in the sandbox</b>. Unit 06 &middot; 6.1 compares them in practice.</div>
+  </div>""", notes(
+    ('SAY', 'You will hear several database names. Click: SwiftData is the modern choice for a new SwiftUI app; NPay saves its transaction notes there. Click: Core Data does the same job and is still in many existing apps.'),
+    ('SAY', 'Click: underneath, both save to an SQLite database, and that database is simply a file, npay.store, in the Application Support folder inside NPay&rsquo;s container.'),
+    ('SAY', 'Click: in the end, every database is a file in the sandbox, protected by everything in Part 7. Unit 06, lesson 6.1, compares them in practice.'),
+    ('CONNECT', 'Let&rsquo;s recap Part 9.'))))
 take(9, 22, 9, connect='Two quick questions on Part 9.')
 question(9, 24, 9, 0, 'Next question.')
 question(9, 28, 9, 1, 'Part 10: one day with NPay, every layer at once.')
@@ -1374,11 +1998,91 @@ part(10, 'End to end', 'One day with NPay, every layer at once',
      (),
      'Nine Parts, one layer at a time.', 'The whole map at once: one day with NPay, from launch to return.',
      'No single teal box this time: every box on the map is involved in one ordinary day with NPay.')
-take(10, 6, 10, connect='Follow one Refresh balance request: six protections surround it.')
-take(10, 15, 10, connect='The data comes back. What does NPay keep, and where?')
-take(10, 19, 10, subs=[('(Lesson 0.7)', '(Part 7)')], connect='Then the user leaves NPay, and later comes back.')
-take(10, 25, 10, subs=[('as in Stage one', 'as in Part 2')])
-take(10, 27, 10, connect='Let&rsquo;s recap the whole day.')
+# ---- Part 10 rebuilt (user: same style): the stack with the Part that taught each layer, six protections on one request, the day as three scenes
+tag = lambda x, y, t: f'<rect class="wire" style="fill:none" x="{x}" y="{y}" width="{18 + 9 * len(t)}" height="24" rx="12"/><text class="mono" x="{x + 9 + 4.5 * len(t):g}" y="{y + 16}" text-anchor="middle" style="font-size:11px">{t}</text>'
+
+# 127: every layer, and the Part that taught it
+STACK = [('phone', 'Screens', 'what the user sees and taps', 'Parts 1, 4'),
+         ('layout', 'ViewModel', 'the screen&#8217;s state', 'Parts 1, 8'),
+         ('link', 'Service and storage', 'talks to the bank, saves data', 'Parts 8, 9'),
+         ('frameworks', 'Apple frameworks', 'SwiftUI, networking, security', 'Parts 2, 5'),
+         ('kernel', 'iOS and the kernel', 'process, threads, memory, sandbox', 'Parts 3, 6, 7'),
+         ('chip', 'Hardware', 'CPU, GPU, Secure Enclave', 'Part 7')]
+P = ['<rect class="wire dash" style="fill:none" x="0" y="0" width="820" height="200" rx="16"/><text class="mono" x="16" y="22">NPAY&#8217;S OWN CODE</text>',
+     '<text class="mono" x="16" y="232">THE PLATFORM</text>']
+for k, (ic, t, sub, parts) in enumerate(STACK):
+    y = 30 + k * 56 + (40 if k >= 3 else 0)
+    P.append(f'<g class="nd" data-lit="{k + 1}"><rect class="sh" x="16" y="{y}" width="788" height="46" rx="10"/><use href="#i-{ic}" x="30" y="{y + 11}" width="24" height="24"/>'
+             f'<text x="66" y="{y + 29}">{t}</text><text class="sm" x="300" y="{y + 29}">{sub}</text></g>')
+    P.append(f'<g class="fade" data-lit="{k + 1}+">{tag(650, y + 11, parts)}</g>')
+P.append('<g class="fade" data-lit="7+"><path class="wire" d="M824 140H900M893 133l7 7-7 7"/><text class="sm" x="862" y="128" text-anchor="middle">HTTPS</text>'
+         '<g class="nd lit"><rect class="sh" x="906" y="100" width="230" height="80" rx="14"/><use href="#i-bank" x="920" y="124" width="28" height="28"/>'
+         '<text x="958" y="136">Bank server</text><text class="sm" x="958" y="156">Part 8</text></g></g>')
+S.append(slide('Part 10 &middot; Architecture &middot; conceptual', 'NPay: the complete picture', f"""  <div class="body">
+    {svg('0 0 1136 400', 'NPay&rsquo;s own code (screens, ViewModel, service and storage) on top of the platform (Apple frameworks, iOS and the kernel, hardware), connected to the bank server; each layer tagged with the Part that taught it.', 'whole', P, 'max-height:420px')}{cues(7)}
+    <div class="rule step" data-label="Two architectures">NPay&rsquo;s <b>own code</b> on top of the <b>platform</b>. Every Part today was one layer of this picture.</div>
+  </div>""", notes(
+    ('SAY', 'The whole day on one picture, top to bottom, with the Part that taught each layer. Click: the screens the user sees and taps, Parts 1 and 4. Click: the ViewModel, the screen&rsquo;s state, Parts 1 and 8. Click: the service and storage, Parts 8 and 9. That is NPay&rsquo;s own code.'),
+    ('SAY', 'Below it, the platform. Click: Apple&rsquo;s frameworks, Parts 2 and 5. Click: iOS and the kernel, with the process, threads, memory and sandbox, Parts 3, 6 and 7. Click: the hardware, with the Secure Enclave, Part 7. Click: and over HTTPS, the bank server, Part 8.'),
+    ('SAY', 'Click: two architectures: NPay&rsquo;s own code on top of the platform. If any layer is unclear, the tag tells you which Part to revisit.'),
+    ('CONNECT', 'Follow one Refresh balance request: six protections surround it.'))))
+
+# 128: six protections placed on one request
+PROT = [('phone', 'Code signing', 'only NPay&#8217;s own, unchanged code runs', 'Part 7', 40, 40),
+        ('lock', 'Sandbox', 'other apps cannot reach NPay&#8217;s data', 'Part 7', 40, 112),
+        ('key', 'Keychain', 'the token is stored encrypted', 'Part 7', 40, 184),
+        ('file', 'File protection', 'saved files locked with the phone', 'Part 9', 40, 256),
+        ('globe', 'HTTPS', 'the trip is encrypted and checked', 'Part 8', 470, 112),
+        ('bank', 'Bank authorization', 'the bank decides what Priya may see', 'Part 8', 800, 112)]
+P = ['<rect class="wire dash" style="fill:none" x="20" y="10" width="410" height="320" rx="16"/><text class="mono" x="36" y="32">ON THE IPHONE</text>',
+     '<path class="wire" d="M434 140H464M457 133l7 7-7 7M766 140H794M787 133l7 7-7 7"/>']
+for k, (ic, t, sub, part_, x, y) in enumerate(PROT):
+    w = 370 if x == 40 else 290 if x == 470 else 336
+    cls = 'nd lit' if k == 5 else 'nd'
+    P.append(f'<g class="fade" data-lit="{k + 1}+"><g class="{cls}"><rect class="sh" x="{x}" y="{y}" width="{w}" height="60" rx="12"/><use href="#i-{ic}" x="{x + 14}" y="{y + 17}" width="26" height="26"/>'
+             f'<text x="{x + 52}" y="{y + 26}">{t}</text><text class="sm" x="{x + 52}" y="{y + 45}">{sub}</text></g>'
+             f'<text class="mono" x="{x + w - 10}" y="{y + 26}" text-anchor="end" style="font-size:11px">{part_.upper()}</text></g>')
+S.append(slide('Part 10 &middot; Security &middot; conceptual', 'Six protections around one request', f"""  <div class="body">
+    {svg('0 0 1136 340', 'One Refresh request: on the iPhone, code signing, the sandbox, the Keychain and file protection; on the way, HTTPS; at the bank, authorization.', 'six2', P, 'max-height:400px')}{cues(6)}
+    <div class="rule step" data-label="Layers">Four on the phone, one on the way, one at the bank. <b>None</b> replaces the bank&rsquo;s own check.</div>
+  </div>""", notes(
+    ('SAY', 'One Refresh request, and every protection around it, in order. On the iPhone: click, code signing, so only NPay&rsquo;s own unchanged code runs. Click: the sandbox, so other apps cannot reach NPay&rsquo;s data. Click: the Keychain, holding the token encrypted. Click: file protection, keeping saved files locked with the phone.'),
+    ('SAY', 'Click: on the way, HTTPS encrypts the trip and checks it is the real bank. Click: at the bank, authorization: the bank decides what Priya may see. It must check every request, because the phone can never be fully trusted.'),
+    ('SAY', 'Click: four protections on the phone, one on the way, one at the bank, and none of them replaces the bank&rsquo;s own check.'),
+    ('CONNECT', 'Now the whole day, from the first tap to coming back.'))))
+# 0.10's "Where each piece of data belongs" and "Warm activation or cold launch" dropped (Part 10 rebuild): Part 9 and Part 3 teach them with pictures
+
+# 131: one day with NPay, three scenes
+DAY = [('MORNING &#183; OPEN NPAY', [('1', 'Tap the icon', 'SpringBoard asks iOS', '2'), ('2', 'Process starts', 'loaded, then NPay&#8217;s code', '2'), ('3', 'First frame', 'the dashboard appears', '2, 5'), ('4', 'Saved data', 'token and settings read back', '7, 9')]),
+       ('REFRESH THE BALANCE', [('5', 'Tap Refresh', 'on the main thread', '5'), ('6', 'Request goes out', 'with the token, over HTTPS', '8'), ('7', 'Bank answers', 'checks, then replies', '8'), ('8', 'Screen updates', 'only what changed', '5, 8')]),
+       ('LEAVE AND COME BACK', [('9', 'Save as you go', 'drafts and data', '3, 9'), ('10', 'Home Screen', 'scene to background', '3, 4'), ('11', 'Suspended or ended', 'iOS decides', '3'), ('12', 'Return', 'warm, or a cold launch', '2, 3')])]
+P = []
+for r, (title_, steps_) in enumerate(DAY):
+    y = r * 112
+    P.append(f'<g class="fade" data-lit="{r + 1}+"><text class="mono" x="0" y="{y + 14}">{title_}</text>'
+             + ''.join(f'<path class="wire" d="M{c * 286 + 272} {y + 61}H{c * 286 + 284}"/>' for c in range(3)) + '</g>')
+    def boxes(cls):
+        o = ''
+        for c, (n, t, sub, pt) in enumerate(steps_):
+            x = c * 286
+            o += (f'<g class="{cls}"><rect class="sh" x="{x}" y="{y + 24}" width="270" height="74" rx="12"/>'
+                  f'<text class="mono" x="{x + 14}" y="{y + 50}">{n}</text><text x="{x + 46}" y="{y + 50}">{t}</text><text class="sm" x="{x + 46}" y="{y + 72}">{sub}</text>'
+                  f'<text class="mono" x="{x + 256}" y="{y + 90}" text-anchor="end" style="font-size:10px">PART {pt}</text></g>')
+        return o
+    P.append(boxes('nd fade" data-lit="' + f'{r + 1}{"+" if r == 2 else ""}'))   # current row: teal (lit and visible on the same element)
+    if r < 2:
+        P.append(f'<g class="fade" data-lit="{r + 2}+">{boxes("nd")}</g>')                       # earlier rows: grey
+S.append(slide('Part 10 &middot; End to end &middot; conceptual', 'One day with NPay, in twelve steps', f"""  <div class="body">
+    {svg('0 0 1136 334', 'One day with NPay in three scenes: opening the app, refreshing the balance, leaving and coming back; twelve steps, each tagged with the Part that taught it.', 'day12', P, 'max-height:420px')}{cues(3)}
+    <div class="rule step" data-label="The whole day">Every step is something <b>iOS</b> does, something <b>NPay</b> does, or both. You can now explain all twelve.</div>
+  </div>""", notes(
+    ('SAY', 'The story from this morning&rsquo;s opening slide, now with every layer named. Three scenes. Click: morning. The user taps the icon and SpringBoard asks iOS to open NPay; the process starts and NPay&rsquo;s code is loaded; the first frame shows the dashboard; and the saved token and settings are read back.'),
+    ('SAY', 'Click: refreshing the balance. The tap arrives on the main thread; the request goes out with the token over HTTPS; the bank checks and answers; the screen updates only what changed.'),
+    ('SAY', 'Click: leaving and coming back. NPay saves as it goes; the Home Screen sends the scene to the background; iOS suspends NPay or ends it; and the return is either warm or a cold launch.'),
+    ('SAY', 'Click: every step is something iOS does, something NPay does, or both, and each is tagged with the Part that taught it.'),
+    ('ASK', 'Pick one step. Which layer owns it: iOS or NPay&rsquo;s own code?'),
+    ('EXPECT', 'For example: step 2 is iOS; step 6 is NPay&rsquo;s service; step 10 is iOS, and NPay reacts.'),
+    ('CONNECT', 'Let&rsquo;s recap the whole day.'))))
 take(10, 29, 10, connect='Two last questions.')
 question(10, 32, 10, 0, 'Next question.')
 question(10, 35, 10, 1, 'Let&rsquo;s wrap up.')
@@ -1387,10 +2091,13 @@ question(10, 35, 10, 1, 'Let&rsquo;s wrap up.')
 # ================================================================== wrap-up
 S.append(chapter('Wrap-up', 'Putting it together', 'What comes next, and your checkpoint',
                  'Two last things: where each of today&rsquo;s ideas goes next in the course, and your checkpoint.', 'Where does each of today&rsquo;s ideas go next?').replace('<p class="kicker">Part Wrap-up</p>', '<p class="kicker">Wrap-up</p>'))
-take(10, 36, 'Wrap-up', subs=[('<th>Builds on today</th>', '<th>Builds on</th>')],
+take(10, 36, 'Wrap-up', subs=[('<th>Builds on today</th>', '<th>Builds on</th>'),
+     ('the ViewModel closure and <code>[weak self]</code>', 'strong and weak references, closures that hold on'),
+     ('<code>await</code>, <code>@MainActor</code> and the main thread', 'waiting without blocking the main thread'),
+     ('<code>balanceMinor</code> becomes a real Money type', 'the balance in paise becomes a real Money type')],
      connect='Your checkpoint.')
 take(10, 37, 'Wrap-up')
-take(10, 38, 'Wrap-up')
+take(10, 38, 'Wrap-up', subs=[('<code>await</code> suspends without blocking it', 'waiting never blocks it')])
 S.append("""<section class="slide end">
   <div class="body">
     <p class="kicker">Unit 00 complete</p>
