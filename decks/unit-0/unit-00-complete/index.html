@@ -1875,13 +1875,13 @@
       <div class="card accent"><div class="points v"><div><svg viewBox="0 0 24 24"><use href="#i-process"/></svg><span><b>Process</b><small>the app&rsquo;s execution environment</small></span></div><div><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg><span><b>Thread</b><small>a path of execution within it</small></span></div></div></div>
       <i class="step cue"></i><i class="step cue"></i>
       <div class="gap"></div>
-      <p class="small">Threads <b>share</b> the process&rsquo;s address space; each has its <b>own stack</b> and scheduling state.</p>
-      <div class="rule step" data-label="Modern Swift">An asynchronous Swift <b>task is not a thread</b>. Tasks can suspend without blocking an OS thread.</div>
+      <p class="small">Threads <b>share</b> NPay&rsquo;s memory; each follows <b>its own steps</b>, and iOS decides when each one runs.</p>
+      <div class="rule step" data-label="In NPay">The <b>main thread</b> handles taps and frames; <b>other threads</b> do networking and decoding. All share NPay&rsquo;s memory.</div>
     </div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>A process is the application’s execution environment; a thread is a path of execution within it. Threads share the process address space, but each has its own execution stack and scheduling state.</p>
-    <span class="notes-label">SAY</span><p>For modern Swift: an asynchronous task is not the same thing as a thread. Swift concurrency schedules tasks onto executors, and tasks may suspend without blocking an operating-system thread. We return to this shortly.</p>
+    <span class="notes-label">SAY</span><p>Click: in NPay, the main thread handles taps and draws frames, while other threads do work such as networking and decoding the response. They all share NPay&rsquo;s memory, which is why Part 6 matters. How Swift moves work between threads is Unit 01, lesson 1.9.</p>
     <span class="notes-label">CONNECT</span><p>How does the main thread wait for work without spinning? A RunLoop.</p>
   </aside>
 </section>
@@ -2006,27 +2006,6 @@
     <span class="notes-label">SAY</span><p>Click: same three-second wait in both. Only where it happens decides whether the app freezes. Unit 01 shows the Swift for both.</p>
     <span class="notes-label">ASK</span><p>Which version would you ship in a banking app?</p>
     <span class="notes-label">EXPECT</span><p>The right one: the user sees progress and the app stays responsive.</p>
-    <span class="notes-label">CONNECT</span><p>Swift has a name for &ldquo;runs on the main thread&rdquo;: the MainActor. Are they the same thing?</p>
-  </aside>
-</section>
-
-<section class="slide">
-  <p class="kicker">Part 5 &middot; Comparison</p>
-  <h2>Main thread vs MainActor</h2>
-  <div class="body top">
-    <table class="tbl" style="font-size:21px">
-      <tr><th></th><th>Main thread</th><th>MainActor</th></tr>
-      <tr><td><b>What it is</b></td><td>A thread that iOS runs</td><td>A Swift rule: &ldquo;this code runs on the main thread&rdquo;</td></tr>
-      <tr><td><b>Who enforces it</b></td><td>iOS, at run time</td><td>The Swift compiler, at build time</td></tr>
-      <tr><td><b>NPay example</b></td><td>Handles the Refresh tap, draws frames</td><td>DashboardViewModel&rsquo;s balance is only changed there</td></tr>
-    </table>
-    <div class="gap"></div>
-    <div class="rule step" data-label="Mental model"><b>MainActor</b> is Swift&rsquo;s way of making sure UI code runs on the <b>main thread</b>, checked before the app even runs.</div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Two words that sound alike. The main thread is a real thread that iOS runs: it handles NPay&rsquo;s taps and draws its frames. MainActor is a Swift rule that says: this code runs on the main thread. iOS runs the thread; the Swift compiler checks the rule when we build.</p>
-    <span class="notes-label">SAY</span><p>For NPay: the main thread handles the Refresh tap. DashboardViewModel is marked as main-actor code, so its balance can only be changed on the main thread, where the UI reads it.</p>
-    <span class="notes-label">SAY</span><p>Click: the mental model. MainActor is Swift&rsquo;s way of making sure UI code runs on the main thread, and the check happens before the app even runs. Unit 01, lesson 1.9, shows the Swift.</p>
     <span class="notes-label">CONNECT</span><p>&ldquo;Background&rdquo; is a word we use for three different things.</p>
   </aside>
 </section>
@@ -2036,16 +2015,17 @@
   <h2>Three things called &ldquo;background&rdquo;</h2>
   <div class="body">
     <div class="cols c3 stretch">
-      <div class="card accent step"><span class="label">1 &middot; Waiting</span><p><b>Waiting</b>: fetching NPay&rsquo;s balance from the bank.</p><p class="small muted" style="margin:6px 0 0">No thread sits idle while it waits.</p></div>
-      <div class="card accent step"><span class="label">2 &middot; Computing</span><p><b>Computing</b>: sorting a year of NPay transactions.</p><p class="small muted" style="margin:6px 0 0">Needs CPU time away from the main thread.</p></div>
-      <div class="card accent step"><span class="label">3 &middot; After the user leaves</span><p><b>After the user leaves</b>: finishing an upload NPay started.</p><p class="small muted" style="margin:6px 0 0">Only with iOS&rsquo;s permission, as in Part 3.</p></div>
+      <div class="card accent step"><span class="label">1 &middot; Waiting</span><p>Fetching NPay&rsquo;s balance from the bank.</p><p class="small muted" style="margin:6px 0 0">No thread sits idle while it waits.</p></div>
+      <div class="card accent step"><span class="label">2 &middot; Computing</span><p>Sorting a year of NPay transactions.</p><p class="small muted" style="margin:6px 0 0">Needs CPU time away from the main thread.</p></div>
+      <div class="card accent step"><span class="label">3 &middot; After the user leaves</span><p>Finishing an upload NPay started.</p><p class="small muted" style="margin:6px 0 0">Only with iOS&rsquo;s permission, as in Part 3.</p></div>
     </div>
     <div class="gap"></div>
-    <div class="rule step">An async task does <b>not</b> mean iOS will let it continue after the app is suspended.</div>
+    <div class="rule step">Handing work off does <b>not</b> keep it running after iOS suspends NPay.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Asynchronous I/O: network requests that can wait without occupying a thread. Careful with files: most file APIs, such as Data(contentsOf:) and write(to:), are synchronous and block the calling thread, so large reads and writes belong off the main actor. CPU-bound parallel work: image processing, data transformation, expensive calculations that need CPU execution away from the main actor. iOS background execution: work allowed after the app leaves the foreground, subject to system policies and specific capabilities, as in Part 3.</p>
-    <span class="notes-label">SAY</span><p>These are different concerns. An async task does not automatically mean iOS will let it continue after the app is suspended.</p>
+    <span class="notes-label">SAY</span><p>People say &ldquo;background&rdquo; for three different things. Click: one, waiting, such as fetching the balance from the bank; while it waits, no thread sits idle. Click: two, computing, such as sorting a year of transactions; that needs real CPU time, away from the main thread.</p>
+    <span class="notes-label">SAY</span><p>Click: three, after the user leaves: finishing an upload NPay started. That is iOS background execution, allowed only with iOS&rsquo;s permission, as in Part 3.</p>
+    <span class="notes-label">SAY</span><p>Click: so handing work off the main thread does not keep it running after iOS suspends NPay. Different problems, different solutions.</p>
     <span class="notes-label">CONNECT</span><p>Now the deadline the main thread is racing against: the frame.</p>
   </aside>
 </section>
@@ -2055,21 +2035,29 @@
   <h2>One refresh, one deadline</h2>
   <div class="body">
     <div class="diagram">
-      <svg class="art" viewBox="0 0 1136 160" role="img" aria-labelledby="s19frame">
-        <title id="s19frame">Refresh interval per display refresh: 16.67 milliseconds at 60 Hz, 8.33 milliseconds at 120 Hz</title>
-        <g class="fade" data-lit="0+"><text class="mono" x="0" y="16">60 HZ</text><g class="nd lit"><rect class="sh" x="0" y="26" width="900" height="44" rx="10"/></g><text x="918" y="58" style="font-size:26px;font-weight:800">16.67 ms</text></g>
-        <g class="fade" data-lit="1+"><text class="mono" x="0" y="102">120 HZ</text><g class="nd lit"><rect class="sh" x="0" y="112" width="450" height="44" rx="10"/></g><text x="468" y="144" style="font-size:26px;font-weight:800">8.33 ms</text></g>
+      <svg class="art" viewBox="0 0 1136 300" role="img" aria-labelledby="ticks">
+        <title id="ticks">NPay&rsquo;s list scrolling, one frame per display tick: 60 Hz ticks every 16.67 ms, 120 Hz ticks every 8.33 ms; one late frame repeats the old picture.</title>
+        <text x="0" y="40">60 Hz</text><text class="sm" x="0" y="60">a frame every</text><text class="sm" x="0" y="78">16.67 ms</text>
+        <g class="fade" data-lit="1+"><path class="wire" d="M196 40H1136"/><path class="wire" d="M196 30V50"/><path class="wire" d="M352 30V50"/><path class="wire" d="M508 30V50"/><path class="wire" d="M664 30V50"/><path class="wire" d="M820 30V50"/><path class="wire" d="M976 30V50"/><path class="wire" d="M1132 30V50"/><text class="sm" x="1136" y="22" text-anchor="end">one tenth of a second &#8594;</text></g>
+        <g class="fade" data-lit="2-3"><g class=""><rect class="wire" style="fill:none" x="216" y="62" width="116" height="66" rx="8"/><rect class="mute" x="226" y="76" width="96" height="8" rx="3"/><rect class="mute" x="226" y="88" width="96" height="8" rx="3"/><rect class="mute" x="226" y="100" width="96" height="8" rx="3"/><rect class="mute" x="226" y="112" width="96" height="8" rx="3"/></g><g class=""><rect class="wire" style="fill:none" x="372" y="62" width="116" height="66" rx="8"/><rect class="mute" x="382" y="70" width="96" height="8" rx="3"/><rect class="mute" x="382" y="82" width="96" height="8" rx="3"/><rect class="mute" x="382" y="94" width="96" height="8" rx="3"/><rect class="mute" x="382" y="106" width="96" height="8" rx="3"/></g><g class=""><rect class="wire" style="fill:none" x="528" y="62" width="116" height="66" rx="8"/><rect class="mute" x="538" y="76" width="96" height="8" rx="3"/><rect class="mute" x="538" y="88" width="96" height="8" rx="3"/><rect class="mute" x="538" y="100" width="96" height="8" rx="3"/><rect class="mute" x="538" y="112" width="96" height="8" rx="3"/></g><g class=""><rect class="wire" style="fill:none" x="684" y="62" width="116" height="66" rx="8"/><rect class="mute" x="694" y="70" width="96" height="8" rx="3"/><rect class="mute" x="694" y="82" width="96" height="8" rx="3"/><rect class="mute" x="694" y="94" width="96" height="8" rx="3"/><rect class="mute" x="694" y="106" width="96" height="8" rx="3"/></g><g class=""><rect class="wire" style="fill:none" x="840" y="62" width="116" height="66" rx="8"/><rect class="mute" x="850" y="76" width="96" height="8" rx="3"/><rect class="mute" x="850" y="88" width="96" height="8" rx="3"/><rect class="mute" x="850" y="100" width="96" height="8" rx="3"/></g><g class=""><rect class="wire" style="fill:none" x="996" y="62" width="116" height="66" rx="8"/><rect class="mute" x="1006" y="70" width="96" height="8" rx="3"/><rect class="mute" x="1006" y="82" width="96" height="8" rx="3"/><rect class="mute" x="1006" y="94" width="96" height="8" rx="3"/></g></g>
+        <g class="fade" data-lit="4+"><g class=""><rect class="wire" style="fill:none" x="216" y="62" width="116" height="66" rx="8"/><rect class="mute" x="226" y="76" width="96" height="8" rx="3"/><rect class="mute" x="226" y="88" width="96" height="8" rx="3"/><rect class="mute" x="226" y="100" width="96" height="8" rx="3"/><rect class="mute" x="226" y="112" width="96" height="8" rx="3"/></g><g class=""><rect class="wire" style="fill:none" x="372" y="62" width="116" height="66" rx="8"/><rect class="mute" x="382" y="70" width="96" height="8" rx="3"/><rect class="mute" x="382" y="82" width="96" height="8" rx="3"/><rect class="mute" x="382" y="94" width="96" height="8" rx="3"/><rect class="mute" x="382" y="106" width="96" height="8" rx="3"/></g><g class=""><rect class="wire" style="fill:none" x="528" y="62" width="116" height="66" rx="8"/><rect class="mute" x="538" y="76" width="96" height="8" rx="3"/><rect class="mute" x="538" y="88" width="96" height="8" rx="3"/><rect class="mute" x="538" y="100" width="96" height="8" rx="3"/><rect class="mute" x="538" y="112" width="96" height="8" rx="3"/></g><g class="nd alert"><rect class="sh" x="684" y="62" width="116" height="66" rx="8"/><rect class="mute" x="694" y="76" width="96" height="8" rx="3"/><rect class="mute" x="694" y="88" width="96" height="8" rx="3"/><rect class="mute" x="694" y="100" width="96" height="8" rx="3"/><rect class="mute" x="694" y="112" width="96" height="8" rx="3"/></g><g class=""><rect class="wire" style="fill:none" x="840" y="62" width="116" height="66" rx="8"/><rect class="mute" x="850" y="70" width="96" height="8" rx="3"/><rect class="mute" x="850" y="82" width="96" height="8" rx="3"/><rect class="mute" x="850" y="94" width="96" height="8" rx="3"/><rect class="mute" x="850" y="106" width="96" height="8" rx="3"/></g><g class=""><rect class="wire" style="fill:none" x="996" y="62" width="116" height="66" rx="8"/><rect class="mute" x="1006" y="76" width="96" height="8" rx="3"/><rect class="mute" x="1006" y="88" width="96" height="8" rx="3"/><rect class="mute" x="1006" y="100" width="96" height="8" rx="3"/></g><text class="sm" x="742" y="146" text-anchor="middle">late: the old frame stays</text></g>
+        <g class="fade" data-lit="3+"><text x="0" y="200">120 Hz</text><text class="sm" x="0" y="220">a frame every</text><text class="sm" x="0" y="238">8.33 ms</text><path class="wire" d="M196 200H1136"/><path class="wire" d="M196 190V210"/><path class="wire" d="M274 190V210"/><path class="wire" d="M352 190V210"/><path class="wire" d="M430 190V210"/><path class="wire" d="M508 190V210"/><path class="wire" d="M586 190V210"/><path class="wire" d="M664 190V210"/><path class="wire" d="M742 190V210"/><path class="wire" d="M820 190V210"/><path class="wire" d="M898 190V210"/><path class="wire" d="M976 190V210"/><path class="wire" d="M1054 190V210"/><path class="wire" d="M1132 190V210"/><text class="sm" x="666" y="236" text-anchor="middle">twice the deadlines, each half as long</text></g>
+        <text class="fade fill-teal" data-lit="1" x="666" y="290" text-anchor="middle" style="font-size:20px">1. The display wants a new picture at every tick: 60 times a second</text>
+        <text class="fade fill-teal" data-lit="2" x="666" y="290" text-anchor="middle" style="font-size:20px">2. Scrolling NPay&#8217;s list: a new frame is ready at every tick, so it looks smooth</text>
+        <text class="fade fill-teal" data-lit="3" x="666" y="290" text-anchor="middle" style="font-size:20px">3. ProMotion iPhones go up to 120 Hz: twice the ticks, half the time for each</text>
+        <text class="fade fill-teal" data-lit="4+" x="666" y="290" text-anchor="middle" style="font-size:20px">4. One frame is not ready in time: the old picture stays one tick longer, a stutter</text>
       </svg>
-    </div>
-    <i class="step cue"></i>
+    </div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
     <div class="gap"></div>
-    <p>Your app does <b>not</b> get the whole interval: the system also needs time for layout, rendering and compositing. ProMotion displays <b>adapt</b> their rate, up to 120 Hz.</p>
-    <div class="rule step" data-label="Miss the deadline">If main-thread work or rendering misses it, no new frame arrives in time: visible <b>stutter</b> or <b>dropped frames</b>.</div>
+    <div class="rule step" data-label="Deadline">Every tick is a deadline, and NPay only gets <b>part</b> of it: the system needs time to draw too.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>An iPhone display updates at a rate the device and conditions support. At 60 Hz one refresh interval is about 16.67 milliseconds; click, and at 120 Hz it is about 8.33.</p>
-    <span class="notes-label">SAY</span><p>Back in the kitchen: a frame is a dish sent out on every tick. ProMotion displays adapt their rate, low when nothing moves and up to 120 Hz while scrolling, so the deadline changes with them.</p>
-    <span class="notes-label">SAY</span><p>That does not mean the app gets the whole interval for arbitrary computation; the system also needs time for layout, rendering, compositing and other work. Miss the deadline and the interface may not deliver a new frame in time, which shows as stutter or dropped frames.</p>
+    <span class="notes-label">SAY</span><p>Why does the main thread have to be quick? Because the screen keeps asking for new pictures. Click: at 60 Hz the display refreshes 60 times a second, a tick every 16.67 milliseconds. Here is one tenth of a second.</p>
+    <span class="notes-label">SAY</span><p>Click: the user scrolls NPay&rsquo;s transaction list. At every tick a new frame is ready, the rows a little higher each time: that is what smooth looks like. Click: ProMotion iPhones go up to 120 Hz while scrolling, twice as many ticks, each deadline half as long, 8.33 milliseconds.</p>
+    <span class="notes-label">SAY</span><p>Click: one frame is not ready in time, because the main thread was busy. The display shows the old picture for one more tick: the user sees a stutter.</p>
+    <span class="notes-label">SAY</span><p>Click: every tick is a deadline, and NPay does not even get the whole interval: the system also needs time for layout, rendering and compositing.</p>
+    <span class="notes-label">ASK</span><p>Is the same work more likely to stutter at 60 Hz or at 120 Hz?</p>
+    <span class="notes-label">EXPECT</span><p>At 120 Hz: each deadline is half as long.</p>
     <span class="notes-label">CONNECT</span><p>So what actually happens between a state change and new pixels?</p>
   </aside>
 </section>
@@ -2077,30 +2065,47 @@
 <section class="slide">
   <p class="kicker">Part 5 &middot; Rendering &middot; conceptual</p>
   <h2>From &#8377;25,000 to &#8377;24,750</h2>
-  <div class="body">
+  <div class="body top">
     <div class="diagram">
-      <svg class="art" viewBox="0 0 1136 106" role="img" aria-labelledby="s21render">
-        <title id="s21render">State change, evaluate views, reconcile, layout, graphics rendering, display</title>
-        <g class="nd pass" data-lit="1" style="--d:0.0s"><rect class="sh" x="0" y="0" width="168" height="104" rx="14"/><use href="#i-eye" x="70" y="14" width="28" height="28"/><text x="84" y="68" text-anchor="middle">State changes</text><text class="sm" x="84" y="88" text-anchor="middle">new balance</text></g>
-        <path class="wire" d="M172 52H188M181 45l7 7-7 7"/>
-        <g class="nd pass" data-lit="1" style="--d:0.2s"><rect class="sh" x="192" y="0" width="168" height="104" rx="14"/><use href="#i-code" x="262" y="14" width="28" height="28"/><text x="276" y="68" text-anchor="middle">Evaluate views</text><text class="sm" x="276" y="88" text-anchor="middle">the desired interface</text></g>
-        <path class="wire" d="M364 52H380M373 45l7 7-7 7"/>
-        <g class="nd pass" data-lit="1" style="--d:0.4s"><rect class="sh" x="384" y="0" width="168" height="104" rx="14"/><use href="#i-diff" x="454" y="14" width="28" height="28"/><text x="468" y="68" text-anchor="middle">Reconcile</text><text class="sm" x="468" y="88" text-anchor="middle">what changed</text></g>
-        <path class="wire" d="M556 52H572M565 45l7 7-7 7"/>
-        <g class="nd pass" data-lit="1" style="--d:0.6s"><rect class="sh" x="576" y="0" width="168" height="104" rx="14"/><use href="#i-layout" x="646" y="14" width="28" height="28"/><text x="660" y="68" text-anchor="middle">Layout</text><text class="sm" x="660" y="88" text-anchor="middle">sizes and positions</text></g>
-        <path class="wire" d="M748 52H764M757 45l7 7-7 7"/>
-        <g class="nd pass" data-lit="1" style="--d:0.8s"><rect class="sh" x="768" y="0" width="168" height="104" rx="14"/><use href="#i-layers" x="838" y="14" width="28" height="28"/><text x="852" y="68" text-anchor="middle">Graphics</text><text class="sm" x="852" y="88" text-anchor="middle">prepare content</text></g>
-        <path class="wire" d="M940 52H956M949 45l7 7-7 7"/>
-        <g class="nd" data-lit="1+"><rect class="sh" x="960" y="0" width="168" height="104" rx="14"/><use href="#i-frame" x="1030" y="14" width="28" height="28"/><text x="1044" y="68" text-anchor="middle">Display</text><text class="sm" x="1044" y="88" text-anchor="middle">pixels visible</text></g>
+      <svg class="art" viewBox="0 0 1136 372" role="img" aria-labelledby="upd6">
+        <title id="upd6">An update: state changes, SwiftUI evaluates the description, reconciles what changed (the balance and one new row), lays out, redraws only those parts, and the next frame shows the new balance.</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="12" y="10" width="152" height="104" rx="14"/><use href="#i-diff" x="74" y="24" width="28" height="28"/><text x="88" y="78" text-anchor="middle">State changes</text><text class="sm" x="88" y="98" text-anchor="middle">new balance</text></g>
+        <path class="wire" d="M172 62H196M190 56l6 6-6 6"/>
+        <text class="fade fill-teal" data-lit="1" x="460" y="168" text-anchor="middle" style="font-size:20px">1. A &#8377;250 coffee payment: the balance becomes &#8377;24,750 in memory</text>
+        <g class="nd" data-lit="2"><rect class="sh" x="204" y="10" width="152" height="104" rx="14"/><use href="#i-eye" x="266" y="24" width="28" height="28"/><text x="280" y="78" text-anchor="middle">Evaluate</text><text class="sm" x="280" y="98" text-anchor="middle">read description</text></g>
+        <path class="wire" d="M364 62H388M382 56l6 6-6 6"/>
+        <text class="fade fill-teal" data-lit="2" x="460" y="168" text-anchor="middle" style="font-size:20px">2. SwiftUI reads the dashboard&#8217;s description again</text>
+        <g class="nd" data-lit="3"><rect class="sh" x="396" y="10" width="152" height="104" rx="14"/><use href="#i-diff" x="458" y="24" width="28" height="28"/><text x="472" y="78" text-anchor="middle">Reconcile</text><text class="sm" x="472" y="98" text-anchor="middle">what changed</text></g>
+        <path class="wire" d="M556 62H580M574 56l6 6-6 6"/>
+        <text class="fade fill-teal" data-lit="3" x="460" y="168" text-anchor="middle" style="font-size:20px">3. Compared with last time, only two things changed</text>
+        <g class="nd" data-lit="4"><rect class="sh" x="588" y="10" width="152" height="104" rx="14"/><use href="#i-layout" x="650" y="24" width="28" height="28"/><text x="664" y="78" text-anchor="middle">Layout</text><text class="sm" x="664" y="98" text-anchor="middle">size &amp; place</text></g>
+        <path class="wire" d="M748 62H772M766 56l6 6-6 6"/>
+        <text class="fade fill-teal" data-lit="4" x="460" y="168" text-anchor="middle" style="font-size:20px">4. Makes room for the new row</text>
+        <g class="nd" data-lit="5"><rect class="sh" x="780" y="10" width="152" height="104" rx="14"/><use href="#i-layers" x="842" y="24" width="28" height="28"/><text x="856" y="78" text-anchor="middle">Graphics</text><text class="sm" x="856" y="98" text-anchor="middle">redraw changes</text></g>
+        <path class="wire" d="M940 62H964M958 56l6 6-6 6"/>
+        <text class="fade fill-teal" data-lit="5" x="460" y="168" text-anchor="middle" style="font-size:20px">5. Redraws only the changed parts</text>
+        <g class="nd" data-lit="6+"><rect class="sh" x="972" y="10" width="152" height="104" rx="14"/><use href="#i-frame" x="1034" y="24" width="28" height="28"/><text x="1048" y="78" text-anchor="middle">Display</text><text class="sm" x="1048" y="98" text-anchor="middle">next frame</text></g>
+        <text class="fade fill-teal" data-lit="6+" x="460" y="168" text-anchor="middle" style="font-size:20px">6. The next frame shows &#8377;24,750</text>
+        <use href="#d-iphone" x="990" y="128" width="120" height="240"/>
+        <text x="1050" y="176" text-anchor="middle" style="font-size:14px;font-weight:800">NPay</text>
+        <g class="fade" data-lit="0-5"><text x="1050" y="206" text-anchor="middle" style="font-size:16px;font-weight:700">&#8377;25,000</text></g>
+        <g class="fade" data-lit="6+"><text class="fill-teal" x="1050" y="206" text-anchor="middle" style="font-size:16px;font-weight:700">&#8377;24,750</text></g>
+        <g class="fade" data-lit="0-3"><rect class="mute" x="1006" y="222" width="88" height="14" rx="4"/><rect class="mute" x="1006" y="242" width="88" height="14" rx="4"/><rect class="mute" x="1006" y="262" width="88" height="14" rx="4"/></g>
+        <g class="fade" data-lit="4+"><rect class="wire" style="fill:none" x="1006" y="220" width="88" height="16" rx="4"/><text class="sm" x="1050" y="232" text-anchor="middle" style="font-size:9px">Coffee &#8722;&#8377;250</text><rect class="mute" x="1006" y="242" width="88" height="14" rx="4"/><rect class="mute" x="1006" y="262" width="88" height="14" rx="4"/><rect class="mute" x="1006" y="282" width="88" height="14" rx="4"/></g>
+        <g class="nd fade" data-lit="3-5"><rect class="sh" style="fill:none" x="1000" y="188" width="100" height="26" rx="6"/></g>
+        <g class="nd fade" data-lit="3-5"><rect class="sh" style="fill:none" x="1000" y="216" width="100" height="24" rx="6"/></g>
+        <g class="fade" data-lit="3-5"><text class="sm fill-teal" x="972" y="208" text-anchor="end">only these</text><text class="sm fill-teal" x="972" y="226" text-anchor="end">change &#8594;</text></g>
       </svg>
-    </div>
-    <i class="step cue"></i>
-    <div class="gap-lg"></div>
-    <div class="rule step" data-label="Recall from Part 1">A SwiftUI view is a <b>description</b>, not a drawing. Recomputing it does <b>not</b> redraw every element: only what changed.</div>
+    </div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="takeaway step">Only <b>what changed</b> is redrawn: not the whole screen.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>A &#8377;250 coffee payment lands and the balance changes from &#8377;25,000 to &#8377;24,750. SwiftUI does not repaint the whole screen: it tracks the change, re-evaluates view descriptions, reconciles what changed, lays out as needed and works with the graphics pipeline until updated pixels appear. Click to watch it sweep through.</p>
-    <span class="notes-label">SAY</span><p>Recall from Part 1: a view is a description of the screen, not a drawing. Recomputing it does not mean every element is redrawn. That distinction is essential for SwiftUI performance.</p>
+    <span class="notes-label">SAY</span><p>NPay is already on screen showing &#8377;25,000. A &#8377;250 coffee payment lands. Watch the phone on the right. Click one: the state changes; in memory the balance is now &#8377;24,750, but the screen still shows the old value.</p>
+    <span class="notes-label">SAY</span><p>Click two: SwiftUI reads the dashboard&rsquo;s description again. Click three: it compares the new description with the last one: only two things changed, the balance and one new transaction row. Click four: layout makes room for the new row. Click five: graphics redraws only those changed parts. Click six: the next frame shows &#8377;24,750.</p>
+    <span class="notes-label">SAY</span><p>Click: so after the first frame, an update redraws only what changed, not the whole screen. Recall from Part 1: a view is a description, not a drawing.</p>
+    <span class="notes-label">ASK</span><p>How is this different from the first frame in Part 2?</p>
+    <span class="notes-label">EXPECT</span><p>On the first frame everything was new and drawn; on an update only what changed is redrawn.</p>
     <span class="notes-label">CONNECT</span><p>So why do frames drop?</p>
   </aside>
 </section>
@@ -2110,47 +2115,30 @@
   <h2>Does the work fit the frame?</h2>
   <div class="body">
     <div class="diagram">
-      <svg class="art" viewBox="0 0 1136 300" role="img" aria-labelledby="s23exp">
-        <title id="s23exp">Three cases: 10 ms at 60 Hz fits; 20 ms at 60 Hz misses; 10 ms at 120 Hz misses</title>
-        <g class="nd" data-lit="0"><rect class="sh" x="0" y="0" width="360" height="52" rx="12"/><text x="16" y="32">10 ms of work at 60 Hz</text></g>
-        <g class="fade" data-lit="0"><text class="mono" x="0" y="100">REFRESH INTERVAL 16.67 MS</text><g class="nd"><rect class="sh" x="0" y="112" width="861" height="40" rx="8"/></g><text class="mono" x="0" y="190">SIMULATED WORK 10 MS</text><g class="nd lit"><rect class="sh" x="0" y="202" width="516" height="40" rx="8"/></g><path class="wire dash" d="M861 104V250"/><text x="0" y="290" style="font-size:20px;font-weight:400">Fits within one refresh interval, but real rendering still needs time for other system work.</text></g>
-        <g class="nd" data-lit="1"><rect class="sh" x="388" y="0" width="360" height="52" rx="12"/><text x="404" y="32">20 ms of work at 60 Hz</text></g>
-        <g class="fade" data-lit="1"><text class="mono" x="0" y="100">REFRESH INTERVAL 16.67 MS</text><g class="nd"><rect class="sh" x="0" y="112" width="861" height="40" rx="8"/></g><text class="mono" x="0" y="190">SIMULATED WORK 20 MS</text><g class="nd alert"><rect class="sh" x="0" y="202" width="1033" height="40" rx="8"/></g><path class="wire dash" d="M861 104V250"/><text x="0" y="290" style="font-size:20px;font-weight:400">Longer than one refresh interval: the frame misses its deadline.</text></g>
-        <g class="nd" data-lit="2"><rect class="sh" x="776" y="0" width="360" height="52" rx="12"/><text x="792" y="32">10 ms of work at 120 Hz</text></g>
-        <g class="fade" data-lit="2"><text class="mono" x="0" y="100">REFRESH INTERVAL 8.33 MS</text><g class="nd"><rect class="sh" x="0" y="112" width="430" height="40" rx="8"/></g><text class="mono" x="0" y="190">SIMULATED WORK 10 MS</text><g class="nd alert"><rect class="sh" x="0" y="202" width="516" height="40" rx="8"/></g><path class="wire dash" d="M430 104V250"/><text x="0" y="290" style="font-size:20px;font-weight:400">The same work misses at 120 Hz: the deadline is twice as tight.</text></g>
+      <svg class="art" viewBox="0 0 1136 250" role="img" aria-labelledby="fit3">
+        <title id="fit3">Main-thread frames at 60 Hz: scrolling work fits each frame; sorting 50,000 transactions on the main thread misses three frames; sorting on another thread lets every frame fit and shows the sorted list when ready.</title>
+        <text x="0" y="78">Main thread</text><text class="sm" x="0" y="96">60 Hz frames</text>
+        <path class="wire" d="M196 34H1136"/><path class="wire" d="M196 24V44"/><path class="wire" d="M352 24V44"/><path class="wire" d="M508 24V44"/><path class="wire" d="M664 24V44"/><path class="wire" d="M820 24V44"/><path class="wire" d="M976 24V44"/><path class="wire" d="M1132 24V44"/>
+        <text class="sm" x="1136" y="16" text-anchor="end">a tick every 16.67 ms &#8594;</text>
+        <g class="fade" data-lit="1"><rect class="wire" style="fill:none" x="206" y="56" width="70" height="34" rx="8"/><text class="sm" x="241" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="362" y="56" width="70" height="34" rx="8"/><text class="sm" x="397" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="518" y="56" width="70" height="34" rx="8"/><text class="sm" x="553" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="674" y="56" width="70" height="34" rx="8"/><text class="sm" x="709" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="830" y="56" width="70" height="34" rx="8"/><text class="sm" x="865" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="986" y="56" width="70" height="34" rx="8"/><text class="sm" x="1021" y="78" text-anchor="middle">draw</text></g>
+        <g class="fade" data-lit="2"><rect class="wire" style="fill:none" x="206" y="56" width="70" height="34" rx="8"/><text class="sm" x="241" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="362" y="56" width="70" height="34" rx="8"/><text class="sm" x="397" y="78" text-anchor="middle">draw</text><g class="nd alert"><rect class="sh" x="518" y="56" width="448" height="34" rx="8"/><text x="742" y="78" text-anchor="middle">Sort 50,000 transactions</text></g><rect class="wire" style="fill:none" x="986" y="56" width="70" height="34" rx="8"/><text class="sm" x="1021" y="78" text-anchor="middle">draw</text><text class="sm" x="664" y="112" text-anchor="middle">missed</text><text class="sm" x="820" y="112" text-anchor="middle">missed</text><text class="sm" x="976" y="112" text-anchor="middle">missed</text></g>
+        <g class="fade" data-lit="3+"><rect class="wire" style="fill:none" x="206" y="56" width="70" height="34" rx="8"/><text class="sm" x="241" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="362" y="56" width="70" height="34" rx="8"/><text class="sm" x="397" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="518" y="56" width="70" height="34" rx="8"/><text class="sm" x="553" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="674" y="56" width="70" height="34" rx="8"/><text class="sm" x="709" y="78" text-anchor="middle">draw</text><rect class="wire" style="fill:none" x="830" y="56" width="70" height="34" rx="8"/><text class="sm" x="865" y="78" text-anchor="middle">draw</text><g class="nd lit"><rect class="sh" x="986" y="56" width="70" height="34" rx="8"/><text class="sm" x="1021" y="78" text-anchor="middle">sorted</text></g><text x="0" y="166">Other thread</text><text class="sm" x="0" y="184">off the main thread</text><rect class="wire" style="fill:none" x="392" y="146" width="528" height="34" rx="8"/><text x="656" y="168" text-anchor="middle">Sort 50,000 transactions</text><path class="wire" d="M920 163H1021V94M1015 100l6-6 6 6"/></g>
+        <text class="fade fill-teal" data-lit="1" x="666" y="236" text-anchor="middle" style="font-size:20px">1. Scrolling: each frame&#8217;s work fits before its tick</text>
+        <text class="fade fill-teal" data-lit="2" x="666" y="236" text-anchor="middle" style="font-size:20px">2. The user taps Sort: sorting on the main thread takes three frames, and the list freezes</text>
+        <text class="fade fill-teal" data-lit="3+" x="666" y="236" text-anchor="middle" style="font-size:20px">3. Sort on another thread: every frame still fits, and the sorted list appears when ready</text>
       </svg>
-    </div>
-    <i class="step cue"></i><i class="step cue"></i>
-    <p class="small muted" style="margin:10px 0 0">Conceptual budget comparison, not a measured iPhone frame trace.</p>
+    </div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap-lg"></div>
+    <div class="rule step" data-label="Rule">Too big for one frame? Move it <b>off the main thread</b>.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Case one: 10 ms of work at 60 Hz fits within the 16.67 ms interval, though real rendering still needs time for other system work. Click: 20 ms misses the deadline. Click: the same 10 ms misses at 120 Hz, where the interval is 8.33 ms.</p>
-    <span class="notes-label">SAY</span><p>The lesson: avoid expensive synchronous work on the main thread, minimize unnecessary UI computation, and measure before optimizing.</p>
-    <span class="notes-label">CONNECT</span><p>Two kinds of slow work, and why the difference matters.</p>
-  </aside>
-</section>
-
-<section class="slide">
-  <p class="kicker">Part 5 &middot; Two kinds of slow</p>
-  <h2>Waiting vs computing</h2>
-  <div class="body">
-    <div class="cols stretch">
-      <div class="card accent step"><span class="label">Asynchronous I/O</span><h3 style="font-size:22px;margin:4px 0 6px">Download the NPay balance</h3><p class="small" style="margin:0">Mostly <b>waiting</b> for an external response.</p></div>
-      <div class="card step"><span class="label">CPU-bound work</span><h3 style="font-size:22px;margin:4px 0 6px">Process a million transactions</h3><p class="small" style="margin:0">Mostly <b>executing calculations</b> on a CPU.</p></div>
-    </div>
-    <div class="gap"></div>
-    <div class="cols stretch">
-      <p class="small step" style="margin:0">While the balance request <b>waits</b>, the task <b>suspends</b>: no thread sits idle waiting.</p>
-      <p class="small step" style="margin:0">A long <b>calculation</b> occupies a thread until it ends. On the main thread, the UI waits.</p>
-    </div>
-    <div class="gap"></div>
-    <div class="rule step"><b>async</b> enables suspension. It does <b>not</b> guarantee parallel execution or a different thread.</div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Operation A downloads the NPay balance: mostly waiting for the bank&rsquo;s server. Operation B processes a million transaction records: mostly executing calculations. Both take time, for different reasons.</p>
-    <span class="notes-label">SAY</span><p>Click: while the network request waits, the calling task suspends and the thread is free. Click: a calculation is different: it keeps a thread busy until it ends, and if that thread is the main thread, the UI waits.</p>
-    <span class="notes-label">SAY</span><p>Click: marking work async enables suspension; it does not by itself move work to another thread. CPU-heavy work must be moved off the main actor deliberately; Unit 01 lesson 1.9 shows how.</p>
-    <span class="notes-label">CONNECT</span><p>So what should run where?</p>
+    <span class="notes-label">SAY</span><p>The main thread has one frame, one tick, to do its work. Click one: while the user scrolls NPay&rsquo;s list, each frame only has a little drawing to do, and it fits before the tick.</p>
+    <span class="notes-label">SAY</span><p>Click two: the user taps Sort by amount. Sorting fifty thousand transactions on the main thread takes about three frames. Those frames are missed, and the list freezes mid-scroll.</p>
+    <span class="notes-label">SAY</span><p>Click three: move the sort to another thread. The main thread keeps drawing every frame, and when the sort is ready, one frame shows the sorted list.</p>
+    <span class="notes-label">SAY</span><p>Click: the rule. If the work is too big for one frame, it does not belong on the main thread. Durations are illustrative, not measured.</p>
+    <span class="notes-label">ASK</span><p>Would sorting fifty transactions need to move off the main thread?</p>
+    <span class="notes-label">EXPECT</span><p>Probably not: it fits in a frame. Measure before moving work.</p>
+    <span class="notes-label">CONNECT</span><p>So where should each kind of work run?</p>
   </aside>
 </section>
 
@@ -2192,10 +2180,10 @@
   <p class="kicker">Part 5 &middot; Recap</p>
   <h2>What to remember</h2>
   <div class="body">
-    <div class="cols c3" style="gap:20px;align-items:stretch"><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg></span><p style="font-size:24px"><b>Keep the main thread free</b><br><span class="muted" style="font-size:20px">no blocking work in actions or callbacks</span></p></div><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p style="font-size:24px"><b>await suspends, it does not block</b><br><span class="muted" style="font-size:20px">but async is not background</span></p></div><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p style="font-size:24px"><b>Measure, don&rsquo;t guess</b><br><span class="muted" style="font-size:20px">Time Profiler and Hangs first</span></p></div></div>
+    <div class="cols c3" style="gap:20px;align-items:stretch"><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-thread"/></svg></span><p style="font-size:24px"><b>Keep the main thread free</b><br><span class="muted" style="font-size:20px">no blocking work in actions or callbacks</span></p></div><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p style="font-size:24px"><b>Waiting need not block</b><br><span class="muted" style="font-size:20px">but heavy computing must move off the main thread</span></p></div><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p style="font-size:24px"><b>Measure, don&rsquo;t guess</b><br><span class="muted" style="font-size:20px">Time Profiler and Hangs first</span></p></div></div>
   </div>
 <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Three things to keep. The main thread, our head chef, must stay free: no blocking work in actions or callbacks. await suspends without blocking, but async alone does not move work off the main actor. And measure with Instruments before you optimize.</p>
+    <span class="notes-label">SAY</span><p>Three things to keep. The main thread, our head chef, must stay free: no blocking work in actions or callbacks. a wait can be handed off without blocking, but heavy computing must be moved off the main thread. And measure with Instruments before you optimize.</p>
     <span class="notes-label">CONNECT</span><p>Two quick questions on Part 5.</p>
   </aside>
 </section>
@@ -2215,8 +2203,8 @@
       <div class="q-panel">
         <div class="q-ans step anim-up">
           <span class="q-verdict">B</span>
-          <p class="q-why">Waiting on the main thread blocks it. A download suspends while it waits, and the other two are cheap main-thread work.</p>
-          <p class="q-trap"><b>Common trap:</b> Thinking anything that takes time, or anything on the main actor, freezes the UI.</p>
+          <p class="q-why">Waiting on the main thread blocks it. A download waits without holding the main thread, and the other two are cheap main-thread work.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking anything that takes time, or anything on the main thread, freezes the UI.</p>
         </div>
       </div>
     </div>
@@ -2224,7 +2212,7 @@
   <aside class="notes-src">
     <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
     <span class="notes-label">EXPECT</span><p>Most pick B; some pick A. Ask why waiting for the download does not freeze.</p>
-    <span class="notes-label">SAY</span><p>B. Waiting on the main thread blocks it. A download suspends while it waits, and the other two are cheap main-thread work.</p>
+    <span class="notes-label">SAY</span><p>B. Waiting on the main thread blocks it. A download waits without holding the main thread, and the other two are cheap main-thread work.</p>
     <span class="notes-label">CONNECT</span><p>Next question.</p>
   </aside>
 </section>
@@ -2272,34 +2260,30 @@
 
 <section class="slide">
   <p class="kicker">Part 6 &middot; Process memory &middot; conceptual</p>
-  <h2>Simplified iOS process memory</h2>
-  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
-    <div>
-      <div class="diagram">
-      <svg class="art" viewBox="0 0 560 340" style="max-height:380px" role="img" aria-labelledby="s3mem">
-        <title id="s3mem">Process memory: code, global and static data, heap, thread stacks, other mapped memory</title>
-        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="560" height="58" rx="12"/><use href="#i-code" x="14" y="16" width="26" height="26"/><text x="52" y="26">Code / text</text><text class="sm" x="52" y="44">executable machine instructions</text></g>
-        <g class="nd" data-lit="2"><rect class="sh" x="0" y="70" width="560" height="58" rx="12"/><use href="#i-file" x="14" y="86" width="26" height="26"/><text x="52" y="96">Global &amp; static data</text><text class="sm" x="52" y="114">global and static storage</text></g>
-        <g class="nd" data-lit="3"><rect class="sh" x="0" y="140" width="560" height="58" rx="12"/><use href="#i-memory" x="14" y="156" width="26" height="26"/><text x="52" y="166">Heap</text><text class="sm" x="52" y="184">dynamic objects and allocations</text></g>
-        <g class="nd" data-lit="4"><rect class="sh" x="0" y="210" width="560" height="58" rx="12"/><use href="#i-thread" x="14" y="226" width="26" height="26"/><text x="52" y="236">Thread stacks</text><text class="sm" x="52" y="254">function call frames, execution state</text></g>
-        <g class="nd" data-lit="5"><rect class="sh" x="0" y="280" width="560" height="58" rx="12"/><use href="#i-layers" x="14" y="296" width="26" height="26"/><text x="52" y="306">Other mapped memory</text><text class="sm" x="52" y="324">libraries, files, graphics-related mappings</text></g>
+  <h2>What lives where in NPay&rsquo;s memory</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 346" role="img" aria-labelledby="npaymem">
+        <title id="npaymem">NPay&rsquo;s process memory: code, fixed data, heap, thread stacks and shared libraries, each with what NPay keeps there</title>
+        <text class="mono" x="0" y="14">REGION</text><text class="mono" x="560" y="14">WHAT NPAY KEEPS THERE</text>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="26" width="1136" height="54" rx="12"/><use href="#i-code" x="14" y="40" width="26" height="26"/><text x="52" y="50">Code</text><text class="sm" x="52" y="68">the machine code the app ships</text></g>
+        <text class="fade" data-lit="1+" x="560" y="59" style="font-size:18px">NPay&#8217;s compiled app, built on your Mac (Part 2)</text>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="90" width="1136" height="54" rx="12"/><use href="#i-file" x="14" y="104" width="26" height="26"/><text x="52" y="114">Fixed data</text><text class="sm" x="52" y="132">values that exist for the whole run</text></g>
+        <text class="fade" data-lit="2+" x="560" y="123" style="font-size:18px">settings and constants</text>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="154" width="1136" height="54" rx="12"/><use href="#i-memory" x="14" y="168" width="26" height="26"/><text x="52" y="178">Heap</text><text class="sm" x="52" y="196">objects that live a while</text></g>
+        <text class="fade" data-lit="3+" x="560" y="187" style="font-size:18px">DashboardViewModel, the account, the transaction list</text>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="218" width="1136" height="54" rx="12"/><use href="#i-thread" x="14" y="232" width="26" height="26"/><text x="52" y="242">Stacks</text><text class="sm" x="52" y="260">one per thread</text></g>
+        <text class="fade" data-lit="4+" x="560" y="251" style="font-size:18px">each thread&#8217;s current calculation, gone when it ends</text>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="282" width="1136" height="54" rx="12"/><use href="#i-layers" x="14" y="296" width="26" height="26"/><text x="52" y="306">Shared libraries</text><text class="sm" x="52" y="324">mapped in from the system</text></g>
+        <text class="fade" data-lit="5+" x="560" y="315" style="font-size:18px">SwiftUI, Foundation, images</text>
       </svg>
-    </div>
-      <p class="small muted" style="margin:8px 0 0">Conceptual regions, not their physical order. iOS uses virtual memory, not fixed partitions of RAM.</p>
-    </div>
-    <div>
-      <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
-      <div class="analogy step">
-        <div class="icon"><svg viewBox="0 0 24 24"><use href="#i-building"/></svg></div>
-        <p>NPay&rsquo;s process is the <b>kitchen</b>. The chef&rsquo;s <b>cutting board</b> holds what the current dish needs; the <b>pantry</b> holds what many dishes need, for longer.</p>
-      </div>
-      <div class="gap"></div>
-      <p class="small step">The OS provides the virtual memory environment; the language runtime and the app manage allocations inside it.</p>
-    </div>
+    </div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="analogy step"><div class="icon"><svg viewBox="0 0 24 24"><use href="#i-building"/></svg></div><p>In the kitchen: a <b>stack</b> is a cook&rsquo;s cutting board, cleared after each dish; the <b>heap</b> is the pantry, holding what many dishes need, for longer.</p></div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Click through the five regions: code, global and static data, the heap for dynamic objects, thread stacks for call frames, and other mapped memory such as libraries and graphics mappings. These are conceptual regions in virtual memory, not fixed slices of RAM.</p>
-    <span class="notes-label">SAY</span><p>Back to our kitchen: NPay’s process is the kitchen. The cutting board holds what the current dish needs and is cleared when the dish is done: that is the stack. The pantry holds ingredients many dishes need, for longer: that is the heap.</p>
+    <span class="notes-label">SAY</span><p>Every process gets its own memory from iOS, and inside it different things live in different places. One region per click. Code: NPay&rsquo;s compiled app, the machine code we built on the Mac in Part 2. Fixed data: settings and constants that exist for the whole run.</p>
+    <span class="notes-label">SAY</span><p>The heap: objects that live for a while, such as DashboardViewModel, the account and the transaction list. Stacks: one per thread, holding each thread&rsquo;s current calculation, gone when it ends. Shared libraries: SwiftUI, Foundation and images, mapped in from the system.</p>
+    <span class="notes-label">SAY</span><p>Click: in the kitchen, a stack is a cook&rsquo;s cutting board, cleared after each dish; the heap is the pantry. These are conceptual regions, not their physical order: iOS uses virtual memory.</p>
     <span class="notes-label">CONNECT</span><p>Where do individual values live?</p>
   </aside>
 </section>
@@ -2314,64 +2298,64 @@
       <svg class="art" viewBox="0 0 560 226" role="img" aria-labelledby="s5sh">
         <title id="s5sh">Stack: call frame, temporary values, return information. Heap: object A, object B, shared storage.</title>
         <text class="mono" x="0" y="16">STACK</text><text class="mono" x="300" y="16">HEAP</text>
-        <g class="nd" data-lit="1"><rect class="sh" x="0" y="28" width="260" height="54" rx="12"/><text x="16" y="61">Call frame</text></g>
-        <g class="nd" data-lit="1"><rect class="sh" x="0" y="94" width="260" height="54" rx="12"/><text x="16" y="127">Temporary values</text></g>
-        <g class="nd" data-lit="1"><rect class="sh" x="0" y="160" width="260" height="54" rx="12"/><text x="16" y="193">Return information</text></g>
-        <g class="nd" data-lit="2"><rect class="sh" x="300" y="28" width="260" height="54" rx="12"/><text x="316" y="61">Object A</text></g>
-        <g class="nd" data-lit="2"><rect class="sh" x="300" y="94" width="260" height="54" rx="12"/><text x="316" y="127">Object B</text></g>
-        <g class="nd" data-lit="2"><rect class="sh" x="300" y="160" width="260" height="54" rx="12"/><text x="316" y="193">Shared storage</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="28" width="260" height="54" rx="12"/><text x="16" y="61">amount: &#8377;1,500</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="94" width="260" height="54" rx="12"/><text x="16" y="127">fee: &#8377;10</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="160" width="260" height="54" rx="12"/><text x="16" y="193">total: &#8377;1,510</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="300" y="28" width="260" height="54" rx="12"/><text x="316" y="61">Account</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="300" y="94" width="260" height="54" rx="12"/><text x="316" y="127">Transaction list</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="300" y="160" width="260" height="54" rx="12"/><text x="316" y="193">DashboardViewModel</text></g>
       </svg>
     </div>
       <i class="step cue"></i><i class="step cue"></i>
       <div class="gap"></div>
-      <p class="small">The <b>stack</b> is efficient for call-related storage. The <b>heap</b> is more flexible, but involves allocation and lifetime management.</p>
+      <p class="small">The <b>stack</b> is fast and clears itself. The <b>heap</b> keeps things as long as someone needs them: ARC decides when they go.</p>
     </div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>A calculation that adds a fee to a transfer needs temporary storage for the amount, the fee and the total. Click: the stack, tied to function calls and thread execution, with the call frame, temporary values and return information. Click: the heap, for dynamically allocated storage and objects that outlive one call, such as an account shared by several screens.</p>
     <span class="notes-label">SAY</span><p>The stack is typically efficient for call-related storage; heap allocation is more flexible but needs allocation and lifetime management.</p>
-    <span class="notes-label">CONNECT</span><p>A warning before we go further.</p>
+    <span class="notes-label">CONNECT</span><p>Some values are copied; some objects are shared. What is the difference?</p>
   </aside>
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 6 &middot; Swift nuance</p>
-  <h2>Not simply stack versus heap</h2>
+  <p class="kicker">Part 6 &middot; Values and objects</p>
+  <h2>Copied vs shared</h2>
   <div class="body">
-    <div class="cols stretch">
-      <div class="card step"><span class="label">Common belief</span><p>&ldquo;Structs live on the stack; classes live on the heap.&rdquo;</p></div>
-      <div class="card accent step"><span class="label">In Swift</span><p>A struct is <b>not guaranteed</b> to live on the stack: stored in a class, an array or an escaping closure, it lives on the heap. And a class <b>instance</b> that never escapes its function may be placed on the stack by the optimizer.</p></div>
-    </div>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 364" role="img" aria-labelledby="copyshare">
+        <title id="copyshare">Left: the draft amount is copied to the review screen; editing the draft leaves the copy unchanged. Right: Home and History share one Account object; a payment changes it once and both see the new balance.</title>
+        <text class="mono" x="0" y="14">A VALUE IS COPIED</text>
+        <path class="wire faint" d="M566 4V330"/>
+        <text class="mono" x="600" y="14">AN OBJECT IS SHARED</text>
+        <use href="#d-iphone" x="75" y="26" width="110" height="220"/>
+        <text class="mono" x="130" y="76" text-anchor="middle">Payment</text>
+        <text class="sm" x="130" y="100" text-anchor="middle">to ravi@npay</text>
+        <rect class="wire" style="fill:none" x="88" y="112" width="84" height="32" rx="6"/>
+        <g class="fade" data-lit="1"><text x="130" y="134" text-anchor="middle" style="font-size:17px;font-weight:700">&#8377;1,500</text></g>
+        <g class="fade" data-lit="2+"><text class="fill-teal" x="130" y="134" text-anchor="middle" style="font-size:17px;font-weight:700">&#8377;2,000</text><text class="sm fill-teal" x="130" y="166" text-anchor="middle">edited</text></g>
+        <g class="fade" data-lit="1+"><path class="wire" d="M196 128H350M343 121l7 7-7 7"/><text class="sm" x="272" y="116" text-anchor="middle">copy</text><use href="#d-iphone" x="365" y="26" width="110" height="220"/><text class="mono" x="420" y="76" text-anchor="middle">Review</text><text class="sm" x="420" y="104" text-anchor="middle">Pay</text><text x="420" y="128" text-anchor="middle" style="font-size:17px;font-weight:700">&#8377;1,500</text><text class="sm" x="420" y="152" text-anchor="middle">to ravi@npay</text><rect class="wire" style="fill:none" x="384" y="168" width="72" height="22" rx="6"/><text class="sm" x="420" y="183" text-anchor="middle">Confirm</text></g>
+        <g class="fade" data-lit="2+"><text class="sm" x="420" y="270" text-anchor="middle">the copy is not affected</text></g>
+        <g class="fade" data-lit="3+"><use href="#d-iphone" x="645" y="26" width="110" height="220"/><text class="mono" x="700" y="76" text-anchor="middle">Home</text><use href="#d-iphone" x="945" y="26" width="110" height="220"/><text class="mono" x="1000" y="76" text-anchor="middle">History</text><path class="wire" d="M700 248V290H748M741 283l7 7-7 7M1000 248V290H952M959 283l7 7-7 7"/><g class="nd"><rect class="sh" x="752" y="266" width="196" height="50" rx="12"/><use href="#i-bank" x="764" y="278" width="24" height="24"/><text class="sm" x="796" y="295">one Account object</text></g></g>
+        <g class="fade" data-lit="3"><text x="700" y="124" text-anchor="middle" style="font-size:17px;font-weight:700">&#8377;25,000</text><text x="1000" y="124" text-anchor="middle" style="font-size:17px;font-weight:700">&#8377;25,000</text></g>
+        <g class="fade" data-lit="4+"><text class="fill-teal" x="700" y="124" text-anchor="middle" style="font-size:17px;font-weight:700">&#8377;24,750</text><text class="fill-teal" x="1000" y="124" text-anchor="middle" style="font-size:17px;font-weight:700">&#8377;24,750</text><text class="sm fill-teal" x="850" y="230" text-anchor="middle">both screens see it</text></g>
+        <text class="fade fill-teal" data-lit="1" x="568" y="352" text-anchor="middle" style="font-size:20px">1. NPay copies the &#8377;1,500 draft to the review screen</text>
+        <text class="fade fill-teal" data-lit="2" x="568" y="352" text-anchor="middle" style="font-size:20px">2. Edit the draft to &#8377;2,000: the review screen&#8217;s copy still says &#8377;1,500</text>
+        <text class="fade fill-teal" data-lit="3" x="568" y="352" text-anchor="middle" style="font-size:20px">3. Home and History hold the same Account object</text>
+        <text class="fade fill-teal" data-lit="4+" x="568" y="352" text-anchor="middle" style="font-size:20px">4. A payment changes it once: both screens show &#8377;24,750</text>
+      </svg>
+    </div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
     <div class="gap"></div>
-    <div class="rule step" data-label="The reliable distinction"><b>Value semantics</b> versus <b>reference semantics</b>, not simply stack versus heap.</div>
+    <div class="rule step" data-label="Values and objects">Values are <b>copied</b>; objects are <b>shared</b>. A shared object needs someone to decide when it can be freed: that is <b>ARC</b>.</div>
+    <p class="small muted" style="margin:8px 0 0">In Swift, values are structs and shared objects are classes; Unit 01 &middot; 1.5 shows both.</p>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Developers from other languages often learn "structs on the stack, classes on the heap". In Swift that is not a guarantee. A struct stored inside a class instance, an array or an escaping closure lives on the heap. And the optimizer may place a class instance on the stack when it can prove the instance never escapes the function. Placement is an implementation detail.</p>
-    <span class="notes-label">SAY</span><p>The reliable language-level distinction is value semantics versus reference semantics.</p>
-    <span class="notes-label">CONNECT</span><p>So what do value and reference semantics mean in practice?</p>
-  </aside>
-</section>
-
-<section class="slide">
-  <p class="kicker">Part 6 &middot; Comparison</p>
-  <h2>Struct vs class</h2>
-  <div class="body top">
-    <table class="tbl" style="font-size:20px">
-      <tr><th>Struct</th><th>Class</th></tr>
-      <tr><td>Value semantics</td><td>Reference semantics</td></tr>
-      <tr><td>Assignment produces independent values</td><td>Assignment shares an instance</td></tr>
-      <tr><td>No class inheritance</td><td>Supports inheritance</td></tr>
-      <tr><td>No identity by default</td><td>Has object identity</td></tr>
-      <tr><td>Can use <code>mutating</code> methods</td><td>Can mutate properties through shared references</td></tr>
-      <tr class="hl"><td>Not managed as a class instance by ARC</td><td>Class instance lifetime managed by <b>ARC</b></td></tr>
-    </table>
-    <div class="gap"></div>
-    <div class="rule step" data-label="Copy-on-write"><b>Array</b>, <b>Dictionary</b>, <b>Set</b> and <b>String</b> share storage until one copy is modified. Your own structs copy their stored properties; they get copy-on-write only if built that way (Lesson 1.5).</div>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Six differences. The last row leads into the rest of this Part: class instance lifetimes are managed by ARC.</p>
-    <span class="notes-label">SAY</span><p>Copy-on-write is a property of the standard collections: Array, Dictionary, Set and String share their storage until one copy is modified, so assigning a large array does not copy every element immediately. It is not automatic for every struct: your own struct copies its stored properties, and gets copy-on-write only if you implement it, which Lesson 1.5 covers.</p>
-    <span class="notes-label">CONNECT</span><p>Class instances are shared. So how does Swift know when one can be freed?</p>
+    <span class="notes-label">SAY</span><p>Two ways data lives in NPay. Click: a value is copied. NPay copies the &#8377;1,500 draft to the review screen. Click: the user edits the draft to &#8377;2,000, and the review screen&rsquo;s copy still says &#8377;1,500: copies are independent.</p>
+    <span class="notes-label">SAY</span><p>Click: an object is shared. Home and History both hold the same Account object. Click: a payment changes it once, and both screens show &#8377;24,750.</p>
+    <span class="notes-label">SAY</span><p>Click: values are copied, objects are shared. And because a shared object can be held by many screens, something must decide when nobody needs it any more and it can be freed. In Swift that is ARC, automatic reference counting.</p>
+    <span class="notes-label">ASK</span><p>Should NPay&rsquo;s account balance, shown on several screens, be a copied value or a shared object?</p>
+    <span class="notes-label">EXPECT</span><p>Shared, so every screen sees the same balance.</p>
+    <span class="notes-label">CONNECT</span><p>So how does ARC know when nobody needs an object?</p>
   </aside>
 </section>
 
@@ -2380,67 +2364,71 @@
   <h2>Counting strong references</h2>
   <div class="body">
     <div class="diagram">
-      <svg class="art" viewBox="0 0 1136 226" role="img" aria-labelledby="s12arc">
-        <title id="s12arc">A Customer object with three strong references; releasing them one by one brings the count from 3 to 0, and then the object can be deinitialized</title>
-        <g class="nd lit" data-lit="0-2"><rect class="sh" x="353" y="0" width="430" height="104" rx="14"/></g>
-        <g class="fade" data-lit="3+"><g class="nd alert"><rect class="sh" x="353" y="0" width="430" height="104" rx="14"/></g></g>
-        <text x="377" y="32">Customer object</text>
-        <g class="fade" data-lit="0"><text x="377" y="84" style="font-size:40px;font-weight:800">3</text><text class="sm" x="412" y="80">strong references</text><text class="mono" x="760" y="84" text-anchor="end">ALIVE</text></g>
-        <g class="fade" data-lit="1"><text x="377" y="84" style="font-size:40px;font-weight:800">2</text><text class="sm" x="412" y="80">strong references</text><text class="mono" x="760" y="84" text-anchor="end">ALIVE</text></g>
-        <g class="fade" data-lit="2"><text x="377" y="84" style="font-size:40px;font-weight:800">1</text><text class="sm" x="412" y="80">strong reference</text><text class="mono" x="760" y="84" text-anchor="end">ALIVE</text></g>
-        <g class="fade" data-lit="3+"><text x="377" y="84" style="font-size:40px;font-weight:800">0</text><text class="sm" x="412" y="80">strong references</text><text class="mono" x="760" y="84" text-anchor="end">DEINIT CAN RUN</text></g>
-        <g class="fade" data-lit="0-2"><path class="wire lit" d="M240 168V110M233 117l7-7 7 7"/><g class="nd"><rect class="sh" x="120" y="168" width="240" height="56" rx="12"/><text x="136" y="193">Reference A</text><text class="sm" x="136" y="211">strong</text></g></g>
-        <g class="fade" data-lit="3+"><g class="nd ghost"><rect class="sh" x="120" y="168" width="240" height="56" rx="12"/><text x="136" y="193">Reference A</text><text class="sm" x="136" y="211">released</text></g></g>
-        <g class="fade" data-lit="0-1"><path class="wire lit" d="M560 168V110M553 117l7-7 7 7"/><g class="nd"><rect class="sh" x="440" y="168" width="240" height="56" rx="12"/><text x="456" y="193">Reference B</text><text class="sm" x="456" y="211">strong</text></g></g>
-        <g class="fade" data-lit="2+"><g class="nd ghost"><rect class="sh" x="440" y="168" width="240" height="56" rx="12"/><text x="456" y="193">Reference B</text><text class="sm" x="456" y="211">released</text></g></g>
-        <g class="fade" data-lit="0-0"><path class="wire lit" d="M880 168V110M873 117l7-7 7 7"/><g class="nd"><rect class="sh" x="760" y="168" width="240" height="56" rx="12"/><text x="776" y="193">Reference C</text><text class="sm" x="776" y="211">strong</text></g></g>
-        <g class="fade" data-lit="1+"><g class="nd ghost"><rect class="sh" x="760" y="168" width="240" height="56" rx="12"/><text x="776" y="193">Reference C</text><text class="sm" x="776" y="211">released</text></g></g>
+      <svg class="art" viewBox="0 0 1136 284" role="img" aria-labelledby="arccount">
+        <title id="arccount">NPay&rsquo;s Account object: Home holds it (1), the payment sheet holds it too (2), the sheet lets go (1), Home lets go (0) and ARC frees it.</title>
+        <g class="fade" data-lit="1-3"><g class="nd"><rect class="sh" x="0" y="40" width="300" height="62" rx="12"/><use href="#i-phone" x="14" y="58" width="26" height="26"/><text x="52" y="68">Home screen</text><text class="sm" x="52" y="86">holds the account</text></g><path class="wire" d="M302 71H514M507 64l7 7-7 7"/></g><g class="fade" data-lit="4+"><g class="nd ghost"><rect class="sh" x="0" y="40" width="300" height="62" rx="12"/><text x="52" y="68">Home screen</text><text class="sm" x="52" y="86">let go</text></g></g>
+        <g class="fade" data-lit="2"><g class="nd"><rect class="sh" x="0" y="150" width="300" height="62" rx="12"/><use href="#i-phone" x="14" y="168" width="26" height="26"/><text x="52" y="178">Payment sheet</text><text class="sm" x="52" y="196">holds the account</text></g><path class="wire" d="M302 181H514M507 174l7 7-7 7"/></g><g class="fade" data-lit="3+"><g class="nd ghost"><rect class="sh" x="0" y="150" width="300" height="62" rx="12"/><text x="52" y="178">Payment sheet</text><text class="sm" x="52" y="196">let go</text></g></g>
+        <g class="fade" data-lit="1-3"><g class="nd lit"><rect class="sh" x="520" y="30" width="420" height="190" rx="18"/></g></g>
+        <g class="fade" data-lit="0"><g class="nd ghost"><rect class="sh" x="520" y="30" width="420" height="190" rx="18"/></g></g>
+        <g class="fade" data-lit="4+"><g class="nd ghost"><rect class="sh" x="520" y="30" width="420" height="190" rx="18"/></g></g>
+        <use href="#i-bank" x="544" y="52" width="28" height="28"/><text x="584" y="72">Account object</text>
+        <text class="sm" x="544" y="196">strong references holding it</text>
+        <g class="fade" data-lit="1"><text x="544" y="168" style="font-size:72px;font-weight:800">1</text><text class="mono" x="916" y="168" text-anchor="end">ALIVE</text></g>
+        <g class="fade" data-lit="2"><text x="544" y="168" style="font-size:72px;font-weight:800">2</text><text class="mono" x="916" y="168" text-anchor="end">ALIVE</text></g>
+        <g class="fade" data-lit="3"><text x="544" y="168" style="font-size:72px;font-weight:800">1</text><text class="mono" x="916" y="168" text-anchor="end">STILL ALIVE</text></g>
+        <g class="fade" data-lit="4+"><text x="544" y="168" style="font-size:72px;font-weight:800">0</text><text class="mono" x="916" y="168" text-anchor="end">FREED BY ARC</text></g>
+        <text class="fade fill-teal" data-lit="1" x="568" y="270" text-anchor="middle" style="font-size:20px">1. Home opens and holds the account: 1 strong reference</text>
+        <text class="fade fill-teal" data-lit="2" x="568" y="270" text-anchor="middle" style="font-size:20px">2. The payment sheet also holds it: 2</text>
+        <text class="fade fill-teal" data-lit="3" x="568" y="270" text-anchor="middle" style="font-size:20px">3. The sheet closes and lets go: 1. Home still holds it, so it stays alive</text>
+        <text class="fade fill-teal" data-lit="4+" x="568" y="270" text-anchor="middle" style="font-size:20px">4. The user signs out and Home lets go: 0. Nobody holds it, so ARC frees it</text>
       </svg>
-    </div>
-    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
-    <div class="gap-lg"></div>
-    <div class="cols">
-      <div class="analogy"><div class="icon"><svg viewBox="0 0 24 24"><use href="#i-building"/></svg></div><p>Each strong reference is a cook still <b>using</b> an ingredient from the pantry. When nobody is using it, it can be <b>cleared away</b>.</p></div>
-      <p class="small muted">Conceptual. The compiler and runtime may optimize reference-count operations; they are not necessarily visible one-for-one.</p>
-    </div>
+    </div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step" data-label="ARC">ARC frees an object when its <b>last strong holder</b> lets go.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>ARC tracks strong references to a class instance. When no strong references keep it alive, it can be deinitialized. Click through: three references, then two, then one, then none, and the object can be destroyed.</p>
-    <span class="notes-label">SAY</span><p>In the kitchen: each strong reference is a cook still using an ingredient from the pantry. When nobody is using it, it can be cleared away.</p>
+    <span class="notes-label">SAY</span><p>ARC, automatic reference counting, counts who is holding an object. Follow NPay&rsquo;s Account object. Click: Home opens and holds the account: one strong reference. Click: the payment sheet opens and holds it too: two.</p>
+    <span class="notes-label">SAY</span><p>Click: the sheet closes and lets go: back to one. Home still holds it, so it stays alive. Click: the user signs out and Home lets go: zero. Nobody holds it any more, so ARC frees it straight away.</p>
+    <span class="notes-label">SAY</span><p>Click: the rule. ARC frees an object when its last strong holder lets go. In the kitchen: each holder is a cook still using an ingredient; when nobody is using it, it is cleared away. Conceptual: the compiler may optimise the counting, so it is not always visible one-for-one.</p>
+    <span class="notes-label">ASK</span><p>The payment sheet closes. Is the Account object freed?</p>
+    <span class="notes-label">EXPECT</span><p>No: Home still holds it. Only when the last holder lets go.</p>
     <span class="notes-label">CONNECT</span><p>Not every reference keeps an object alive.</p>
   </aside>
 </section>
 
 <section class="slide">
   <p class="kicker">Part 6 &middot; Reference kinds</p>
-  <h2>Strong, weak and unowned</h2>
+  <h2>Strong and weak references</h2>
   <div class="body">
     <div class="diagram">
-      <svg class="art" viewBox="0 0 1136 278" style="max-height:300px" role="img" aria-labelledby="s16kinds">
-        <title id="s16kinds">Strong keeps the instance alive; weak becomes nil when it is deallocated; unowned traps if accessed after deallocation</title>
-        <text class="mono" x="0" y="14">REFERENCE</text><text class="mono" x="446" y="14">OBJECT</text><text class="mono" x="760" y="14">WHEN THE OBJECT IS DEALLOCATED</text>
-        <g class="nd" data-lit="1"><rect class="sh" x="0" y="28" width="300" height="62" rx="12"/><text x="16" y="56"><tspan class="code">strong</tspan> reference</text><text class="sm" x="16" y="74">the default</text></g>
-        <path class="wire" d="M300 59H440M433 52l7 7-7 7"/>
-        <g class="nd"><rect class="sh" x="446" y="28" width="240" height="62" rx="12"/><use href="#i-memory" x="460" y="46" width="26" height="26"/><text x="498" y="65">Class instance</text></g>
-        <g class="fade" data-lit="1+"><g class="nd"><rect class="sh" x="760" y="28" width="376" height="62" rx="12"/><text x="776" y="56">Keeps it alive</text><text class="sm" x="776" y="74">it cannot be deallocated while held</text></g></g>
-        <g class="nd" data-lit="2"><rect class="sh" x="0" y="112" width="300" height="62" rx="12"/><text x="16" y="140"><tspan class="code">weak</tspan> reference</text><text class="sm" x="16" y="158">optional</text></g>
-        <path class="wire dash" d="M300 143H440M433 136l7 7-7 7"/>
-        <g class="nd"><rect class="sh" x="446" y="112" width="240" height="62" rx="12"/><use href="#i-memory" x="460" y="130" width="26" height="26"/><text x="498" y="149">Class instance</text></g>
-        <g class="fade" data-lit="2+"><g class="nd"><rect class="sh" x="760" y="112" width="376" height="62" rx="12"/><text x="776" y="140">Becomes nil</text><text class="sm" x="776" y="158">automatically, safely</text></g></g>
-        <g class="nd" data-lit="3"><rect class="sh" x="0" y="196" width="300" height="62" rx="12"/><text x="16" y="224"><tspan class="code">unowned</tspan> reference</text><text class="sm" x="16" y="242">assumes it is alive</text></g>
-        <path class="wire dash" d="M300 227H440M433 220l7 7-7 7"/>
-        <g class="nd"><rect class="sh" x="446" y="196" width="240" height="62" rx="12"/><use href="#i-memory" x="460" y="214" width="26" height="26"/><text x="498" y="233">Class instance</text></g>
-        <g class="fade" data-lit="3+"><g class="nd alert"><rect class="sh" x="760" y="196" width="376" height="62" rx="12"/><text x="776" y="224">Access traps (crash)</text><text class="sm" x="776" y="242">if the object is already gone</text></g></g>
+      <svg class="art" viewBox="0 0 1136 336" role="img" aria-labelledby="strongweak">
+        <title id="strongweak">Home holds NPay&rsquo;s Account object strongly; a balance banner points to it weakly; when Home lets go, the account is freed and the banner&rsquo;s weak link becomes empty.</title>
+        <g class="fade" data-lit="1-2"><g class="nd"><rect class="sh" x="80" y="30" width="300" height="70" rx="12"/><use href="#i-phone" x="94" y="52" width="26" height="26"/><text x="132" y="61">Home screen</text><text class="sm" x="132" y="81">holds the account</text></g></g>
+        <g class="fade" data-lit="3+"><g class="nd ghost"><rect class="sh" x="80" y="30" width="300" height="70" rx="12"/><use href="#i-phone" x="94" y="52" width="26" height="26"/><text x="132" y="61">Home screen</text><text class="sm" x="132" y="81">let go (signed out)</text></g></g>
+        <g class="fade" data-lit="1-2"><path class="wire lit" d="M382 65H560V112M553 105l7 7 7-7"/><text class="sm" x="470" y="54" text-anchor="middle">strong: keeps it alive</text></g>
+        <g class="fade" data-lit="1-2"><g class="nd lit"><rect class="sh" x="430" y="118" width="300" height="70" rx="14"/></g></g>
+        <g class="fade" data-lit="3+"><g class="nd ghost"><rect class="sh" x="430" y="118" width="300" height="70" rx="14"/></g></g>
+        <use href="#i-bank" x="444" y="140" width="26" height="26"/><text x="482" y="149">Account object</text>
+        <g class="fade" data-lit="1-2"><text class="sm" x="482" y="169">alive</text></g>
+        <g class="fade" data-lit="3+"><text class="sm" x="482" y="169">freed by ARC</text></g>
+        <g class="fade" data-lit="2+"><g class="nd"><rect class="sh" x="780" y="220" width="300" height="70" rx="12"/><use href="#i-eye" x="794" y="242" width="26" height="26"/><text x="832" y="251">Balance banner</text><text class="sm" x="832" y="271">shows it if it still exists</text></g></g>
+        <g class="fade" data-lit="2"><path class="wire dash lit" d="M778 255H600V194M593 201l7-7 7 7"/><text class="sm" x="690" y="276" text-anchor="middle">weak: only points to it</text></g>
+        <g class="fade" data-lit="3+"><path class="wire dash" d="M778 255H700"/><text class="sm fill-teal" x="690" y="276" text-anchor="middle">link is now empty: no crash</text></g>
+        <text class="fade fill-teal" data-lit="1" x="568" y="324" text-anchor="middle" style="font-size:20px">1. Home holds the account strongly: while Home holds it, it stays alive</text>
+        <text class="fade fill-teal" data-lit="2" x="568" y="324" text-anchor="middle" style="font-size:20px">2. A balance banner points to it weakly: it can show it, but does not keep it alive</text>
+        <text class="fade fill-teal" data-lit="3+" x="568" y="324" text-anchor="middle" style="font-size:20px">3. The user signs out: only a weak link is left, so ARC frees it, and the link becomes empty</text>
       </svg>
-    </div>
-    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    </div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
     <div class="gap"></div>
-    <div class="rule step" data-label="Do not overcorrect">Strong ownership is <b>normal and necessary</b>. A parent strongly owns its child; a child may hold a <b>weak</b> reference back.</div>
+    <div class="rule step" data-label="Strong and weak"><b>Strong</b> = owns it, keeps it alive. <b>Weak</b> = only points to it, and becomes empty when it is freed.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Click through the three. Strong keeps the instance alive and is the default. Weak does not keep it alive; it is optional and becomes nil automatically when the instance is deallocated. Unowned does not keep it alive either, and assumes the instance is still alive whenever accessed: accessing it after deallocation traps, a deliberate crash.</p>
-    <span class="notes-label">SAY</span><p>There is also unowned(unsafe), which skips even that check: accessing a deallocated instance is then undefined behaviour. Lesson 1.8 goes deeper into unowned and ownership.</p>
-    <span class="notes-label">SAY</span><p>Do not replace every strong reference with weak. A parent usually strongly owns a child; the child may hold a weak back-reference to a parent that can disappear independently.</p>
+    <span class="notes-label">SAY</span><p>Not every reference keeps an object alive. Click: Home holds NPay&rsquo;s Account object strongly; while Home holds it, ARC keeps it alive. That is the normal kind.</p>
+    <span class="notes-label">SAY</span><p>Click: a small balance banner points to the same account weakly. It can show the balance while the account exists, but it does not keep the account alive.</p>
+    <span class="notes-label">SAY</span><p>Click: the user signs out and Home lets go. Only a weak link is left, and weak links do not count, so ARC frees the account. The banner&rsquo;s link simply becomes empty: no crash, nothing leaked.</p>
+    <span class="notes-label">SAY</span><p>Click: strong owns it; weak only points to it. Do not overcorrect: owners should hold strongly, and weak is for back-links and observers. Swift has a third kind, unowned, for special cases; Unit 01, lesson 1.8, covers it.</p>
+    <span class="notes-label">ASK</span><p>If the banner held the account strongly instead, what would happen after sign-out?</p>
+    <span class="notes-label">EXPECT</span><p>The account would stay alive because the banner still holds it.</p>
     <span class="notes-label">CONNECT</span><p>What happens when two objects keep each other alive?</p>
   </aside>
 </section>
@@ -2448,93 +2436,66 @@
 <section class="slide">
   <p class="kicker">Part 6 &middot; Retain cycle &middot; conceptual</p>
   <h2>Two objects that never let go</h2>
-  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
-    <div>
-      <div class="card accent"><span class="label">Two objects</span><ul style="margin:6px 0 0"><li>A <b>person</b> strongly references their apartment</li><li>The <b>apartment</b> strongly references its tenant</li><li>Both outside variables are cleared</li><li>Each still holds the other: <b>neither is freed</b></li></ul></div>
-      <div class="gap"></div>
-      <div class="rule step" data-label="The fix">Make the apartment&rsquo;s reference to its tenant <b>weak</b>. It no longer owns the tenant, so both are freed.</div>
-    </div>
-    <div>
-      <div class="diagram">
-      <svg class="art" viewBox="0 0 560 240" role="img" aria-labelledby="s16cyc">
-        <title id="s16cyc">Person and Apartment strongly reference each other; removing the outside variables leaks both; making tenant weak breaks the cycle</title>
-        <g class="nd"><rect class="sh" x="30" y="0" width="200" height="50" rx="12"/><text x="46" y="22">person</text><text class="sm" x="46" y="40">outside variable</text></g>
-        <g class="nd"><rect class="sh" x="330" y="0" width="200" height="50" rx="12"/><text x="346" y="22">apartment</text><text class="sm" x="346" y="40">outside variable</text></g>
-        <g class="fade" data-lit="0"><path class="wire" d="M130 50V96M123 89l7 7 7-7"/><path class="wire" d="M430 50V96M423 89l7 7 7-7"/></g>
-        <g class="fade" data-lit="1+"><text class="sm" x="280" y="80" text-anchor="middle">set to nil</text></g>
-        <g class="nd"><rect class="sh" x="30" y="102" width="200" height="64" rx="12"/><use href="#i-user" x="44" y="121" width="26" height="26"/><text x="82" y="131">Person</text><text class="sm" x="82" y="149">instance</text></g>
-        <g class="nd"><rect class="sh" x="330" y="102" width="200" height="64" rx="12"/><use href="#i-building" x="344" y="121" width="26" height="26"/><text x="382" y="131">Apartment</text><text class="sm" x="382" y="149">instance</text></g>
-        <path class="wire" d="M230 124H324M317 117l7 7-7 7"/>
-        <text class="sm" x="277" y="116" text-anchor="middle">strong</text>
-        <g class="fade" data-lit="0-1"><path class="wire" d="M330 146H236M243 139l-7 7 7 7"/><text class="sm" x="283" y="164" text-anchor="middle">strong</text></g>
-        <g class="fade" data-lit="2+"><path class="wire dash" d="M330 146H236M243 139l-7 7 7 7"/><text class="sm" x="283" y="164" text-anchor="middle">weak</text></g>
-        <g class="fade" data-lit="0"><text class="mono" x="280" y="206" text-anchor="middle">BOTH REACHABLE FROM OUTSIDE</text></g>
-        <g class="fade" data-lit="1"><g class="nd alert"><rect class="sh" x="30" y="186" width="500" height="50" rx="12"/><text x="46" y="208">Leak: both stay alive</text><text class="sm" x="46" y="226">they retain each other</text></g></g>
-        <g class="fade" data-lit="2+"><g class="nd lit"><rect class="sh" x="30" y="186" width="500" height="50" rx="12"/><text x="46" y="208">Weak tenant: both can be released</text><text class="sm" x="46" y="226">the cycle is broken</text></g></g>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 308" role="img" aria-labelledby="cycle2">
+        <title id="cycle2">NPay&rsquo;s account holds its card and the card holds the account back. When Home lets go, both stay alive: a retain cycle. With a weak back-link, both are freed.</title>
+        <g class="fade" data-lit="1"><g class="nd"><rect class="sh" x="438" y="0" width="260" height="70" rx="12"/><use href="#i-phone" x="452" y="22" width="26" height="26"/><text x="490" y="31">Home screen</text><text class="sm" x="490" y="51">holds the account</text></g></g>
+        <g class="fade" data-lit="2+"><g class="nd ghost"><rect class="sh" x="438" y="0" width="260" height="70" rx="12"/><use href="#i-phone" x="452" y="22" width="26" height="26"/><text x="490" y="31">Home screen</text><text class="sm" x="490" y="51">let go (signed out)</text></g></g>
+        <g class="fade" data-lit="1"><path class="wire" d="M568 72V128M561 121l7 7 7-7"/></g>
+        <g class="fade" data-lit="1"><g class="nd"><rect class="sh" x="140" y="134" width="260" height="70" rx="12"/><use href="#i-bank" x="154" y="156" width="26" height="26"/><text x="192" y="165">Account</text><text class="sm" x="192" y="185">holds its card</text></g></g>
+        <g class="fade" data-lit="2"><g class="nd"><rect class="sh" x="140" y="134" width="260" height="70" rx="12"/><use href="#i-bank" x="154" y="156" width="26" height="26"/><text x="192" y="165">Account</text><text class="sm" x="192" y="185">still held by the card</text></g></g>
+        <g class="fade" data-lit="3+"><g class="nd ghost"><rect class="sh" x="140" y="134" width="260" height="70" rx="12"/><use href="#i-bank" x="154" y="156" width="26" height="26"/><text x="192" y="165">Account</text><text class="sm" x="192" y="185">freed</text></g></g>
+        <g class="fade" data-lit="1"><g class="nd"><rect class="sh" x="736" y="134" width="260" height="70" rx="12"/><use href="#i-key" x="750" y="156" width="26" height="26"/><text x="788" y="165">Card</text><text class="sm" x="788" y="185">points back to its account</text></g></g>
+        <g class="fade" data-lit="2"><g class="nd"><rect class="sh" x="736" y="134" width="260" height="70" rx="12"/><use href="#i-key" x="750" y="156" width="26" height="26"/><text x="788" y="165">Card</text><text class="sm" x="788" y="185">still held by the account</text></g></g>
+        <g class="fade" data-lit="2"><g class="nd alert"><rect class="sh" x="418" y="226" width="300" height="34" rx="10"/><text x="568" y="248" text-anchor="middle">neither is freed: a leak</text></g></g>
+        <g class="fade" data-lit="3+"><g class="nd ghost"><rect class="sh" x="736" y="134" width="260" height="70" rx="12"/><use href="#i-key" x="750" y="156" width="26" height="26"/><text x="788" y="165">Card</text><text class="sm" x="788" y="185">freed</text></g></g>
+        <g class="fade" data-lit="1-2"><path class="wire" d="M402 156H730M723 149l7 7-7 7"/><text class="sm" x="566" y="148" text-anchor="middle">strong</text><path class="wire" d="M734 190H406M413 183l-7 7 7 7"/><text class="sm" x="566" y="214" text-anchor="middle">strong</text></g>
+        <g class="fade" data-lit="3+"><path class="wire" d="M402 156H730M723 149l7 7-7 7"/><text class="sm" x="566" y="148" text-anchor="middle">strong</text><path class="wire dash lit" d="M734 190H406M413 183l-7 7 7 7"/><text class="sm fill-teal" x="566" y="214" text-anchor="middle">weak back-link</text></g>
+        <text class="fade fill-teal" data-lit="1" x="568" y="296" text-anchor="middle" style="font-size:20px">1. The account holds its card; the card points back to its account. Both strongly</text>
+        <text class="fade fill-teal" data-lit="2" x="568" y="296" text-anchor="middle" style="font-size:20px">2. The user signs out: Home lets go, but each still holds the other, so neither is freed: a leak</text>
+        <text class="fade fill-teal" data-lit="3+" x="568" y="296" text-anchor="middle" style="font-size:20px">3. Fix: the card points back weakly. Home lets go, and both are freed</text>
       </svg>
-    </div>
-      <i class="step cue"></i>
-    </div>
+    </div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Retain cycle">Two objects holding each other <b>strongly</b> are never freed. Make the <b>back-link weak</b>.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>A person strongly references their apartment, and the apartment strongly references its tenant. Both are also reachable from outside variables. Click: set the outside variables to nil. The two instances still retain one another, so neither is released: a leak.</p>
-    <span class="notes-label">SAY</span><p>Click: make the apartment&rsquo;s reference to its tenant weak. Now nothing keeps the person alive once the outside reference goes, and the cycle no longer prevents deallocation.</p>
+    <span class="notes-label">SAY</span><p>Click: NPay&rsquo;s account holds its card, and the card points back to its account. Both links are strong, and Home holds the account.</p>
+    <span class="notes-label">SAY</span><p>Click: the user signs out and Home lets go. Nothing else needs them, but each still holds the other, so their counts never reach zero: neither is freed. That is a retain cycle, a leak.</p>
+    <span class="notes-label">SAY</span><p>Click: the fix. The account owns its card, so that link stays strong; the card only points back, so make that link weak. Now when Home lets go, the account is freed, and then the card.</p>
+    <span class="notes-label">SAY</span><p>Click: two objects holding each other strongly are never freed; make the back-link weak.</p>
+    <span class="notes-label">ASK</span><p>Which link should be weak: account to card, or card back to account?</p>
+    <span class="notes-label">EXPECT</span><p>Card back to account: the owner holds strongly, the back-link is weak.</p>
     <span class="notes-label">CONNECT</span><p>Cycles between two objects are easy to spot. Cycles through closures are not.</p>
   </aside>
 </section>
 
 <section class="slide">
-  <p class="kicker">Part 6 &middot; Capture experiment &middot; conceptual</p>
-  <h2>Strong vs weak capture</h2>
+  <p class="kicker">Part 6 &middot; Closures &middot; conceptual</p>
+  <h2>A closure that holds on</h2>
   <div class="body cols middle" style="grid-template-columns:1.25fr 1fr">
     <div class="diagram">
       <svg class="art" viewBox="0 0 690 242" role="img" aria-labelledby="s22cap">
-        <title id="s22cap">With strong capture the ViewModel stays alive after its external owner is released; with weak capture it is deallocated</title>
-        <g class="nd" data-lit="0"><rect class="sh" x="0" y="0" width="270" height="52" rx="12"/><text x="16" y="32">Strong capture</text></g>
-        <g class="nd" data-lit="1+"><rect class="sh" x="290" y="0" width="270" height="52" rx="12"/><text x="306" y="32">Weak capture</text></g>
+        <title id="s22cap">If the closure holds the ViewModel strongly, the ViewModel stays alive after its screen lets go; if it holds it weakly, it is freed</title>
+        <g class="nd" data-lit="0"><rect class="sh" x="0" y="0" width="270" height="52" rx="12"/><text x="16" y="32">Holds it strongly</text></g>
+        <g class="nd" data-lit="1+"><rect class="sh" x="290" y="0" width="270" height="52" rx="12"/><text x="306" y="32">Holds it weakly</text></g>
         <g class="nd"><rect class="sh" x="0" y="90" width="260" height="70" rx="12"/><use href="#i-layout" x="14" y="112" width="26" height="26"/><text x="52" y="131">ViewModel</text></g>
         <g class="nd"><rect class="sh" x="420" y="90" width="260" height="70" rx="12"/><use href="#i-code" x="434" y="112" width="26" height="26"/><text x="472" y="131">Closure</text></g>
         <path class="wire" d="M260 110H414M407 103l7 7-7 7"/>
         <text class="sm" x="337" y="102" text-anchor="middle">owns</text>
-        <g class="fade" data-lit="0"><path class="wire" d="M420 142H266M273 135l-7 7 7 7"/><text class="sm" x="343" y="160" text-anchor="middle">strong capture</text></g>
-        <g class="fade" data-lit="1+"><path class="wire dash" d="M420 142H266M273 135l-7 7 7 7"/><text class="sm" x="343" y="160" text-anchor="middle">weak capture</text></g>
+        <g class="fade" data-lit="0"><path class="wire" d="M420 142H266M273 135l-7 7 7 7"/><text class="sm" x="343" y="160" text-anchor="middle">holds strongly</text></g>
+        <g class="fade" data-lit="1+"><path class="wire dash" d="M420 142H266M273 135l-7 7 7 7"/><text class="sm" x="343" y="160" text-anchor="middle">holds weakly</text></g>
         <g class="fade" data-lit="0"><g class="nd alert"><rect class="sh" x="0" y="190" width="680" height="50" rx="12"/><text x="16" y="212">External owner released: ViewModel stays alive</text><text class="sm" x="16" y="230">strong ownership cycle</text></g></g>
-        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="0" y="190" width="680" height="50" rx="12"/><text x="16" y="212">External owner released: ViewModel deallocated</text><text class="sm" x="16" y="230">no cycle</text></g></g>
+        <g class="fade" data-lit="1+"><g class="nd lit"><rect class="sh" x="0" y="190" width="680" height="50" rx="12"/><text x="16" y="212">External owner released: ViewModel freed</text><text class="sm" x="16" y="230">no cycle</text></g></g>
       </svg>
     </div>
     <i class="step cue"></i>
-    <div class="rule step" data-label="Not for every closure"><code>[weak self]</code> matters for <b>escaping closures</b> that are retained and create a cycle. A short-lived, non-escaping closure does not need it.</div>
+    <div><p class="lead" style="margin:0 0 12px;font-size:21px">A <b>closure</b> is code NPay keeps to run later, such as &ldquo;refresh when the timer fires&rdquo;. It holds on to what it uses.</p><div class="rule step" data-label="The fix">If the closure holds the ViewModel that keeps it, let it hold the ViewModel <b>weakly</b>. A closure that runs once and is gone needs nothing.</div></div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Strong capture: release the external owner and the ViewModel stays alive in an ownership cycle. Click: with weak capture, the same release lets the ViewModel be deallocated.</p>
-    <span class="notes-label">SAY</span><p>Do not teach [weak self] as mandatory for every closure. It matters for escaping closures retained in a way that creates an unwanted cycle or extends a lifetime beyond what is intended. A short-lived non-escaping closure does not automatically need it.</p>
-    <span class="notes-label">CONNECT</span><p>Weak is one way to break a cycle. When is unowned the right choice?</p>
-  </aside>
-</section>
-
-<section class="slide">
-  <p class="kicker">Part 6 &middot; Comparison</p>
-  <h2>strong vs weak vs unowned</h2>
-  <div class="body top">
-    <table class="tbl" style="font-size:19px">
-      <tr><th>Property</th><th>strong</th><th>weak</th><th>unowned</th></tr>
-      <tr><td>Keeps object alive</td><td>Yes</td><td>No</td><td>No</td></tr>
-      <tr><td>Becomes nil on deallocation</td><td>No</td><td>Yes</td><td>No (ordinary unowned)</td></tr>
-      <tr><td>Common usage</td><td>Ownership</td><td>Optional back-reference</td><td>Guaranteed lifetime relationship</td></tr>
-      <tr><td>Risk</td><td>Retain cycle</td><td>Reference may be nil</td><td>Access after deallocation traps</td></tr>
-    </table>
-    <div class="gap"></div>
-    <div class="cols">
-      <div class="card accent step"><span class="label">Weak: apartment and tenant</span><p class="small" style="margin:0">The tenant can move out, so the apartment&rsquo;s reference to its tenant is <b>weak</b>.</p></div>
-      <div class="card accent step"><span class="label">Unowned: card and customer</span><p class="small" style="margin:0">A card cannot exist without its customer: an <b>unowned</b> candidate, only if that guarantee is truly enforced.</p></div>
-    </div>
-    <div class="gap"></div>
-    <p class="small muted step">Reach for <b>weak</b> first. Lesson 1.8 covers <code>unowned</code> in depth, including <code>unowned(unsafe)</code>.</p>
-  </div>
-  <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Strong keeps the object alive; the risk is a retain cycle. Weak does not, and becomes nil on deallocation; the risk is that it may be nil. Unowned does not keep it alive and does not become nil; invalid access may crash.</p>
-    <span class="notes-label">SAY</span><p>The tenant can move out, so the apartment’s reference is weak. A credit card that cannot exist without its customer can hold an unowned reference back to it, provided that lifetime guarantee is enforced: the customer strongly owns the card, and the card is never used after the customer is gone.</p>
-    <span class="notes-label">SAY</span><p>Reach for weak first; use unowned only when the lifetime guarantee is real. Lesson 1.8 goes deeper, including unowned(unsafe), which removes the safety check and makes a bad access undefined behaviour.</p>
+    <span class="notes-label">SAY</span><p>A closure is a piece of code NPay keeps to run later, for example: when the timer fires, refresh the balance. It holds on to whatever it uses. If DashboardViewModel keeps that closure, and the closure holds the ViewModel strongly, they keep each other alive: release the screen and the ViewModel stays. Click: if the closure holds the ViewModel weakly, the same release lets the ViewModel be freed.</p>
+    <span class="notes-label">SAY</span><p>Not every closure needs this: one that runs once and is gone cannot create a cycle. Unit 01, lesson 1.8, shows the Swift.</p>
     <span class="notes-label">CONNECT</span><p>Is every high-memory app leaking? No.</p>
   </aside>
 </section>
@@ -2544,14 +2505,14 @@
   <h2>Leak vs high usage</h2>
   <div class="body">
     <div class="cols stretch">
-      <div class="card accent step"><span class="label">Memory leak</span><p>Memory stays allocated though <b>no longer needed</b>, and cannot be reclaimed through the intended ownership path.</p></div>
-      <div class="card step"><span class="label">High memory usage</span><p>The app uses a lot of memory. That may be <b>legitimate</b>, or a sign of excessive caching or allocation.</p></div>
+      <div class="card accent step"><span class="label">Memory leak</span><p>Memory NPay <b>no longer needs</b> but can never get back, like the account and card in a cycle.</p></div>
+      <div class="card step"><span class="label">High memory usage</span><p>NPay uses a lot of memory <b>on purpose</b>, like a big photo. Fine, unless it keeps growing.</p></div>
     </div>
     <div class="gap"></div>
     <div class="analogy step"><div class="icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div><p>NPay keeps recent merchant logos in a <b>cache</b>: not a leak. But a cache that grows <b>without bounds</b> can still cause memory problems, even when everything stays reachable.</p></div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>A leak is memory that stays allocated though no longer needed and cannot be reclaimed through the intended ownership path. High memory usage may be legitimate, or may indicate excessive caching or allocation.</p>
+    <span class="notes-label">SAY</span><p>Two different problems. A leak is memory NPay no longer needs but can never get back, like the account and card in a cycle. High usage is memory NPay uses on purpose; that is fine unless it keeps growing.</p>
     <span class="notes-label">SAY</span><p>An app can use a lot of memory without leaking; and a small leak repeated thousands of times can eventually cause serious memory pressure. A merchant-logo cache is fine until it grows without bounds.</p>
     <span class="notes-label">CONNECT</span><p>How do we find out which one we have?</p>
   </aside>
@@ -2560,19 +2521,15 @@
 <section class="slide">
   <p class="kicker">Part 6 &middot; Tools</p>
   <h2>Three memory tools</h2>
-  <div class="body top">
-    <table class="tbl" style="font-size:18px">
-      <tr><th>Tool</th><th>Shows</th><th>Good at finding</th><th>Can miss</th></tr>
-      <tr><td><b>Memory Graph Debugger</b></td><td>Live objects and who references them, at one moment</td><td>An instance that should be gone, and the <b>strong chain</b> holding it</td><td>Growth over time</td></tr>
-      <tr><td><b>Instruments: Allocations</b></td><td>Allocations and growth over time; mark <b>generations</b> between repeated actions</td><td>Memory that keeps growing each time you repeat an action</td><td>Which reference holds an object</td></tr>
-      <tr class="hl"><td><b>Instruments: Leaks</b></td><td>Memory nothing can reach any more</td><td>Unreachable memory, including <b>unreachable cycles</b></td><td>Memory still <b>reachable</b> but no longer needed: a running timer, an unbounded cache</td></tr>
-    </table>
+  <div class="body">
+    <div class="cols c3" style="gap:18px;align-items:stretch"><div class="card accent step anim-up" style="padding:16px 20px"><span class="label">Memory Graph</span><p style="margin:4px 0 8px;font-size:21px"><b>Who is still holding this object?</b></p><p class="small muted" style="margin:0">e.g. The closed payment sheet is still in memory: who holds it?</p></div><div class="card accent step anim-up" style="padding:16px 20px"><span class="label">Allocations</span><p style="margin:4px 0 8px;font-size:21px"><b>Does memory grow each time I repeat something?</b></p><p class="small muted" style="margin:0">e.g. Open and close History ten times: memory keeps growing</p></div><div class="card accent step anim-up" style="padding:16px 20px"><span class="label">Leaks</span><p style="margin:4px 0 8px;font-size:21px"><b>Is there memory nobody can reach any more?</b></p><p class="small muted" style="margin:0">e.g. Two objects holding each other, with nobody else pointing at them</p></div></div>
     <div class="gap"></div>
-    <div class="rule step">An object kept alive by something still reachable is <b>not</b> a leak to the Leaks instrument. Find it with the Memory Graph and Allocations generations.</div>
+    <div class="rule step" data-label="Watch out"><b>Leaks</b> only finds memory nobody can reach. Something still held, like a cache that keeps growing, looks fine to it: use the <b>Memory Graph</b>.</div>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Three tools. The Memory Graph Debugger shows live objects and who references them at one moment, so you can find an instance that should be gone and the strong chain holding it. Allocations shows allocation patterns and growth over time; mark a generation, repeat an action, and see what stayed. Leaks reports memory that nothing can reach any more, including cycles that are no longer reachable from your code.</p>
-    <span class="notes-label">SAY</span><p>What Leaks cannot see is abandoned memory that is still reachable: an object kept alive by a running timer or an unbounded cache. That is where the Memory Graph and generations come in.</p>
+    <span class="notes-label">SAY</span><p>Xcode gives us three tools, each answering one question. Click: the Memory Graph answers &ldquo;who is still holding this object?&rdquo;; for example, the payment sheet is closed but still in memory, and the graph shows the chain of strong references holding it.</p>
+    <span class="notes-label">SAY</span><p>Click: Allocations answers &ldquo;does memory grow each time I repeat something?&rdquo;; open and close History ten times and see whether memory keeps climbing. Click: Leaks answers &ldquo;is there memory nobody can reach any more?&rdquo;, such as two objects holding each other with nobody else pointing at them.</p>
+    <span class="notes-label">SAY</span><p>Click: watch out. Leaks only finds memory nobody can reach. Something still held, like a cache that keeps growing or a timer that keeps running, looks fine to Leaks; the Memory Graph and Allocations find those.</p>
     <span class="notes-label">CONNECT</span><p>Here is a repeatable sequence for any suspected leak.</p>
   </aside>
 </section>
@@ -2586,7 +2543,7 @@
         <title id="s30seq">Reproduce, observe, inspect the memory graph, identify the strong reference, correct ownership, verify</title>
         <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="352" height="66" rx="12"/><text x="16" y="30">1. Reproduce</text><text class="sm" x="16" y="48">the suspected leak</text></g>
         <path class="wire" d="M358 33H386M379 26l7 7-7 7"/>
-        <g class="nd" data-lit="2"><rect class="sh" x="392" y="0" width="352" height="66" rx="12"/><text x="408" y="30">2. Observe</text><text class="sm" x="408" y="48">memory growth or missing deinit</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="392" y="0" width="352" height="66" rx="12"/><text x="408" y="30">2. Observe</text><text class="sm" x="408" y="48">memory growth or object never freed</text></g>
         <path class="wire" d="M750 33H778M771 26l7 7-7 7"/>
         <g class="nd" data-lit="3"><rect class="sh" x="784" y="0" width="352" height="66" rx="12"/><text x="800" y="30">3. Inspect</text><text class="sm" x="800" y="48">Memory Graph and ownership</text></g>
         <g class="nd" data-lit="4"><rect class="sh" x="0" y="110" width="352" height="66" rx="12"/><text x="16" y="140">4. Identify</text><text class="sm" x="16" y="158">the unexpected strong reference</text></g>
@@ -2599,10 +2556,10 @@
     </div>
     <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
     <div class="gap"></div>
-    <p class="small muted">A missing deinit message alone does not prove a leak: the object may still be intentionally owned.</p>
+    <p class="small muted">An object that is never freed is not always a leak: something may still own it on purpose.</p>
   </div>
   <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Click through: reproduce the suspected leak; observe memory growth or a missing deinit; inspect the Memory Graph and ownership; identify the unexpected strong reference; correct the ownership or lifecycle handling; then repeat the test and verify.</p>
+    <span class="notes-label">SAY</span><p>Click through: reproduce the suspected leak; observe memory growing, or an object that is never freed; inspect the Memory Graph and ownership; identify the unexpected strong reference; correct the ownership or lifecycle handling; then repeat the test and verify.</p>
     <span class="notes-label">CONNECT</span><p>Let&rsquo;s recap Part 6.</p>
   </aside>
 </section>
@@ -2611,15 +2568,15 @@
   <p class="kicker">Part 6 &middot; Recap</p>
   <h2>What to remember</h2>
   <div class="body">
-    <div class="cols c3" style="gap:20px;align-items:stretch"><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:24px"><b>Value vs reference</b><br><span class="muted" style="font-size:20px">structs give independent values; classes share one instance</span></p></div><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><p style="font-size:24px"><b>ARC</b><br><span class="muted" style="font-size:20px">strong references keep a class instance alive</span></p></div><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:24px"><b>Cycles</b><br><span class="muted" style="font-size:20px">break them with weak; stop timers explicitly</span></p></div></div>
+    <div class="cols c3" style="gap:20px;align-items:stretch"><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:24px"><b>Copied vs shared</b><br><span class="muted" style="font-size:20px">values are copied; objects are shared</span></p></div><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><p style="font-size:24px"><b>ARC</b><br><span class="muted" style="font-size:20px">strong references keep a shared object alive</span></p></div><div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:24px"><b>Cycles</b><br><span class="muted" style="font-size:20px">break them with a weak reference</span></p></div></div>
   </div>
 <aside class="notes-src">
-    <span class="notes-label">SAY</span><p>Three things to keep. Value versus reference semantics is the reliable distinction, not stack versus heap. ARC keeps a class instance alive while strong references exist. And cycles, through properties, closures or timers, are broken with weak references and explicit cancellation.</p>
+    <span class="notes-label">SAY</span><p>Three things to keep. Values are copied and objects are shared. ARC keeps a shared object alive while someone holds it strongly. And cycles, between two objects or through a closure, are broken with a weak reference.</p>
     <span class="notes-label">CONNECT</span><p>Two quick questions on Part 6.</p>
   </aside>
 </section>
 
-<section class="slide question" data-title="What keeps a class instance alive under ARC?">
+<section class="slide question" data-title="What keeps a shared object alive?">
   <div class="q-top">
     <p class="kicker">Part 6 &middot; Check your understanding &middot; 1 of 2</p>
     <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i></div>
@@ -2629,12 +2586,12 @@
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">What keeps a class instance alive under ARC?</p><ol class="q-opts"><li>Any reference to it</li><li>At least one strong reference</li><li>Being allocated on the heap</li><li>Being declared with <code>let</code></li></ol>
+        <p class="q-text">What keeps a shared object alive?</p><ol class="q-opts"><li>Any reference to it</li><li>At least one strong reference</li><li>Being allocated on the heap</li><li>Being stored in a constant</li></ol>
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
           <span class="q-verdict">B</span>
-          <p class="q-why">Only strong references keep an instance alive. Weak and unowned references do not, and where it is allocated or how the variable is declared has nothing to do with it.</p>
+          <p class="q-why">Only strong references keep an object alive. Weak references do not, and where or how it is stored has nothing to do with it.</p>
           <p class="q-trap"><b>Common trap:</b> Thinking any reference keeps an object alive.</p>
         </div>
       </div>
@@ -2643,12 +2600,12 @@
   <aside class="notes-src">
     <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
     <span class="notes-label">EXPECT</span><p>Most choose B; some pick A. Ask why a weak reference does not count.</p>
-    <span class="notes-label">SAY</span><p>B. Only strong references keep an instance alive. Weak and unowned references do not, and where it is allocated or how the variable is declared has nothing to do with it.</p>
+    <span class="notes-label">SAY</span><p>B. Only strong references keep an object alive. Weak references do not, and where or how it is stored has nothing to do with it.</p>
     <span class="notes-label">CONNECT</span><p>Next question.</p>
   </aside>
 </section>
 
-<section class="slide question" data-title="Can two instances that retain each other outlive their external references?">
+<section class="slide question" data-title="Can two objects that hold each other stay alive?">
   <div class="q-top">
     <p class="kicker">Part 6 &middot; Check your understanding &middot; 2 of 2</p>
     <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i></div>
@@ -2658,12 +2615,12 @@
       <div class="q-card">
         <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
         <span class="label">Question</span>
-        <p class="q-text">Can two class instances that strongly retain each other stay alive after external references disappear?</p>
+        <p class="q-text">Can two objects that strongly hold each other stay alive after everyone else lets go?</p>
       </div>
       <div class="q-panel">
         <div class="q-ans step anim-up">
           <span class="q-verdict">Yes</span>
-          <p class="q-why">That is a retain cycle: each keeps the other alive, so neither is deallocated.</p>
+          <p class="q-why">That is a retain cycle: each keeps the other alive, so neither is freed.</p>
           <p class="q-trap"><b>Common trap:</b> Assuming ARC detects and breaks cycles.</p>
         </div>
       </div>
@@ -2672,7 +2629,7 @@
   <aside class="notes-src">
     <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
     <span class="notes-label">EXPECT</span><p>Some expect ARC to clean it up, as a garbage collector might.</p>
-    <span class="notes-label">SAY</span><p>Yes. That is a retain cycle: each keeps the other alive, so neither is deallocated.</p>
+    <span class="notes-label">SAY</span><p>Yes. That is a retain cycle: each keeps the other alive, so neither is freed.</p>
     <span class="notes-label">CONNECT</span><p>Part 7: the walls iOS builds around NPay.</p>
   </aside>
 </section>
@@ -3238,11 +3195,11 @@ Authorization: Bearer &lt;token&gt;</pre></div>
       <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
       <p class="small muted" style="margin:10px 0 0">The View owns its ViewModel.</p>
     </div>
-    <div class="card accent"><span class="label">DashboardViewModel</span><ul style="margin:6px 0 0"><li>Runs on the <b>main actor</b>: its state feeds the UI</li><li>Asks BalanceService for the balance and <b>waits without blocking</b></li><li>Formats paise as <b>&#8377;25,000</b> for display</li><li>Stores an <b>error message</b> when the request fails</li></ul></div>
+    <div class="card accent"><span class="label">DashboardViewModel</span><ul style="margin:6px 0 0"><li>Runs on the <b>main thread</b>: its state feeds the UI</li><li>Asks BalanceService for the balance and <b>waits without blocking</b></li><li>Formats paise as <b>&#8377;25,000</b> for display</li><li>Stores an <b>error message</b> when the request fails</li></ul></div>
   </div>
   <aside class="notes-src">
     <span class="notes-label">SAY</span><p>Click down: the view displays the balance and loading state; the ViewModel coordinates the call and updates observable state; the service talks to the network and decodes the response; the server returns authorized account information.</p>
-    <span class="notes-label">SAY</span><p>The ViewModel runs on the main actor, so its state changes happen where the UI reads them. It waits for the service without blocking, formats the minor units as rupees for display, and on failure stores a message the view can show. Formatting is the ViewModel&rsquo;s job, not the view&rsquo;s.</p>
+    <span class="notes-label">SAY</span><p>The ViewModel runs on the main thread, so its state changes happen where the UI reads them. It waits for the service without blocking, formats the minor units as rupees for display, and on failure stores a message the view can show. Formatting is the ViewModel&rsquo;s job, not the view&rsquo;s.</p>
     <span class="notes-label">CONNECT</span><p>And when the response arrives, how does it reach the screen?</p>
   </aside>
 </section>

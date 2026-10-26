@@ -72,7 +72,8 @@ def simple_recap(s):
 
 def take(n, i, P, kicker=None, connect=None, subs=()):
     s = simple_recap(rekick(get(n, i), P, kicker))
-    for a, b in subs:
+    for sub in subs:
+        a, b = sub[0], sub[1]
         assert a in s, (n, i, a)
         s = s.replace(a, b)
     if connect:
@@ -90,7 +91,8 @@ def question(n, i, P, k, connect, subs=()):
     dots = ''.join('<i class="done"></i>' if j < k else '<i class="now"></i>' if j == k else '<i></i>' for j in range(2))
     s = re.sub(r'<p class="kicker">.*?</p>', f'<p class="kicker">{label(P)} &middot; Check your understanding &middot; {k + 1} of 2</p>', s, count=1, flags=re.S)
     s = re.sub(r'<div class="q-dots" aria-hidden="true">.*?</div>', f'<div class="q-dots" aria-hidden="true">{dots}</div>', s, count=1, flags=re.S)
-    for a, b in subs:
+    for sub in subs:
+        a, b = sub[0], sub[1]
         assert a in s, (n, i, a)
         s = s.replace(a, b)
     S.append(set_connect(s, connect) + '\n\n')
@@ -760,7 +762,13 @@ S.append(slide('Part 5 &middot; Main thread &middot; conceptual', 'The main thre
     ('ASK', 'What happens to other taps while a button action does three seconds of work on the main thread?'),
     ('EXPECT', 'They wait. The head chef is busy baking bread.'),
     ('CONNECT', 'Where does the main thread live? Inside the process.'))))
-take(5, 7, 5)
+take(5, 7, 5, subs=[   # Part 5 re-check: no Swift tasks yet (Unit 01 · 1.9); NPay's own threads instead
+    ('<p class="small">Threads <b>share</b> the process&rsquo;s address space; each has its <b>own stack</b> and scheduling state.</p>',
+     '<p class="small">Threads <b>share</b> NPay&rsquo;s memory; each follows <b>its own steps</b>, and iOS decides when each one runs.</p>'),
+    ('<div class="rule step" data-label="Modern Swift">An asynchronous Swift <b>task is not a thread</b>. Tasks can suspend without blocking an OS thread.</div>',
+     '<div class="rule step" data-label="In NPay">The <b>main thread</b> handles taps and frames; <b>other threads</b> do networking and decoding. All share NPay&rsquo;s memory.</div>'),
+    ('<span class="notes-label">SAY</span><p>For modern Swift: an asynchronous task is not the same thing as a thread. Swift concurrency schedules tasks onto executors, and tasks may suspend without blocking an operating-system thread. We return to this shortly.</p>',
+     '<span class="notes-label">SAY</span><p>Click: in NPay, the main thread handles taps and draws frames, while other threads do work such as networking and decoding the response. They all share NPay&rsquo;s memory, which is why Part 6 matters. How Swift moves work between threads is Unit 01, lesson 1.9.</p>')])
 
 # rebuilt (user: "no clarity of what a RunLoop is"): the main thread as a timeline: sleep, wake on an event, run, sleep again; then the slow case
 def seg(x, w, y, t, kind, lit_):
@@ -884,54 +892,135 @@ S.append(slide('Part 5 &middot; Blocking vs non-blocking', 'Blocking vs non-bloc
     ('SAY', 'Click: same three-second wait in both. Only where it happens decides whether the app freezes. Unit 01 shows the Swift for both.'),
     ('ASK', 'Which version would you ship in a banking app?'),
     ('EXPECT', 'The right one: the user sees progress and the app stays responsive.'),
-    ('CONNECT', 'Swift has a name for &ldquo;runs on the main thread&rdquo;: the MainActor. Are they the same thing?'))))
-# simplified (Part 5 audit): three plain rows and one takeaway
-S.append(slide('Part 5 &middot; Comparison', 'Main thread vs MainActor', f"""  <div class="body top">
-    <table class="tbl" style="font-size:21px">
-      <tr><th></th><th>Main thread</th><th>MainActor</th></tr>
-      <tr><td><b>What it is</b></td><td>A thread that iOS runs</td><td>A Swift rule: &ldquo;this code runs on the main thread&rdquo;</td></tr>
-      <tr><td><b>Who enforces it</b></td><td>iOS, at run time</td><td>The Swift compiler, at build time</td></tr>
-      <tr><td><b>NPay example</b></td><td>Handles the Refresh tap, draws frames</td><td>DashboardViewModel&rsquo;s balance is only changed there</td></tr>
-    </table>
-    <div class="gap"></div>
-    <div class="rule step" data-label="Mental model"><b>MainActor</b> is Swift&rsquo;s way of making sure UI code runs on the <b>main thread</b>, checked before the app even runs.</div>
-  </div>""", notes(
-    ('SAY', 'Two words that sound alike. The main thread is a real thread that iOS runs: it handles NPay&rsquo;s taps and draws its frames. MainActor is a Swift rule that says: this code runs on the main thread. iOS runs the thread; the Swift compiler checks the rule when we build.'),
-    ('SAY', 'For NPay: the main thread handles the Refresh tap. DashboardViewModel is marked as main-actor code, so its balance can only be changed on the main thread, where the UI reads it.'),
-    ('SAY', 'Click: the mental model. MainActor is Swift&rsquo;s way of making sure UI code runs on the main thread, and the check happens before the app even runs. Unit 01, lesson 1.9, shows the Swift.'),
     ('CONNECT', '&ldquo;Background&rdquo; is a word we use for three different things.'))))
+# 0.5's "Main thread vs MainActor" dropped (user: actors appeared without introduction; Unit 01 · 1.9 teaches them)
 take(5, 19, 5, subs=[   # shortened to NPay examples (Part 5 audit)
     ('<span class="label">Asynchronous I/O</span>', '<span class="label">1 &middot; Waiting</span>'),
     ('<span class="label">CPU-bound parallel work</span>', '<span class="label">2 &middot; Computing</span>'),
     ('<span class="label">iOS background execution</span>', '<span class="label">3 &middot; After the user leaves</span>'),
     ('<p>Network requests that <b>wait without occupying a thread</b>. Most file APIs are <b>synchronous</b>: keep large reads and writes off the main actor.</p>',
-     '<p><b>Waiting</b>: fetching NPay&rsquo;s balance from the bank.</p><p class="small muted" style="margin:6px 0 0">No thread sits idle while it waits.</p>'),
+     '<p>Fetching NPay&rsquo;s balance from the bank.</p><p class="small muted" style="margin:6px 0 0">No thread sits idle while it waits.</p>'),
     ('<p>Image processing, data transformation and expensive calculations that need <b>CPU time away from the main actor</b>.</p>',
-     '<p><b>Computing</b>: sorting a year of NPay transactions.</p><p class="small muted" style="margin:6px 0 0">Needs CPU time away from the main thread.</p>'),
+     '<p>Sorting a year of NPay transactions.</p><p class="small muted" style="margin:6px 0 0">Needs CPU time away from the main thread.</p>'),
     ('<p>Work allowed while the app is <b>no longer foreground</b>, subject to system policies and capabilities.</p>',
-     '<p><b>After the user leaves</b>: finishing an upload NPay started.</p><p class="small muted" style="margin:6px 0 0">Only with iOS&rsquo;s permission, as in Part 3.</p>')])
-take(5, 21, 5)
-take(5, 23, 5, subs=[('SwiftUI&rsquo;s <code>body</code> is a <b>description</b>, not a drawing function. Recomputing it does not mean every element is redrawn.',
-                     'A SwiftUI view is a <b>description</b>, not a drawing. Recomputing it does <b>not</b> redraw every element: only what changed.'),
-                    ('Recall from Lesson 0.2: body is a description of UI, not a drawing function. Recomputing a body does not mean every element is redrawn.',
-                     'Recall from Part 1: a view is a description of the screen, not a drawing. Recomputing it does not mean every element is redrawn.')])
-take(5, 25, 5, connect='Two kinds of slow work, and why the difference matters.')
+     '<p>Finishing an upload NPay started.</p><p class="small muted" style="margin:6px 0 0">Only with iOS&rsquo;s permission, as in Part 3.</p>'),
+    ('An async task does <b>not</b> mean iOS will let it continue after the app is suspended.', 'Handing work off does <b>not</b> keep it running after iOS suspends NPay.')])
+S[-1] = re.sub(r'<aside class="notes-src">.*?</aside>', notes(
+    ('SAY', 'People say &ldquo;background&rdquo; for three different things. Click: one, waiting, such as fetching the balance from the bank; while it waits, no thread sits idle. Click: two, computing, such as sorting a year of transactions; that needs real CPU time, away from the main thread.'),
+    ('SAY', 'Click: three, after the user leaves: finishing an upload NPay started. That is iOS background execution, allowed only with iOS&rsquo;s permission, as in Part 3.'),
+    ('SAY', 'Click: so handing work off the main thread does not keep it running after iOS suspends NPay. Different problems, different solutions.'),
+    ('CONNECT', 'Now the deadline the main thread is racing against: the frame.')).strip(), S[-1], count=1, flags=re.S)
+# rebuilt (user review, concrete style): NPay's list scrolling against the display's ticks; 60 Hz, 120 Hz, then a missed tick
+X0, X1 = 196, 1136
+def mini(x, off, cls=''):
+    """one frame of NPay's scrolling list: three rows moved up by `off`"""
+    rows_ = ''.join(f'<rect class="mute" x="{x + 10}" y="{76 + 12 * r - off}" width="96" height="8" rx="3"/>' for r in range(5) if 64 < 76 + 12 * r - off < 118)
+    box = (f'<rect class="sh" x="{x}" y="62" width="116" height="66" rx="8"/>' if 'alert' in cls else
+           f'<rect class="wire" style="fill:none" x="{x}" y="62" width="116" height="66" rx="8"/>')
+    return f'<g class="{cls}">{box}{rows_}</g>'
+P = ['<text x="0" y="40">60 Hz</text><text class="sm" x="0" y="60">a frame every</text><text class="sm" x="0" y="78">16.67 ms</text>',
+     f'<g class="fade" data-lit="1+"><path class="wire" d="M{X0} 40H{X1}"/>' +
+     ''.join(f'<path class="wire" d="M{X0 + k * 156:g} 30V50"/>' for k in range(7)) +
+     '<text class="sm" x="1136" y="22" text-anchor="end">one tenth of a second &#8594;</text></g>']
+frames = ''.join(mini(X0 + 20 + k * 156, k * 6) for k in range(6))
+P.append(f'<g class="fade" data-lit="2-3">{frames}</g>')
+late = ''.join(mini(X0 + 20 + k * 156, (k if k < 3 else k - 1) * 6, 'nd alert' if k == 3 else '') for k in range(6))
+P.append(f'<g class="fade" data-lit="4+">{late}<text class="sm" x="{X0 + 20 + 3 * 156 + 58}" y="146" text-anchor="middle">late: the old frame stays</text></g>')
+P.append('<g class="fade" data-lit="3+"><text x="0" y="200">120 Hz</text><text class="sm" x="0" y="220">a frame every</text><text class="sm" x="0" y="238">8.33 ms</text>'
+         f'<path class="wire" d="M{X0} 200H{X1}"/>' + ''.join(f'<path class="wire" d="M{X0 + k * 78:g} 190V210"/>' for k in range(13)) +
+         f'<text class="sm" x="{(X0 + X1) // 2}" y="236" text-anchor="middle">twice the deadlines, each half as long</text></g>')
+for k, cap in enumerate(['The display wants a new picture at every tick: 60 times a second',
+                         'Scrolling NPay&#8217;s list: a new frame is ready at every tick, so it looks smooth',
+                         'ProMotion iPhones go up to 120 Hz: twice the ticks, half the time for each',
+                         'One frame is not ready in time: the old picture stays one tick longer, a stutter']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 3 else ""}" x="666" y="290" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 5 &middot; Frame budget &middot; illustrative', 'One refresh, one deadline', f"""  <div class="body">
+    {svg('0 0 1136 300', 'NPay&rsquo;s list scrolling, one frame per display tick: 60 Hz ticks every 16.67 ms, 120 Hz ticks every 8.33 ms; one late frame repeats the old picture.', 'ticks', P)}{cues(4)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="Deadline">Every tick is a deadline, and NPay only gets <b>part</b> of it: the system needs time to draw too.</div>
+  </div>""", notes(
+    ('SAY', 'Why does the main thread have to be quick? Because the screen keeps asking for new pictures. Click: at 60 Hz the display refreshes 60 times a second, a tick every 16.67 milliseconds. Here is one tenth of a second.'),
+    ('SAY', 'Click: the user scrolls NPay&rsquo;s transaction list. At every tick a new frame is ready, the rows a little higher each time: that is what smooth looks like. Click: ProMotion iPhones go up to 120 Hz while scrolling, twice as many ticks, each deadline half as long, 8.33 milliseconds.'),
+    ('SAY', 'Click: one frame is not ready in time, because the main thread was busy. The display shows the old picture for one more tick: the user sees a stutter.'),
+    ('SAY', 'Click: every tick is a deadline, and NPay does not even get the whole interval: the system also needs time for layout, rendering and compositing.'),
+    ('ASK', 'Is the same work more likely to stutter at 60 Hz or at 120 Hz?'),
+    ('EXPECT', 'At 120 Hz: each deadline is half as long.'),
+    ('CONNECT', 'So what actually happens between a state change and new pixels?'))))
+# rebuilt (user review, concrete style): an update redraws only what changed; one stage per click, NPay's phone beside it
+UPD = [('diff', 'State changes', 'new balance', 'A &#8377;250 coffee payment: the balance becomes &#8377;24,750 in memory'),
+       ('eye', 'Evaluate', 'read description', 'SwiftUI reads the dashboard&#8217;s description again'),
+       ('diff', 'Reconcile', 'what changed', 'Compared with last time, only two things changed'),
+       ('layout', 'Layout', 'size &amp; place', 'Makes room for the new row'),
+       ('layers', 'Graphics', 'redraw changes', 'Redraws only the changed parts'),
+       ('frame', 'Display', 'next frame', 'The next frame shows &#8377;24,750')]
+P = []
+for k, (ic, t, sub, cap) in enumerate(UPD):
+    x = 12 + k * 192
+    P.append(f'<g class="nd" data-lit="{k + 1}{"+" if k == 5 else ""}"><rect class="sh" x="{x}" y="10" width="152" height="104" rx="14"/>'
+             f'<use href="#i-{ic}" x="{x + 62}" y="24" width="28" height="28"/><text x="{x + 76}" y="78" text-anchor="middle">{t}</text>'
+             f'<text class="sm" x="{x + 76}" y="98" text-anchor="middle">{sub}</text></g>')
+    if k < 5:
+        P.append(f'<path class="wire" d="M{x + 160} 62H{x + 184}M{x + 178} 56l6 6-6 6"/>')
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 5 else ""}" x="460" y="168" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+cx = 1050
+P.append('<use href="#d-iphone" x="990" y="128" width="120" height="240"/>')
+P.append(f'<text x="{cx}" y="176" text-anchor="middle" style="font-size:14px;font-weight:800">NPay</text>')
+P.append(f'<g class="fade" data-lit="0-5"><text x="{cx}" y="206" text-anchor="middle" style="font-size:16px;font-weight:700">&#8377;25,000</text></g>')
+P.append(f'<g class="fade" data-lit="6+"><text class="fill-teal" x="{cx}" y="206" text-anchor="middle" style="font-size:16px;font-weight:700">&#8377;24,750</text></g>')
+P.append('<g class="fade" data-lit="0-3">' + ''.join(f'<rect class="mute" x="{cx - 44}" y="{y0}" width="88" height="14" rx="4"/>' for y0 in (222, 242, 262)) + '</g>')
+P.append(f'<g class="fade" data-lit="4+"><rect class="wire" style="fill:none" x="{cx - 44}" y="220" width="88" height="16" rx="4"/>'
+         f'<text class="sm" x="{cx}" y="232" text-anchor="middle" style="font-size:9px">Coffee &#8722;&#8377;250</text>'
+         + ''.join(f'<rect class="mute" x="{cx - 44}" y="{y0}" width="88" height="14" rx="4"/>' for y0 in (242, 262, 282)) + '</g>')
+P.append(f'<g class="nd fade" data-lit="3-5"><rect class="sh" style="fill:none" x="{cx - 50}" y="188" width="100" height="26" rx="6"/></g>')
+P.append(f'<g class="nd fade" data-lit="3-5"><rect class="sh" style="fill:none" x="{cx - 50}" y="216" width="100" height="24" rx="6"/></g>')
+P.append('<g class="fade" data-lit="3-5"><text class="sm fill-teal" x="972" y="208" text-anchor="end">only these</text><text class="sm fill-teal" x="972" y="226" text-anchor="end">change &#8594;</text></g>')
+S.append(slide('Part 5 &middot; Rendering &middot; conceptual', 'From &#8377;25,000 to &#8377;24,750', f"""  <div class="body top">
+    {svg('0 0 1136 372', 'An update: state changes, SwiftUI evaluates the description, reconciles what changed (the balance and one new row), lays out, redraws only those parts, and the next frame shows the new balance.', 'upd6', P)}{cues(6)}
+    <div class="gap"></div>
+    <div class="takeaway step">Only <b>what changed</b> is redrawn: not the whole screen.</div>
+  </div>""", notes(
+    ('SAY', 'NPay is already on screen showing &#8377;25,000. A &#8377;250 coffee payment lands. Watch the phone on the right. Click one: the state changes; in memory the balance is now &#8377;24,750, but the screen still shows the old value.'),
+    ('SAY', 'Click two: SwiftUI reads the dashboard&rsquo;s description again. Click three: it compares the new description with the last one: only two things changed, the balance and one new transaction row. Click four: layout makes room for the new row. Click five: graphics redraws only those changed parts. Click six: the next frame shows &#8377;24,750.'),
+    ('SAY', 'Click: so after the first frame, an update redraws only what changed, not the whole screen. Recall from Part 1: a view is a description, not a drawing.'),
+    ('ASK', 'How is this different from the first frame in Part 2?'),
+    ('EXPECT', 'On the first frame everything was new and drawn; on an update only what changed is redrawn.'),
+    ('CONNECT', 'So why do frames drop?'))))
+# rebuilt (user review, concrete style): does NPay's work fit the frame? scrolling fits, a main-thread sort misses three frames, the sort moved off fits again
+F0, FW = 196, 156
+def chip(k, t='draw', cls=''):
+    x = F0 + k * FW + 10
+    if cls:
+        return f'<g class="{cls}"><rect class="sh" x="{x}" y="56" width="70" height="34" rx="8"/><text class="sm" x="{x + 35}" y="78" text-anchor="middle">{t}</text></g>'
+    return f'<rect class="wire" style="fill:none" x="{x}" y="56" width="70" height="34" rx="8"/><text class="sm" x="{x + 35}" y="78" text-anchor="middle">{t}</text>'
+P = ['<text x="0" y="78">Main thread</text><text class="sm" x="0" y="96">60 Hz frames</text>',
+     f'<path class="wire" d="M{F0} 34H1136"/>' + ''.join(f'<path class="wire" d="M{F0 + k * FW} 24V44"/>' for k in range(7)),
+     '<text class="sm" x="1136" y="16" text-anchor="end">a tick every 16.67 ms &#8594;</text>',
+     '<g class="fade" data-lit="1">' + ''.join(chip(k) for k in range(6)) + '</g>',
+     '<g class="fade" data-lit="2">' + chip(0) + chip(1) +
+     f'<g class="nd alert"><rect class="sh" x="{F0 + 2 * FW + 10}" y="56" width="{3 * FW - 20}" height="34" rx="8"/><text x="{F0 + 3.5 * FW:g}" y="78" text-anchor="middle">Sort 50,000 transactions</text></g>'
+     + chip(5) + ''.join(f'<text class="sm" x="{F0 + k * FW}" y="112" text-anchor="middle">missed</text>' for k in (3, 4, 5)) + '</g>',
+     '<g class="fade" data-lit="3+">' + ''.join(chip(k) for k in range(5)) + chip(5, 'sorted', 'nd lit') +
+     '<text x="0" y="166">Other thread</text><text class="sm" x="0" y="184">off the main thread</text>'
+     f'<rect class="wire" style="fill:none" x="{F0 + FW + 40}" y="146" width="{3 * FW + 60}" height="34" rx="8"/><text x="{F0 + FW + 40 + (3 * FW + 60) / 2:g}" y="168" text-anchor="middle">Sort 50,000 transactions</text>'
+     f'<path class="wire" d="M{F0 + 4 * FW + 100} 163H{F0 + 5 * FW + 45}V94M{F0 + 5 * FW + 39} 100l6-6 6 6"/></g>']
+for k, cap in enumerate(['Scrolling: each frame&#8217;s work fits before its tick',
+                         'The user taps Sort: sorting on the main thread takes three frames, and the list freezes',
+                         'Sort on another thread: every frame still fits, and the sorted list appears when ready']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="666" y="236" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 5 &middot; Frame timing &middot; illustrative', 'Does the work fit the frame?', f"""  <div class="body">
+    {svg('0 0 1136 250', 'Main-thread frames at 60 Hz: scrolling work fits each frame; sorting 50,000 transactions on the main thread misses three frames; sorting on another thread lets every frame fit and shows the sorted list when ready.', 'fit3', P)}{cues(3)}
+    <div class="gap-lg"></div>
+    <div class="rule step" data-label="Rule">Too big for one frame? Move it <b>off the main thread</b>.</div>
+  </div>""", notes(
+    ('SAY', 'The main thread has one frame, one tick, to do its work. Click one: while the user scrolls NPay&rsquo;s list, each frame only has a little drawing to do, and it fits before the tick.'),
+    ('SAY', 'Click two: the user taps Sort by amount. Sorting fifty thousand transactions on the main thread takes about three frames. Those frames are missed, and the list freezes mid-scroll.'),
+    ('SAY', 'Click three: move the sort to another thread. The main thread keeps drawing every frame, and when the sort is ready, one frame shows the sorted list.'),
+    ('SAY', 'Click: the rule. If the work is too big for one frame, it does not belong on the main thread. Durations are illustrative, not measured.'),
+    ('ASK', 'Would sorting fifty transactions need to move off the main thread?'),
+    ('EXPECT', 'Probably not: it fits in a frame. Measure before moving work.'),
+    ('CONNECT', 'So where should each kind of work run?'))))
 
-# code-free: 0.5's "Waiting vs computing" + "async does not mean background", without code
-c27 = re.search(r'<div class="cols stretch">.*?</div>\s*</div>(?=\s*<div class="gap">)', SRC[5][26], re.S).group(0)
-S.append(slide('Part 5 &middot; Two kinds of slow', 'Waiting vs computing', f"""  <div class="body">
-    {c27}
-    <div class="gap"></div>
-    <div class="cols stretch">
-      <p class="small step" style="margin:0">While the balance request <b>waits</b>, the task <b>suspends</b>: no thread sits idle waiting.</p>
-      <p class="small step" style="margin:0">A long <b>calculation</b> occupies a thread until it ends. On the main thread, the UI waits.</p>
-    </div>
-    <div class="gap"></div>
-    <div class="rule step"><b>async</b> enables suspension. It does <b>not</b> guarantee parallel execution or a different thread.</div>
-  </div>""", notes(('SAY', 'Operation A downloads the NPay balance: mostly waiting for the bank&rsquo;s server. Operation B processes a million transaction records: mostly executing calculations. Both take time, for different reasons.'),
-                  ('SAY', 'Click: while the network request waits, the calling task suspends and the thread is free. Click: a calculation is different: it keeps a thread busy until it ends, and if that thread is the main thread, the UI waits.'),
-                  ('SAY', 'Click: marking work async enables suspension; it does not by itself move work to another thread. CPU-heavy work must be moved off the main actor deliberately; Unit 01 lesson 1.9 shows how.'),
-                  ('CONNECT', 'So what should run where?'))))
+# 0.5's "Waiting vs computing" dropped (Part 5 re-check): "Three things called background" already contrasts waiting and computing
 # rebuilt (Part 5 audit): NPay tasks instead of jargon; the Swift 6.2 code footnote removed
 WHERE = [('A tap on Refresh balance', 'Main thread'), ('Showing the new balance', 'Main thread'),
          ('Fetching the balance', 'Off the main thread, waiting'), ('Sorting a year of transactions', 'Off the main thread, computing'),
@@ -946,14 +1035,16 @@ S.append(slide('Part 5 &middot; Reference', 'Where each kind of work belongs', f
     ('SAY', 'Click: the rule. Only work that touches the screen belongs on the main thread; everything slow goes elsewhere. Unit 01, lesson 1.9, shows how Swift says where code runs.'),
     ('CONNECT', 'Finally: how do we know where time actually goes?'))))
 take(5, 32, 5, connect='Let&rsquo;s recap Part 5.')
-take(5, 33, 5, connect='Two quick questions on Part 5.')
+take(5, 33, 5, connect='Two quick questions on Part 5.',
+     subs=[('<b>await suspends, it does not block</b>', '<b>Waiting need not block</b>'), ('but async is not background', 'but heavy computing must move off the main thread'),
+           ('await suspends without blocking, but async alone does not move work off the main actor.', 'a wait can be handed off without blocking, but heavy computing must be moved off the main thread.')])
 question(5, 35, 5, 0, 'Next question.', subs=[
     ('<li>awaiting URLSession data in a Task</li><li>a 3-second <code>Thread.sleep</code> in a Button action</li><li>updating a small <code>@State</code> value</li><li>reading a <code>@MainActor</code> ViewModel property</li>',
      '<li>waiting for the balance download</li><li>the Refresh action waiting 3 seconds on the main thread</li><li>changing one small value on screen</li><li>reading the ViewModel&rsquo;s balance</li>'),
     ('<p class="q-why">Thread.sleep blocks the main thread. Awaiting suspends the task, and the other two are cheap main-thread work.</p>',
-     '<p class="q-why">Waiting on the main thread blocks it. A download suspends while it waits, and the other two are cheap main-thread work.</p>'),
+     '<p class="q-why">Waiting on the main thread blocks it. A download waits without holding the main thread, and the other two are cheap main-thread work.</p>'),
     ('<span class="notes-label">SAY</span><p>B. Thread.sleep blocks the main thread. Awaiting suspends the task, and the other two are cheap main-thread work.</p>',
-     '<span class="notes-label">SAY</span><p>B. Waiting on the main thread blocks it. A download suspends while it waits, and the other two are cheap main-thread work.</p>'),
+     '<span class="notes-label">SAY</span><p>B. Waiting on the main thread blocks it. A download waits without holding the main thread, and the other two are cheap main-thread work.</p>'),
     ('Ask why awaiting does not freeze.', 'Ask why waiting for the download does not freeze.')])
 question(5, 39, 5, 1, 'Part 6: memory, and who keeps objects alive.', subs=[
     ('data-title="Does every SwiftUI body evaluation redraw the entire screen?"', 'data-title="When SwiftUI recomputes a view, does it redraw the entire screen?"'),
@@ -969,49 +1060,228 @@ part(6, 'Memory &amp; ARC', 'Stack, heap, ownership and retain cycles',
      ('memory',),
      'The main thread and where work belongs.', 'Memory inside NPay: stack, heap, ARC and retain cycles.',
      'The teal is on memory, inside NPay&rsquo;s process.')
-take(6, 5, 6, connect='Where do individual values live?')
+# rebuilt (Part 6 audit, concrete style): each memory region with what NPay keeps there, one per click
+REG = [('code', 'Code', 'the machine code the app ships', 'NPay&#8217;s compiled app, built on your Mac (Part 2)'),
+       ('file', 'Fixed data', 'values that exist for the whole run', 'settings and constants'),
+       ('memory', 'Heap', 'objects that live a while', 'DashboardViewModel, the account, the transaction list'),
+       ('thread', 'Stacks', 'one per thread', 'each thread&#8217;s current calculation, gone when it ends'),
+       ('layers', 'Shared libraries', 'mapped in from the system', 'SwiftUI, Foundation, images')]
+P = ['<text class="mono" x="0" y="14">REGION</text><text class="mono" x="560" y="14">WHAT NPAY KEEPS THERE</text>']
+for k, (ic, t, sub, ex) in enumerate(REG):
+    y = 26 + k * 64
+    P.append(f'<g class="nd" data-lit="{k + 1}"><rect class="sh" x="0" y="{y}" width="1136" height="54" rx="12"/><use href="#i-{ic}" x="14" y="{y + 14}" width="26" height="26"/>'
+             f'<text x="52" y="{y + 24}">{t}</text><text class="sm" x="52" y="{y + 42}">{sub}</text></g>')
+    P.append(f'<text class="fade" data-lit="{k + 1}+" x="560" y="{y + 33}" style="font-size:18px">{ex}</text>')
+S.append(slide('Part 6 &middot; Process memory &middot; conceptual', 'What lives where in NPay&rsquo;s memory', f"""  <div class="body">
+    {svg('0 0 1136 346', 'NPay&rsquo;s process memory: code, fixed data, heap, thread stacks and shared libraries, each with what NPay keeps there', 'npaymem', P)}{cues(5)}
+    <div class="analogy step"><div class="icon"><svg viewBox="0 0 24 24"><use href="#i-building"/></svg></div><p>In the kitchen: a <b>stack</b> is a cook&rsquo;s cutting board, cleared after each dish; the <b>heap</b> is the pantry, holding what many dishes need, for longer.</p></div>
+  </div>""", notes(
+    ('SAY', 'Every process gets its own memory from iOS, and inside it different things live in different places. One region per click. Code: NPay&rsquo;s compiled app, the machine code we built on the Mac in Part 2. Fixed data: settings and constants that exist for the whole run.'),
+    ('SAY', 'The heap: objects that live for a while, such as DashboardViewModel, the account and the transaction list. Stacks: one per thread, holding each thread&rsquo;s current calculation, gone when it ends. Shared libraries: SwiftUI, Foundation and images, mapped in from the system.'),
+    ('SAY', 'Click: in the kitchen, a stack is a cook&rsquo;s cutting board, cleared after each dish; the heap is the pantry. These are conceptual regions, not their physical order: iOS uses virtual memory.'),
+    ('CONNECT', 'Where do individual values live?'))))
 
 # code-free: stack vs heap with an example in words
 sh = diagrams(6, 7)[0]
+for a_, b_ in [('>Call frame<', '>amount: &#8377;1,500<'), ('>Temporary values<', '>fee: &#8377;10<'), ('>Return information<', '>total: &#8377;1,510<'),
+               ('>Object A<', '>Account<'), ('>Object B<', '>Transaction list<'), ('>Shared storage<', '>DashboardViewModel<')]:   # NPay values (Part 6 re-audit)
+    assert a_ in sh, a_
+    sh = sh.replace(a_, b_)
 S.append(slide('Part 6 &middot; Stack and heap &middot; conceptual', 'Where do values live?', f"""  <div class="body cols middle" style="grid-template-columns:1fr 1.1fr">
     {card('Example: one transfer', ul('Adding a fee needs three temporary numbers: <b>amount</b>, <b>fee</b>, <b>total</b>', 'They live in the call&rsquo;s frame on the <b>stack</b>', 'Gone as soon as the calculation returns', 'An account object shared by several screens lives on the <b>heap</b>'))}
     <div>
       {sh}
       <i class="step cue"></i><i class="step cue"></i>
       <div class="gap"></div>
-      <p class="small">The <b>stack</b> is efficient for call-related storage. The <b>heap</b> is more flexible, but involves allocation and lifetime management.</p>
+      <p class="small">The <b>stack</b> is fast and clears itself. The <b>heap</b> keeps things as long as someone needs them: ARC decides when they go.</p>
     </div>
   </div>""", notes(('SAY', 'A calculation that adds a fee to a transfer needs temporary storage for the amount, the fee and the total. Click: the stack, tied to function calls and thread execution, with the call frame, temporary values and return information. Click: the heap, for dynamically allocated storage and objects that outlive one call, such as an account shared by several screens.'),
                   ('SAY', 'The stack is typically efficient for call-related storage; heap allocation is more flexible but needs allocation and lifetime management.'),
-                  ('CONNECT', 'A warning before we go further.'))))
-take(6, 8, 6)
-take(6, 12, 6, connect='Class instances are shared. So how does Swift know when one can be freed?')
-take(6, 14, 6, connect='Not every reference keeps an object alive.')
-take(6, 17, 6, connect='What happens when two objects keep each other alive?')
+                  ('CONNECT', 'Some values are copied; some objects are shared. What is the difference?'))))
+# 0.6's "Not simply stack versus heap" dropped (Part 6 audit): a Swift-compiler nuance shown before values and objects are introduced
+# rebuilt (Part 6 audit; user review: phones): copied vs shared, with NPay's screens; replaces the Swift struct-vs-class table
+def ph(c):
+    return f'<use href="#d-iphone" x="{c - 55}" y="26" width="110" height="220"/>'
+big = lambda c, y, t, cls='': f'<text{(" class=\"" + cls + "\"") if cls else ""} x="{c}" y="{y}" text-anchor="middle" style="font-size:17px;font-weight:700">{t}</text>'
+sm_ = lambda c, y, t, cls='sm': f'<text class="{cls}" x="{c}" y="{y}" text-anchor="middle">{t}</text>'
+P = ['<text class="mono" x="0" y="14">A VALUE IS COPIED</text>', '<path class="wire faint" d="M566 4V330"/>', '<text class="mono" x="600" y="14">AN OBJECT IS SHARED</text>',
+     ph(130), sm_(130, 76, 'Payment', 'mono'), sm_(130, 100, 'to ravi@npay'), '<rect class="wire" style="fill:none" x="88" y="112" width="84" height="32" rx="6"/>',
+     f'<g class="fade" data-lit="1">{big(130, 134, "&#8377;1,500")}</g>',
+     f'<g class="fade" data-lit="2+">{big(130, 134, "&#8377;2,000", "fill-teal")}{sm_(130, 166, "edited", "sm fill-teal")}</g>',
+     f'<g class="fade" data-lit="1+"><path class="wire" d="M196 128H350M343 121l7 7-7 7"/>{sm_(272, 116, "copy")}'
+     f'{ph(420)}{sm_(420, 76, "Review", "mono")}{sm_(420, 104, "Pay")}{big(420, 128, "&#8377;1,500")}{sm_(420, 152, "to ravi@npay")}'
+     '<rect class="wire" style="fill:none" x="384" y="168" width="72" height="22" rx="6"/><text class="sm" x="420" y="183" text-anchor="middle">Confirm</text></g>',
+     f'<g class="fade" data-lit="2+">{sm_(420, 270, "the copy is not affected")}</g>',
+     f'<g class="fade" data-lit="3+">{ph(700)}{sm_(700, 76, "Home", "mono")}{ph(1000)}{sm_(1000, 76, "History", "mono")}'
+     '<path class="wire" d="M700 248V290H748M741 283l7 7-7 7M1000 248V290H952M959 283l7 7-7 7"/>'
+     '<g class="nd"><rect class="sh" x="752" y="266" width="196" height="50" rx="12"/><use href="#i-bank" x="764" y="278" width="24" height="24"/><text class="sm" x="796" y="295">one Account object</text></g></g>',
+     f'<g class="fade" data-lit="3">{big(700, 124, "&#8377;25,000")}{big(1000, 124, "&#8377;25,000")}</g>',
+     f'<g class="fade" data-lit="4+">{big(700, 124, "&#8377;24,750", "fill-teal")}{big(1000, 124, "&#8377;24,750", "fill-teal")}{sm_(850, 230, "both screens see it", "sm fill-teal")}</g>']
+for k, cap in enumerate(['NPay copies the &#8377;1,500 draft to the review screen',
+                         'Edit the draft to &#8377;2,000: the review screen&#8217;s copy still says &#8377;1,500',
+                         'Home and History hold the same Account object',
+                         'A payment changes it once: both screens show &#8377;24,750']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 3 else ""}" x="568" y="352" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 6 &middot; Values and objects', 'Copied vs shared', f"""  <div class="body">
+    {svg('0 0 1136 364', 'Left: the draft amount is copied to the review screen; editing the draft leaves the copy unchanged. Right: Home and History share one Account object; a payment changes it once and both see the new balance.', 'copyshare', P)}{cues(4)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="Values and objects">Values are <b>copied</b>; objects are <b>shared</b>. A shared object needs someone to decide when it can be freed: that is <b>ARC</b>.</div>
+    <p class="small muted" style="margin:8px 0 0">In Swift, values are structs and shared objects are classes; Unit 01 &middot; 1.5 shows both.</p>
+  </div>""", notes(
+    ('SAY', 'Two ways data lives in NPay. Click: a value is copied. NPay copies the &#8377;1,500 draft to the review screen. Click: the user edits the draft to &#8377;2,000, and the review screen&rsquo;s copy still says &#8377;1,500: copies are independent.'),
+    ('SAY', 'Click: an object is shared. Home and History both hold the same Account object. Click: a payment changes it once, and both screens show &#8377;24,750.'),
+    ('SAY', 'Click: values are copied, objects are shared. And because a shared object can be held by many screens, something must decide when nobody needs it any more and it can be freed. In Swift that is ARC, automatic reference counting.'),
+    ('ASK', 'Should NPay&rsquo;s account balance, shown on several screens, be a copied value or a shared object?'),
+    ('EXPECT', 'Shared, so every screen sees the same balance.'),
+    ('CONNECT', 'So how does ARC know when nobody needs an object?'))))
+# rebuilt (user review): the count goes up and down as NPay's screens open and close; freed when the last holder lets go
+def holder(y, t, active, gone):
+    return (f'<g class="fade" data-lit="{active}"><g class="nd"><rect class="sh" x="0" y="{y}" width="300" height="62" rx="12"/><use href="#i-phone" x="14" y="{y + 18}" width="26" height="26"/>'
+            f'<text x="52" y="{y + 28}">{t}</text><text class="sm" x="52" y="{y + 46}">holds the account</text></g>'
+            f'<path class="wire" d="M302 {y + 31}H{514}M507 {y + 24}l7 7-7 7"/></g>'
+            f'<g class="fade" data-lit="{gone}"><g class="nd ghost"><rect class="sh" x="0" y="{y}" width="300" height="62" rx="12"/>'
+            f'<text x="52" y="{y + 28}">{t}</text><text class="sm" x="52" y="{y + 46}">let go</text></g></g>')
+P = [holder(40, 'Home screen', '1-3', '4+'), holder(150, 'Payment sheet', '2', '3+'),
+     '<g class="fade" data-lit="1-3"><g class="nd lit"><rect class="sh" x="520" y="30" width="420" height="190" rx="18"/></g></g>',
+     '<g class="fade" data-lit="0"><g class="nd ghost"><rect class="sh" x="520" y="30" width="420" height="190" rx="18"/></g></g>',   # ghost inside a fade: .nd.ghost opacity outranks .fade
+     '<g class="fade" data-lit="4+"><g class="nd ghost"><rect class="sh" x="520" y="30" width="420" height="190" rx="18"/></g></g>',
+     '<use href="#i-bank" x="544" y="52" width="28" height="28"/><text x="584" y="72">Account object</text>',
+     '<text class="sm" x="544" y="196">strong references holding it</text>']
+for lit_, n, st in [('1', '1', 'ALIVE'), ('2', '2', 'ALIVE'), ('3', '1', 'STILL ALIVE'), ('4+', '0', 'FREED BY ARC')]:
+    P.append(f'<g class="fade" data-lit="{lit_}"><text x="544" y="168" style="font-size:72px;font-weight:800">{n}</text>'
+             f'<text class="mono" x="916" y="168" text-anchor="end">{st}</text></g>')
+for k, cap in enumerate(['Home opens and holds the account: 1 strong reference',
+                         'The payment sheet also holds it: 2',
+                         'The sheet closes and lets go: 1. Home still holds it, so it stays alive',
+                         'The user signs out and Home lets go: 0. Nobody holds it, so ARC frees it']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 3 else ""}" x="568" y="270" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 6 &middot; ARC &middot; conceptual', 'Counting strong references', f"""  <div class="body">
+    {svg('0 0 1136 284', 'NPay&rsquo;s Account object: Home holds it (1), the payment sheet holds it too (2), the sheet lets go (1), Home lets go (0) and ARC frees it.', 'arccount', P)}{cues(4)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="ARC">ARC frees an object when its <b>last strong holder</b> lets go.</div>
+  </div>""", notes(
+    ('SAY', 'ARC, automatic reference counting, counts who is holding an object. Follow NPay&rsquo;s Account object. Click: Home opens and holds the account: one strong reference. Click: the payment sheet opens and holds it too: two.'),
+    ('SAY', 'Click: the sheet closes and lets go: back to one. Home still holds it, so it stays alive. Click: the user signs out and Home lets go: zero. Nobody holds it any more, so ARC frees it straight away.'),
+    ('SAY', 'Click: the rule. ARC frees an object when its last strong holder lets go. In the kitchen: each holder is a cook still using an ingredient; when nobody is using it, it is cleared away. Conceptual: the compiler may optimise the counting, so it is not always visible one-for-one.'),
+    ('ASK', 'The payment sheet closes. Is the Account object freed?'),
+    ('EXPECT', 'No: Home still holds it. Only when the last holder lets go.'),
+    ('CONNECT', 'Not every reference keeps an object alive.'))))
+# rebuilt (user review): strong vs weak as an NPay story; unowned is Unit 01 · 1.8
+def box2(x, y, w, ic, t, sub, cls=''):
+    return (f'<g class="nd{(" " + cls) if cls else ""}"><rect class="sh" x="{x}" y="{y}" width="{w}" height="70" rx="12"/><use href="#i-{ic}" x="{x + 14}" y="{y + 22}" width="26" height="26"/>'
+            f'<text x="{x + 52}" y="{y + 31}">{t}</text><text class="sm" x="{x + 52}" y="{y + 51}">{sub}</text></g>')
+P = ['<g class="fade" data-lit="1-2">' + box2(80, 30, 300, 'phone', 'Home screen', 'holds the account') + '</g>',
+     '<g class="fade" data-lit="3+">' + box2(80, 30, 300, 'phone', 'Home screen', 'let go (signed out)', 'ghost') + '</g>',
+     '<g class="fade" data-lit="1-2"><path class="wire lit" d="M382 65H560V112M553 105l7 7 7-7"/><text class="sm" x="470" y="54" text-anchor="middle">strong: keeps it alive</text></g>',
+     '<g class="fade" data-lit="1-2"><g class="nd lit"><rect class="sh" x="430" y="118" width="300" height="70" rx="14"/></g></g>',
+     '<g class="fade" data-lit="3+"><g class="nd ghost"><rect class="sh" x="430" y="118" width="300" height="70" rx="14"/></g></g>',
+     '<use href="#i-bank" x="444" y="140" width="26" height="26"/><text x="482" y="149">Account object</text>',
+     '<g class="fade" data-lit="1-2"><text class="sm" x="482" y="169">alive</text></g>',
+     '<g class="fade" data-lit="3+"><text class="sm" x="482" y="169">freed by ARC</text></g>',
+     '<g class="fade" data-lit="2+">' + box2(780, 220, 300, 'eye', 'Balance banner', 'shows it if it still exists') + '</g>',
+     '<g class="fade" data-lit="2"><path class="wire dash lit" d="M778 255H600V194M593 201l7-7 7 7"/><text class="sm" x="690" y="276" text-anchor="middle">weak: only points to it</text></g>',
+     '<g class="fade" data-lit="3+"><path class="wire dash" d="M778 255H700"/><text class="sm fill-teal" x="690" y="276" text-anchor="middle">link is now empty: no crash</text></g>']
+for k, cap in enumerate(['Home holds the account strongly: while Home holds it, it stays alive',
+                         'A balance banner points to it weakly: it can show it, but does not keep it alive',
+                         'The user signs out: only a weak link is left, so ARC frees it, and the link becomes empty']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="324" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 6 &middot; Reference kinds', 'Strong and weak references', f"""  <div class="body">
+    {svg('0 0 1136 336', 'Home holds NPay&rsquo;s Account object strongly; a balance banner points to it weakly; when Home lets go, the account is freed and the banner&rsquo;s weak link becomes empty.', 'strongweak', P)}{cues(3)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="Strong and weak"><b>Strong</b> = owns it, keeps it alive. <b>Weak</b> = only points to it, and becomes empty when it is freed.</div>
+  </div>""", notes(
+    ('SAY', 'Not every reference keeps an object alive. Click: Home holds NPay&rsquo;s Account object strongly; while Home holds it, ARC keeps it alive. That is the normal kind.'),
+    ('SAY', 'Click: a small balance banner points to the same account weakly. It can show the balance while the account exists, but it does not keep the account alive.'),
+    ('SAY', 'Click: the user signs out and Home lets go. Only a weak link is left, and weak links do not count, so ARC frees the account. The banner&rsquo;s link simply becomes empty: no crash, nothing leaked.'),
+    ('SAY', 'Click: strong owns it; weak only points to it. Do not overcorrect: owners should hold strongly, and weak is for back-links and observers. Swift has a third kind, unowned, for special cases; Unit 01, lesson 1.8, covers it.'),
+    ('ASK', 'If the banner held the account strongly instead, what would happen after sign-out?'),
+    ('EXPECT', 'The account would stay alive because the banner still holds it.'),
+    ('CONNECT', 'What happens when two objects keep each other alive?'))))
 
-# code-free: retain cycle in words, the diagram unchanged
-cy = diagrams(6, 19)[0]
-S.append(slide('Part 6 &middot; Retain cycle &middot; conceptual', 'Two objects that never let go', f"""  <div class="body cols middle" style="grid-template-columns:1fr 1fr">
-    <div>
-      {card('Two objects', ul('A <b>person</b> strongly references their apartment', 'The <b>apartment</b> strongly references its tenant', 'Both outside variables are cleared', 'Each still holds the other: <b>neither is freed</b>'))}
-      <div class="gap"></div>
-      <div class="rule step" data-label="The fix">Make the apartment&rsquo;s reference to its tenant <b>weak</b>. It no longer owns the tenant, so both are freed.</div>
-    </div>
-    <div>
-      {cy}
-      <i class="step cue"></i>
-    </div>
-  </div>""", notes(('SAY', 'A person strongly references their apartment, and the apartment strongly references its tenant. Both are also reachable from outside variables. Click: set the outside variables to nil. The two instances still retain one another, so neither is released: a leak.'),
-                  ('SAY', 'Click: make the apartment&rsquo;s reference to its tenant weak. Now nothing keeps the person alive once the outside reference goes, and the cycle no longer prevents deallocation.'),
-                  ('CONNECT', 'Cycles between two objects are easy to spot. Cycles through closures are not.'))))
-take(6, 24, 6)
-take(6, 26, 6)
-take(6, 28, 6)
-take(6, 30, 6)
-take(6, 31, 6, connect='Let&rsquo;s recap Part 6.')
-take(6, 35, 6, connect='Two quick questions on Part 6.')
-question(6, 37, 6, 0, 'Next question.')
-question(6, 39, 6, 1, 'Part 7: the walls iOS builds around NPay.')
+# rebuilt (Part 6 re-audit): the retain cycle with NPay's own objects; Home lets go, the cycle leaks, a weak back-link fixes it
+def ob(x, y, ic, t, sub, lit_, cls=''):
+    return (f'<g class="fade" data-lit="{lit_}"><g class="nd{(" " + cls) if cls else ""}"><rect class="sh" x="{x}" y="{y}" width="260" height="70" rx="12"/>'
+            f'<use href="#i-{ic}" x="{x + 14}" y="{y + 22}" width="26" height="26"/><text x="{x + 52}" y="{y + 31}">{t}</text><text class="sm" x="{x + 52}" y="{y + 51}">{sub}</text></g></g>')
+P = [ob(438, 0, 'phone', 'Home screen', 'holds the account', '1'), ob(438, 0, 'phone', 'Home screen', 'let go (signed out)', '2+', 'ghost'),
+     '<g class="fade" data-lit="1"><path class="wire" d="M568 72V128M561 121l7 7 7-7"/></g>',
+     ob(140, 134, 'bank', 'Account', 'holds its card', '1'), ob(140, 134, 'bank', 'Account', 'still held by the card', '2'),
+     ob(140, 134, 'bank', 'Account', 'freed', '3+', 'ghost'),
+     ob(736, 134, 'key', 'Card', 'points back to its account', '1'), ob(736, 134, 'key', 'Card', 'still held by the account', '2'),
+     '<g class="fade" data-lit="2"><g class="nd alert"><rect class="sh" x="418" y="226" width="300" height="34" rx="10"/><text x="568" y="248" text-anchor="middle">neither is freed: a leak</text></g></g>',
+     ob(736, 134, 'key', 'Card', 'freed', '3+', 'ghost'),
+     '<g class="fade" data-lit="1-2"><path class="wire" d="M402 156H730M723 149l7 7-7 7"/><text class="sm" x="566" y="148" text-anchor="middle">strong</text>'
+     '<path class="wire" d="M734 190H406M413 183l-7 7 7 7"/><text class="sm" x="566" y="214" text-anchor="middle">strong</text></g>',
+     '<g class="fade" data-lit="3+"><path class="wire" d="M402 156H730M723 149l7 7-7 7"/><text class="sm" x="566" y="148" text-anchor="middle">strong</text>'
+     '<path class="wire dash lit" d="M734 190H406M413 183l-7 7 7 7"/><text class="sm fill-teal" x="566" y="214" text-anchor="middle">weak back-link</text></g>']
+for k, cap in enumerate(['The account holds its card; the card points back to its account. Both strongly',
+                         'The user signs out: Home lets go, but each still holds the other, so neither is freed: a leak',
+                         'Fix: the card points back weakly. Home lets go, and both are freed']):
+    P.append(f'<text class="fade fill-teal" data-lit="{k + 1}{"+" if k == 2 else ""}" x="568" y="296" text-anchor="middle" style="font-size:20px">{k + 1}. {cap}</text>')
+S.append(slide('Part 6 &middot; Retain cycle &middot; conceptual', 'Two objects that never let go', f"""  <div class="body">
+    {svg('0 0 1136 308', 'NPay&rsquo;s account holds its card and the card holds the account back. When Home lets go, both stay alive: a retain cycle. With a weak back-link, both are freed.', 'cycle2', P)}{cues(3)}
+    <div class="gap"></div>
+    <div class="rule step" data-label="Retain cycle">Two objects holding each other <b>strongly</b> are never freed. Make the <b>back-link weak</b>.</div>
+  </div>""", notes(
+    ('SAY', 'Click: NPay&rsquo;s account holds its card, and the card points back to its account. Both links are strong, and Home holds the account.'),
+    ('SAY', 'Click: the user signs out and Home lets go. Nothing else needs them, but each still holds the other, so their counts never reach zero: neither is freed. That is a retain cycle, a leak.'),
+    ('SAY', 'Click: the fix. The account owns its card, so that link stays strong; the card only points back, so make that link weak. Now when Home lets go, the account is freed, and then the card.'),
+    ('SAY', 'Click: two objects holding each other strongly are never freed; make the back-link weak.'),
+    ('ASK', 'Which link should be weak: account to card, or card back to account?'),
+    ('EXPECT', 'Card back to account: the owner holds strongly, the back-link is weak.'),
+    ('CONNECT', 'Cycles between two objects are easy to spot. Cycles through closures are not.'))))
+take(6, 24, 6, kicker='Part 6 &middot; Closures &middot; conceptual', connect='Is every high-memory app leaking? No.', subs=[   # plain words (Part 6 audit)
+    ('<h2>Strong vs weak capture</h2>', '<h2>A closure that holds on</h2>'),
+    ('<div class="rule step" data-label="Not for every closure"><code>[weak self]</code> matters for <b>escaping closures</b> that are retained and create a cycle. A short-lived, non-escaping closure does not need it.</div>',
+     '<div><p class="lead" style="margin:0 0 12px;font-size:21px">A <b>closure</b> is code NPay keeps to run later, such as &ldquo;refresh when the timer fires&rdquo;. It holds on to what it uses.</p>'
+     '<div class="rule step" data-label="The fix">If the closure holds the ViewModel that keeps it, let it hold the ViewModel <b>weakly</b>. A closure that runs once and is gone needs nothing.</div></div>'),
+    ('<span class="notes-label">SAY</span><p>Strong capture: release the external owner and the ViewModel stays alive in an ownership cycle. Click: with weak capture, the same release lets the ViewModel be deallocated.</p>',
+     '<span class="notes-label">SAY</span><p>A closure is a piece of code NPay keeps to run later, for example: when the timer fires, refresh the balance. It holds on to whatever it uses. If DashboardViewModel keeps that closure, and the closure holds the ViewModel strongly, they keep each other alive: release the screen and the ViewModel stays. Click: if the closure holds the ViewModel weakly, the same release lets the ViewModel be freed.</p>'),
+    ('<span class="notes-label">SAY</span><p>Do not teach [weak self] as mandatory for every closure. It matters for escaping closures retained in a way that creates an unwanted cycle or extends a lifetime beyond what is intended. A short-lived non-escaping closure does not automatically need it.</p>',
+     '<span class="notes-label">SAY</span><p>Not every closure needs this: one that runs once and is gone cannot create a cycle. Unit 01, lesson 1.8, shows the Swift.</p>'),
+    ('With strong capture the ViewModel stays alive after its external owner is released; with weak capture it is deallocated',
+     'If the closure holds the ViewModel strongly, the ViewModel stays alive after its screen lets go; if it holds it weakly, it is freed')])
+# 0.6's "strong vs weak vs unowned" table dropped (Part 6 audit): repeats strong and weak, adds unowned (Unit 01 · 1.8)
+take(6, 28, 6, subs=[   # plain words (Part 6 re-audit)
+    ('<p>Memory stays allocated though <b>no longer needed</b>, and cannot be reclaimed through the intended ownership path.</p>',
+     '<p>Memory NPay <b>no longer needs</b> but can never get back, like the account and card in a cycle.</p>'),
+    ('<p>The app uses a lot of memory. That may be <b>legitimate</b>, or a sign of excessive caching or allocation.</p>',
+     '<p>NPay uses a lot of memory <b>on purpose</b>, like a big photo. Fine, unless it keeps growing.</p>'),
+    ('A leak is memory that stays allocated though no longer needed and cannot be reclaimed through the intended ownership path. High memory usage may be legitimate, or may indicate excessive caching or allocation.',
+     'Two different problems. A leak is memory NPay no longer needs but can never get back, like the account and card in a cycle. High usage is memory NPay uses on purpose; that is fine unless it keeps growing.')])
+# simplified (user review): three tools, one question and one NPay example each
+TOOLS = [('eye', 'Memory Graph', 'Who is still holding this object?', 'The closed payment sheet is still in memory: who holds it?'),
+         ('layers', 'Allocations', 'Does memory grow each time I repeat something?', 'Open and close History ten times: memory keeps growing'),
+         ('cross', 'Leaks', 'Is there memory nobody can reach any more?', 'Two objects holding each other, with nobody else pointing at them')]
+tool_cards = ''.join(f'<div class="card accent step anim-up" style="padding:16px 20px"><span class="label">{t}</span>'
+                     f'<p style="margin:4px 0 8px;font-size:21px"><b>{q}</b></p><p class="small muted" style="margin:0">e.g. {e}</p></div>' for ic, t, q, e in TOOLS)
+S.append(slide('Part 6 &middot; Tools', 'Three memory tools', f"""  <div class="body">
+    <div class="cols c3" style="gap:18px;align-items:stretch">{tool_cards}</div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Watch out"><b>Leaks</b> only finds memory nobody can reach. Something still held, like a cache that keeps growing, looks fine to it: use the <b>Memory Graph</b>.</div>
+  </div>""", notes(
+    ('SAY', 'Xcode gives us three tools, each answering one question. Click: the Memory Graph answers &ldquo;who is still holding this object?&rdquo;; for example, the payment sheet is closed but still in memory, and the graph shows the chain of strong references holding it.'),
+    ('SAY', 'Click: Allocations answers &ldquo;does memory grow each time I repeat something?&rdquo;; open and close History ten times and see whether memory keeps climbing. Click: Leaks answers &ldquo;is there memory nobody can reach any more?&rdquo;, such as two objects holding each other with nobody else pointing at them.'),
+    ('SAY', 'Click: watch out. Leaks only finds memory nobody can reach. Something still held, like a cache that keeps growing or a timer that keeps running, looks fine to Leaks; the Memory Graph and Allocations find those.'),
+    ('CONNECT', 'Here is a repeatable sequence for any suspected leak.'))))
+take(6, 31, 6, connect='Let&rsquo;s recap Part 6.', subs=[
+    ('A missing deinit message alone does not prove a leak: the object may still be intentionally owned.', 'An object that is never freed is not always a leak: something may still own it on purpose.'),
+    ('observe memory growth or a missing deinit;', 'observe memory growing, or an object that is never freed;'),
+    ('missing deinit', 'object never freed')])
+take(6, 35, 6, connect='Two quick questions on Part 6.', subs=[
+    ('structs give independent values; classes share one instance', 'values are copied; objects are shared'), ('<b>Value vs reference</b>', '<b>Copied vs shared</b>'),
+    ('strong references keep a class instance alive', 'strong references keep a shared object alive'),
+    ('break them with weak; stop timers explicitly', 'break them with a weak reference'),
+    ('Value versus reference semantics is the reliable distinction, not stack versus heap. ARC keeps a class instance alive while strong references exist. And cycles, through properties, closures or timers, are broken with weak references and explicit cancellation.',
+     'Values are copied and objects are shared. ARC keeps a shared object alive while someone holds it strongly. And cycles, between two objects or through a closure, are broken with a weak reference.')])
+question(6, 37, 6, 0, 'Next question.', subs=[
+    ('data-title="What keeps a class instance alive under ARC?"', 'data-title="What keeps a shared object alive?"'),
+    ('<p class="q-text">What keeps a class instance alive under ARC?</p>', '<p class="q-text">What keeps a shared object alive?</p>'),
+    ('<li>Being declared with <code>let</code></li>', '<li>Being stored in a constant</li>'),
+    ('Only strong references keep an instance alive. Weak and unowned references do not, and where it is allocated or how the variable is declared has nothing to do with it.',
+     'Only strong references keep an object alive. Weak references do not, and where or how it is stored has nothing to do with it.', 2)])
+question(6, 39, 6, 1, 'Part 7: the walls iOS builds around NPay.', subs=[
+    ('Can two class instances that strongly retain each other stay alive after external references disappear?', 'Can two objects that strongly hold each other stay alive after everyone else lets go?'),
+    ('data-title="Can two instances that retain each other outlive their external references?"', 'data-title="Can two objects that hold each other stay alive?"')])
 
 
 # ================================================================== Part 7 · security (0.7)
@@ -1146,7 +1416,22 @@ FIX = [  # (text that identifies the slide, old, new)
     ('Checkpoint rubric', 'which lesson to revisit', 'which Part to revisit'),
     ('Checkpoint rubric', '<th>Revisit</th>', '<th>Revisit Part</th>'),
 ]
+ACTOR = [('off the main actor', 'off the main thread'), ('away from the main actor', 'away from the main thread'),
+         ('on the main actor', 'on the main thread'), ('main actor', 'main thread')]   # no actors in Unit 00 (user); Unit 01 teaches them
+PLAIN6 = [('deallocated', 'freed'), ('deallocation', 'freeing'), ('set to nil', 'cleared'), ('becomes nil', 'becomes empty'),
+          ('instances', 'objects'), ('Person instance', 'Person object'), ('Apartment instance', 'Apartment object'),
+          ('>instance<', '>object<'), ('An instance that', 'An object that'), ('class instance', 'object'), (' instance ', ' object '),
+          ('DEALLOCATED', 'FREED'), ('variables to nil', 'variables to nothing'), (' to nil', ' to nothing'),
+          ('Strong capture', 'Holds it strongly'), ('Weak capture', 'Holds it weakly'), ('strong capture', 'holds strongly'), ('weak capture', 'holds weakly')]   # Part 6 in plain words (audit)
 for k, s in enumerate(S):
+    if '<p class="kicker">Part 6' in s or 'data-title="Can two objects that hold each other' in s:
+        for a, b in PLAIN6:
+            s = s.replace(a, b)
+        S[k] = s
+for k, s in enumerate(S):
+    if 'actor ledger' not in s:
+        for a, b in ACTOR:
+            s = s.replace(a, b)
     for key, a, b in FIX:
         if key in s:
             s = s.replace(a, b)
