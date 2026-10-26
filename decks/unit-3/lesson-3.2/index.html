@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.2 — Typed Routes</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.2 — Typed Routes">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.2</p>
+    <h1 style="font-size:54px;line-height:1.05">Typed Routes &amp;<br>Programmatic Navigation</h1>
+    <p class="lead" style="max-width:760px">After a payment, NPay moves to a <b>success screen by itself</b>. Nobody taps a link: the app changes its <b>navigation state</b>.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.1 navigated when the user tapped a NavigationLink. Today a new requirement: after a successful demo payment, NPay must show a Payment Success screen on its own. There is no link to tap; application logic has to start the navigation. The answer is to model navigation as state: a typed route enum, a path array bound to the NavigationStack, and navigationDestination to turn routes into screens. We ran every step in the simulator.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.2 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Why <b>destination links</b> can&rsquo;t start navigation from code</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Model destinations as a <b>typed route</b> enum, and why it is <code>Hashable</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Drive the stack with a <b>path</b>: append, removeLast, removeAll</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>Map routes to screens with <code>navigationDestination</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Navigate to Payment Success when the payment <b>returns an ID</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p><code>[NPayRoute]</code> vs <code>NavigationPath</code>, and when to add a router</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.2 &middot; Where we are</p>
+  <h2>Today: navigation driven by state</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.2 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd lit"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd ghost"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd ghost"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd ghost"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.1: NavigationStack and NavigationLink: three screens, one state owner.</span><span><b>Today</b>A route enum and a path: the app navigates after a payment.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.1 gave NPay three screens with destination links. Today the navigation itself becomes state the app can change. Next lesson: TabView.</p>
+    <span class="notes-label">CONNECT</span><p>The new requirement.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The new requirement</h2>
+    <p class="lead">The app must navigate by itself</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>After a payment, show a success screen. No link to tap.</p>
+    <span class="notes-label">CONNECT</span><p>The journey.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our NPay milestone (section 1)</p>
+  <h2>A step no user taps</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 112" style="max-height:124px" role="img" aria-labelledby="jr">
+        <title id="jr">Dashboard, payment screen, processing, payment success, back to the dashboard</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="208" height="112" rx="14"/><use href="#i-layout" x="90" y="14" width="28" height="28"/><text x="104" y="76" text-anchor="middle">Dashboard</text><text class="sm" x="104" y="96" text-anchor="middle">user chooses Send Money</text></g>
+        <path class="wire" d="M210 56H226M219 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="228" y="0" width="208" height="112" rx="14"/><use href="#i-file" x="318" y="14" width="28" height="28"/><text x="332" y="76" text-anchor="middle">Payment screen</text><text class="sm" x="332" y="96" text-anchor="middle">₹1,500.50 to ravi@npay</text></g>
+        <path class="wire" d="M438 56H454M447 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="456" y="0" width="208" height="112" rx="14"/><use href="#i-gear" x="546" y="14" width="28" height="28"/><text x="560" y="76" text-anchor="middle">Processing</text><text class="sm" x="560" y="96" text-anchor="middle">local demo records it</text></g>
+        <path class="wire" d="M666 56H682M675 49l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="684" y="0" width="208" height="112" rx="14"/><use href="#i-check" x="774" y="14" width="28" height="28"/><text x="788" y="76" text-anchor="middle">Payment Success</text><text class="sm" x="788" y="96" text-anchor="middle">app navigates itself</text></g>
+        <path class="wire" d="M894 56H910M903 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="912" y="0" width="208" height="112" rx="14"/><use href="#i-layout" x="1002" y="14" width="28" height="28"/><text x="1016" y="76" text-anchor="middle">Dashboard</text><text class="sm" x="1016" y="96" text-anchor="middle">updated balance</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px;gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">The question</span><ul style="margin:6px 0 0"><li>No <code>NavigationLink</code> to activate</li><li>How does SwiftUI navigate in response to <b>application logic</b>?</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">What stays</span><ul style="margin:6px 0 0"><li>Balance, transactions, editor, form: unchanged</li><li>Only the <b>navigation</b> changes</li></ul></div></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/before.png" alt="3.1: an alert"></div><p class="shot-cap">3.1: an alert</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/success.png" alt="3.2: a success screen"></div><p class="shot-cap">3.2: a success screen</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The new journey. From the dashboard the user chooses Send Money, enters ₹1,500.50 and a recipient, and the local demo validates and records the payment. Then the step in teal: NPay navigates to a Payment Success screen by itself. From there, back to the dashboard with the updated balance.</p>
+    <span class="notes-label">SAY</span><p>The question for today: there is no link for the user to tap. The application must initiate navigation. How does SwiftUI navigate in response to application logic? Click: we keep the balance, the transactions and every Unit 2 feature; only navigation changes.</p>
+    <span class="notes-label">SAY</span><p>On the right, where 3.1 ended: an alert on top of the payment screen. Click: where we end today: a real destination, reached from code.</p>
+    <span class="notes-label">CONNECT</span><p>Why can&rsquo;t a link do this?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Navigation as state</h2>
+    <p class="lead">A typed route</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Name every destination with an enum.</p>
+    <span class="notes-label">CONNECT</span><p>Why links are not enough.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Why NavigationLink alone isn&rsquo;t enough (section 2)</p>
+  <h2>Links react to taps; we need code to decide</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Destination-based navigation (3.1)</span></div><pre class="cb" style="font-size:15px">NavigationLink {
+    PaymentScreen()
+} label: {
+    Text(&quot;Send Money&quot;)
+}</pre></div>
+        <p class="" style="margin:10px 0 0;font-size:19px">The link declares where the user goes <b>when they activate it</b>.</p></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">After a payment succeeds</span><ul style="margin:6px 0 0"><li>Nothing is tapped</li><li>We must navigate <b>from code</b></li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Not a pile of booleans</span><ul style="margin:6px 0 0"><li>One flag per screen doesn&rsquo;t scale</li><li>Model navigation as <b>state</b></li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What we had: a NavigationLink with its destination inside. That is destination-based navigation: the link declares where the user goes when they activate it. It is perfect for taps.</p>
+    <span class="notes-label">SAY</span><p>Click: after a payment succeeds, nothing is tapped. The decision to move comes from code, from the result of the payment.</p>
+    <span class="notes-label">SAY</span><p>Click: we could try a boolean per screen, showSuccess, showHistory and so on, but as the app grows those flags multiply and can contradict each other. Instead, we model navigation as state: one value that says which destinations are on the stack.</p>
+    <span class="notes-label">CONNECT</span><p>First, a type for destinations.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Introducing a typed route (section 3)</p>
+  <h2>Every destination, named by a type</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>Navigation/NPayRoute.swift</span></div><pre class="cb" style="font-size:16px">enum NPayRoute: Hashable {
+    case payment
+    case history
+    case success(transactionID: UUID)
+}</pre></div>
+        <div class="card accent"><span class="label">Plain Swift (Unit 1)</span><ul style="margin:6px 0 0"><li>An enum; <code>success</code> has an <b>associated value</b></li><li><code>Hashable</code>: usable as a navigation path value</li></ul></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Route</th><th>Destination</th></tr></thead><tbody><tr><td><code>.payment</code></td><td>Payment form</td></tr><tr><td><code>.history</code></td><td>Transactions</td></tr><tr><td><code>.success(id)</code></td><td>Receipt</td></tr></tbody></table></div>
+        <div class="step"><div class="card accent"><span class="label">print(path) (Mac run, module NPay)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">[NPay.NPayRoute.payment]<br>[NPay.NPayRoute.payment, NPay.NPayRoute.success(transactionID: 6F1C2A9E-…)]</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPayRoute: an ordinary Swift enum, the kind we built in Unit 1, listing the destinations NPay understands. payment and history are plain cases; success carries an associated value, the transaction&rsquo;s identifier. Hashable lets route values take part in SwiftUI&rsquo;s navigation path system.</p>
+    <span class="notes-label">SAY</span><p>Click: each route maps to a destination: the payment form, the transactions, a receipt.</p>
+    <span class="notes-label">SAY</span><p>Click: routes are just values. We put them in an array and printed it on a Mac, with the module named NPay as in your app: NPay.NPayRoute.payment, then payment and success with its UUID, shortened here.</p>
+    <span class="notes-label">CONNECT</span><p>Why does success carry only an ID?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Why carry an ID? (section 3)</p>
+  <h2>Identify the destination; don&rsquo;t carry it</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">A route says</span><ul style="margin:6px 0 0"><li><b>Which</b> destination</li><li>The data needed to <b>resolve</b> it</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">A stable ID, not the Transaction</span><ul style="margin:6px 0 0"><li>No coupling to a whole mutable object</li><li>The owner keeps the data; the route points at it</li></ul></div></div>
+      </div>
+      <div class="step"><div class="card accent"><span class="label">Route equality (Mac run)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">.success(transactionID: id) == .success(transactionID: id)&ensp;&rarr; true<br>.success(transactionID: id) == .success(transactionID: UUID())&ensp;&rarr; false</p></div>
+        <p class="small muted" style="margin:8px 0 0">Hashable routes compare by case <b>and</b> associated value.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Why does the success route carry a transaction ID instead of the whole Transaction? Because navigation should usually identify the destination and the data needed to resolve it, nothing more.</p>
+    <span class="notes-label">SAY</span><p>Click: passing a stable ID avoids coupling the route to an entire transaction object, which may change. The state owner, ContentView, keeps the data; the route just points at it.</p>
+    <span class="notes-label">SAY</span><p>Click: our Mac run: two success routes with the same ID are equal; with different IDs they are not. A synthesized Hashable route compares the case and its associated value: that is how SwiftUI can tell routes apart in a path.</p>
+    <span class="notes-label">CONNECT</span><p>And if we forget Hashable?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Hashable is required (section 3)</p>
+  <h2>Forget <code>Hashable</code>, and the compiler stops you</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Without Hashable</span></div><pre class="cb" style="font-size:13.5px">enum NPayRoute {             // no Hashable
+    case payment
+    case history
+    case success(transactionID: UUID)
+}
+
+@State private var path: [NPayRoute] = []
+NavigationStack(path: $path) { … }</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">swiftc, iOS 26.5 SDK</span><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;no exact matches in call to initializer</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">note: candidate requires that 'NPayRoute' conform to 'Hashable' (requirement specified as 'Data.Element' : 'Hashable')</p><div class="gap"></div><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;instance method 'navigationDestination(for:destination:)' requires that 'NPayRoute' conform to 'Hashable'</span></div></div>
+        <div class="tip step" data-label="Detail"><ul style="margin:6px 0 0"><li>Without <code>success(UUID)</code> it compiles: an enum with no associated values is Hashable automatically</li><li>Write <code>: Hashable</code> anyway</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What if the route is not Hashable? We removed the conformance and compiled against the iOS SDK.</p>
+    <span class="notes-label">SAY</span><p>Click: two real errors. NavigationStack&rsquo;s path initializer needs a collection whose elements are Hashable: "candidate requires that NPayRoute conform to Hashable". And navigationDestination(for:) has the same requirement.</p>
+    <span class="notes-label">SAY</span><p>Click: a detail we found on the way: with only payment and history, no associated values, it compiled, because Swift makes simple enums Equatable and Hashable automatically. The associated UUID is what needs the declared conformance. Declare it anyway; it states the intent.</p>
+    <span class="notes-label">CONNECT</span><p>Now bind a path of routes to the stack.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>The navigation path</h2>
+    <p class="lead">An array of routes</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NavigationStack(path:) reads and writes it.</p>
+    <span class="notes-label">CONNECT</span><p>The binding.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; NavigationStack with a path (section 4)</p>
+  <h2>The array <b>is</b> the stack above the root</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>ContentView</span></div><pre class="cb" style="font-size:15px">@State private var path: [NPayRoute] = []
+
+NavigationStack(path: $path) {
+    // Dashboard
+}</pre></div>
+        <div class="card accent"><span class="label"><code>$path</code></span><ul style="margin:6px 0 0"><li>A <b>binding</b> to the array</li><li>The stack can read <b>and update</b> it</li></ul></div>
+      </div>
+      <div class="step"><table class="tbl"><thead><tr><th>Path</th><th>Showing</th></tr></thead><tbody><tr><td><code>[]</code></td><td>the root: Dashboard</td></tr><tr><td><code>[.payment]</code></td><td>Payment</td></tr><tr><td><code>[.payment, .success(transactionID: id)]</code></td><td>Success, above Payment</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="rule" data-label="So"><ul style="margin:6px 0 0"><li>The array models the destinations <b>above the root</b></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two pieces. A @State array of routes, starting empty. And NavigationStack with path: $path. Notice the dollar sign: a binding, as in Lesson 2.9. The stack can read the array to know what to show, and update it when the user navigates, for example with the back button.</p>
+    <span class="notes-label">SAY</span><p>Click: what the array means. Empty: just the root, the dashboard. After navigating to Payment: [.payment]. After the success screen: [.payment, .success(transactionID: id)]. The array models the destinations above the root; the last element is the visible screen.</p>
+    <span class="notes-label">CONNECT</span><p>Let&rsquo;s watch the array change.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Navigation-path explorer (sections 5, 13)</p>
+  <h2>Push appends; pop removes; home clears</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 160px;gap:24px;align-items:start">
+      <div><table class="tbl compact"><thead><tr><th>Action</th><th>New path (onChange, simulator)</th></tr></thead><tbody><tr><td>Open Payment</td><td><code>[.payment]</code></td></tr><tr><td>Show success</td><td><code>[.payment, .success(transactionID: 6F1C2A9E-…)]</code></td></tr><tr><td>Home (<code>removeAll</code>)</td><td><code>[]</code></td></tr><tr><td>Payment, then History (two appends)</td><td><code>[.payment, .history]</code>: Depth 2</td></tr><tr><td>System Back</td><td><code>[.payment]</code>: Depth 1</td></tr><tr><td>Pop (guarded)</td><td><code>[]</code></td></tr><tr><td>Pop at root (guarded)</td><td>no change</td></tr></tbody></table>
+        <p class="small muted" style="margin:6px 0 0">Printed by <code>.onChange(of: path)</code>; module prefix <code>NPay.NPayRoute</code> omitted.</p></div>
+      <div class="step"><div style="width:160px;max-width:100%;margin:0 auto"><div class="shot" style="height:348px"><img src="img/two.png" alt="After two appends"></div><p class="shot-cap">After two appends</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s interactive explorer, replaced by a real one: a lab screen with buttons that change the path, and the onChange debugging tip from Section 13 printing the old and new path after each action.</p>
+    <span class="notes-label">SAY</span><p>Open Payment appends: [.payment]. Show success appends again. Home calls removeAll: back to an empty path, the root. Then experiment 5 from the text: append two routes in one action. One change, [.payment, .history], and the stack shows History at depth 2, directly. Click: the screenshot.</p>
+    <span class="notes-label">SAY</span><p>Then the system Back: the path lost its last element, [.payment]. We did not write that; the stack updated our array through the binding. A guarded pop emptied it; a guarded pop at the root did nothing. Pushing appends a route; popping removes the last route; returning home clears the path.</p>
+    <span class="notes-label">CONNECT</span><p>The operations, and the one that can crash.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Programmatic navigation (section 7)</p>
+  <h2>Five operations on an array</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Navigate from code</span></div><pre class="cb" style="font-size:13.5px">path.append(.payment)                          // to Payment
+path.append(.history)                          // to History
+path.append(.success(transactionID: id))       // to Success
+path.removeLast()                              // back one
+path.removeAll()                               // to the dashboard
+
+if !path.isEmpty {                             // safe back
+    path.removeLast()
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Just array methods</span><ul style="margin:6px 0 0"><li>Navigation becomes ordinary <b>Swift</b></li><li>Testable without a screen</li></ul></div>
+        <div class="warn step" data-label="removeLast on []"><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13.5px;line-height:1.55">Fatal error: Can&rsquo;t remove last element from an empty collection</p><p class="small" style="margin:6px 0 0">Mac run: the guard skipped it; the unguarded call trapped.</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Navigating from code is now array manipulation. append(.payment) pushes Payment. append(.history) pushes History. append(.success(transactionID: id)) pushes the receipt. removeLast goes back one destination. removeAll returns to the dashboard. Nothing here mentions a view controller.</p>
+    <span class="notes-label">SAY</span><p>Click: the safety detail. removeLast on an empty array is a runtime trap. We ran it on a Mac: the guarded version did nothing, the unguarded one crashed with "Can&rsquo;t remove last element from an empty collection". Guard it when the path might be empty.</p>
+    <span class="notes-label">CONNECT</span><p>The stack knows the routes. How does it know the screens?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Register destinations</h2>
+    <p class="lead">Routes in, views out</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>navigationDestination maps each route to a view.</p>
+    <span class="notes-label">CONNECT</span><p>The mapping.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Register destinations with navigationDestination (section 6)</p>
+  <h2>One <code>switch</code>, every screen</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>The routing structure</span></div><pre class="cb" style="font-size:13.5px">.navigationDestination(for: NPayRoute.self) { route in
+    switch route {
+    case .payment:
+        PaymentScreen()
+
+    case .history:
+        HistoryScreen()
+
+    case .success(let transactionID):
+        PaymentSuccessScreen(
+            transactionID: transactionID
+        )
+    }
+}</pre></div>
+        <p class="small muted" style="margin:8px 0 0">Structure only: the real initializers still take 3.1&rsquo;s dependencies.</p></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">What happens</span><ul style="margin:6px 0 0"><li>SwiftUI associates the route <b>type</b> with a destination builder</li><li>When a route becomes active, it builds the view</li><li>The route: a typed description of <b>intent</b></li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">SDK (simplified)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">func navigationDestination&lt;D, C&gt;(for data: D.Type,<br>&ensp;&ensp;@ViewBuilder destination: @escaping (D) -&gt; C) -&gt; some View<br>&ensp;&ensp;where D : Hashable, C : View</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI needs to know which view corresponds to each route, so we register a mapping: navigationDestination for NPayRoute.self, with a closure that receives a route and switches over it. The switch is exhaustive: add a route case and the compiler makes you handle it. This shows the routing structure; the real screens still need the balance, transactions and closures from 3.1, which we add in Part 6.</p>
+    <span class="notes-label">SAY</span><p>Click: conceptually, SwiftUI associates the route type with a destination builder; when a route becomes active, it builds the matching view. The route is a typed description of navigation intent.</p>
+    <span class="notes-label">SAY</span><p>Click: the SDK declaration: generic over the data type D, which must be Hashable, and the destination view C, built by an escaping closure. Escaping because SwiftUI calls it later, whenever a route needs a view.</p>
+    <span class="notes-label">CONNECT</span><p>What if a value has no registration?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; A value with no destination (section 6, authored experiment)</p>
+  <h2>Unregistered type: a warning, not a screen</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 160px;gap:28px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Experiment</span><ul style="margin:6px 0 0"><li>A path holding <code>NPayRoute</code>, <code>42</code> and <code>"ravi@npay"</code></li><li>Destinations registered for <code>NPayRoute</code> and <code>Int</code> only</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13.5px;line-height:1.55">count: 3<br>top: String, no destination &rarr; yellow warning symbol<br>Back &rarr; count 2: "Int destination #42"</p></div></div>
+        <div class="rule step" data-label="So"><ul style="margin:6px 0 0"><li>Every value type you push needs a <code>navigationDestination</code></li><li>Register it inside the stack, on the root content</li></ul></div>
+      </div>
+      <div class="step"><div style="width:160px;max-width:100%;margin:0 auto"><div class="shot" style="height:348px"><img src="img/mixed.png" alt="No String destination"></div><p class="shot-cap">No String destination</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Our own experiment, to see what registration really does. A path that holds a route, an Int and a String, with destinations registered for the route type and for Int, but not for String. That mixed path needs NavigationPath, the topic of Part 5.</p>
+    <span class="notes-label">SAY</span><p>Click: count 3, and the top value is the String, which has no registered destination. Click: SwiftUI pushes a screen with only a yellow warning symbol. After Back, the Int is on top and its destination appears: "Int destination #42".</p>
+    <span class="notes-label">SAY</span><p>Click: so every type you put on the path needs a navigationDestination, placed inside the NavigationStack, typically on the root content, as our dashboard does.</p>
+    <span class="notes-label">CONNECT</span><p>NavigationPath, properly.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>NavigationPath</h2>
+    <p class="lead">A type-erased path</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>When the path must hold different Hashable types.</p>
+    <span class="notes-label">CONNECT</span><p>The comparison.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; What is NavigationPath? (section 8)</p>
+  <h2>Typed array or type-erased path?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Two ways to declare the path</span></div><pre class="cb" style="font-size:14px">@State private var path: [NPayRoute] = []
+@State private var path = NavigationPath()</pre></div>
+        <div class="gap"></div>
+        <table class="tbl"><thead><tr><th>Typed array</th><th>NavigationPath</th></tr></thead><tbody><tr><td><code>[NPayRoute]</code></td><td>Type-erased path</td></tr><tr><td>One route type</td><td>Can hold multiple Hashable types</td></tr><tr><td>Strong compile-time route modeling</td><td>More flexible heterogeneous routing</td></tr><tr><td>Simple <code>switch</code>-based destinations</td><td>Type-specific destination registrations</td></tr><tr><td>Good for our NPay example</td><td>Useful for more heterogeneous navigation</td></tr></tbody></table></div>
+      <div class="rule step" data-label="For NPay"><ul style="margin:6px 0 0"><li>Use <code>[NPayRoute]</code> for now</li><li>Easier to reason about; the route model stays <b>explicit</b></li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>So far: an array of NPayRoute. SwiftUI also provides NavigationPath, a type-erased path that can hold Hashable values of different types: for example, routes from several features, or plain identifiers.</p>
+    <span class="notes-label">SAY</span><p>The trade-off. The typed array has one route type, strong compile-time modelling, and one exhaustive switch. NavigationPath is more flexible: any Hashable values, each type with its own destination registration. Good for heterogeneous navigation.</p>
+    <span class="notes-label">SAY</span><p>Click: the recommendation for NPay: use the typed array for now. It is easier to reason about and keeps the route model explicit.</p>
+    <span class="notes-label">CONNECT</span><p>What NavigationPath gives up.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Inside NavigationPath (section 8, SDK)</p>
+  <h2>What you can do with an erased path</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="card accent"><span class="label">iOS 26.5 SDK, SwiftUI interface (simplified)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">public struct NavigationPath {<br>&ensp;&ensp;public var count: Int { get }<br>&ensp;&ensp;public var isEmpty: Bool { get }<br>&ensp;&ensp;public var codable: CodableRepresentation? { get }<br>&ensp;&ensp;public init()<br>&ensp;&ensp;public mutating func append&lt;V&gt;(_ value: V) where V : Hashable<br>&ensp;&ensp;public mutating func removeLast(_ k: Int = 1)<br>}</p></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Need</th><th><code>[NPayRoute]</code></th><th><code>NavigationPath</code></th></tr></thead><tbody><tr><td>Read the routes</td><td>yes</td><td>no: only <code>count</code></td></tr><tr><td>Back to root</td><td><code>removeAll()</code></td><td><code>removeLast(path.count)</code></td></tr><tr><td>Mixed types</td><td>no</td><td>yes</td></tr></tbody></table></div>
+        <div class="tip step" data-label="codable"><ul style="margin:6px 0 0"><li>Non-nil when every value is <code>Codable</code>: a way to save and restore navigation</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The NavigationPath declaration from the SDK, simplified: count, isEmpty, an optional codable representation, append for any Hashable value, and removeLast with a count. Notice what is missing.</p>
+    <span class="notes-label">SAY</span><p>Click: you cannot read the elements back: no subscript, no iteration, only the count. There is no removeAll; to go home you remove count elements, or assign a new empty NavigationPath. And it can hold mixed types, which the array cannot. Another reason the typed array suits NPay: we can print it, inspect it and test it.</p>
+    <span class="notes-label">SAY</span><p>Click: the codable property is non-nil when every value in the path is Codable, which is the hook for saving and restoring navigation. We note it here; we do not need it yet.</p>
+    <span class="notes-label">CONNECT</span><p>Back to NPay: the success screen.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>The payment success flow</h2>
+    <p class="lead">Result in, navigation out</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Payment returns an ID; the parent appends a route.</p>
+    <span class="notes-label">CONNECT</span><p>The success screen.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Build the Payment Success screen (section 9)</p>
+  <h2>It receives an ID and a way home</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.62fr) 150px;gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>Screens/PaymentSuccessScreen.swift</span></div><pre class="cb" style="font-size:11.5px">struct PaymentSuccessScreen: View {
+    let transactionID: UUID
+    let onDone: () -&gt; Void
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: &quot;checkmark.circle.fill&quot;)
+                .font(.system(size: 72))
+                .foregroundStyle(.green)
+            Text(&quot;Payment Recorded&quot;)
+                .font(.title.bold())
+            Text(&quot;Your demo payment was successful.&quot;)
+                .foregroundStyle(.secondary)
+            Text(transactionID.uuidString)
+                .font(.caption2.monospaced())
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button(&quot;Back to Dashboard&quot;) { onDone() }
+                .buttonStyle(.borderedProminent)
+        }
+        .padding()
+        .navigationTitle(&quot;Payment Success&quot;)
+        .navigationBarBackButtonHidden()
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Receives</span><ul style="margin:6px 0 0"><li><code>transactionID</code></li><li><code>onDone</code>: a closure</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Doesn&rsquo;t own</span><ul style="margin:6px 0 0"><li>The navigation <b>path</b></li><li>The parent navigates</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">No back button</span><ul style="margin:6px 0 0"><li>Hidden by a modifier</li><li>Leave with <b>Back to Dashboard</b></li></ul></div></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/success.png" alt="In the simulator"></div><p class="shot-cap">In the simulator</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentSuccessScreen.swift: a green checkmark, "Payment Recorded", a line of text, the transaction ID in a small monospaced font, and a Back to Dashboard button. It receives two things: the transaction ID and an onDone closure.</p>
+    <span class="notes-label">SAY</span><p>Click: what it does not own: the application&rsquo;s navigation path. Its button calls onDone; the parent decides what that means. The same pattern as onSend in 2.12: data in, requests up.</p>
+    <span class="notes-label">SAY</span><p>Click: navigationBarBackButtonHidden removes the back button. Back would land on the payment form again, which makes little sense after paying; the only way out is Back to Dashboard. The screenshot: no back button in the bar.</p>
+    <span class="notes-label">CONNECT</span><p>Where does the transaction ID come from?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Connect payment success to navigation (section 10)</p>
+  <h2>From <code>Bool</code> to <code>UUID?</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>ContentView.sendDemoPayment</span></div><pre class="cb" style="font-size:12px">private func sendDemoPayment(
+    to recipient: String,
+    amountPaise: Int
+) -&gt; UUID? {
+    let trimmed = recipient.trimmingCharacters(
+        in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty,
+          amountPaise &gt; 0,
+          amountPaise &lt;= balancePaise else {
+        return nil
+    }
+    let transactionID = UUID()
+    balancePaise -= amountPaise
+    transactions.insert(
+        Transaction(id: transactionID,
+                    title: &quot;Sent to \(trimmed)&quot;,
+                    amountPaise: -amountPaise, date: .now),
+        at: 0)
+    return transactionID
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">The new contract</span><ul style="margin:6px 0 0"><li><code>nil</code>: rejected</li><li>A <code>UUID</code>: recorded, and <b>which</b> transaction</li></ul></div>
+        <div class="step"><div class="cw"><div class="ch"><span>Navigation responds to the result</span></div><pre class="cb" style="font-size:12.5px">if let id = sendDemoPayment(
+    to: recipient, amountPaise: amountPaise) {
+    path.append(.success(transactionID: id))
+}</pre></div></div>
+        <div class="rule step" data-label="Why better"><ul style="margin:6px 0 0"><li>Payment returns a <b>meaningful</b> result</li><li>Navigation responds to it</li><li>Payment logic knows no screens</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In 3.1 sendDemoPayment returned a Bool. Now we need the transaction ID, so the contract improves: it returns an optional UUID. nil means rejected. On success it creates the ID first, uses it for the inserted transaction, and returns it.</p>
+    <span class="notes-label">SAY</span><p>Click: the navigation flow uses it: if let id = sendDemoPayment, append the success route with that ID.</p>
+    <span class="notes-label">SAY</span><p>Click: why this is better. Payment processing returns a meaningful result. Navigation responds to that result. And the payment logic does not need to know about SwiftUI screens; it could move into a service in Unit 4 unchanged.</p>
+    <span class="notes-label">CONNECT</span><p>The payment form sits between the two. How does it report success?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; How PaymentScreen communicates success (section 11) &middot; conceptual</p>
+  <h2>Two closures: a request, then a report</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Screens/PaymentScreen.swift (changes)</span></div><pre class="cb" style="font-size:13px">let onSend: (String, Int) -&gt; UUID?
+let onPaymentSuccess: (UUID) -&gt; Void
+
+Button(&quot;Send Demo Payment&quot;) {
+    guard let amount = parsedAmount else { return }
+    if let transactionID = onSend(recipient, amount) {
+        focusedField = nil
+        onPaymentSuccess(transactionID)
+    }
+}</pre></div>
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 520 292" style="max-height:310px" role="img" aria-labelledby="cl">
+        <title id="cl">PaymentScreen, onSend, ContentView, transaction ID, onPaymentSuccess, NavigationStack</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="520" height="42" rx="12"/><use href="#i-file" x="14" y="8" width="26" height="26"/><text x="52" y="18">PaymentScreen</text><text class="sm" x="52" y="36">collects user input</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="50" width="520" height="42" rx="12"/><use href="#i-send" x="14" y="58" width="26" height="26"/><text x="52" y="68">onSend</text><text class="sm" x="52" y="86">requests the demo payment</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="100" width="520" height="42" rx="12"/><use href="#i-db" x="14" y="108" width="26" height="26"/><text x="52" y="118">ContentView</text><text class="sm" x="52" y="136">validates, records</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="150" width="520" height="42" rx="12"/><use href="#i-key" x="14" y="158" width="26" height="26"/><text x="52" y="168">Transaction ID</text><text class="sm" x="52" y="186">returned on success</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="200" width="520" height="42" rx="12"/><use href="#i-link" x="14" y="208" width="26" height="26"/><text x="52" y="218">onPaymentSuccess</text><text class="sm" x="52" y="236">requests navigation</text></g>
+        <g class="nd" data-lit="6"><rect class="sh" x="0" y="250" width="520" height="42" rx="12"/><use href="#i-layers" x="14" y="258" width="26" height="26"/><text x="52" y="268">NavigationStack</text><text class="sm" x="52" y="286">shows Success</text></g>
+      </svg>
+    </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentScreen&rsquo;s contract changes in two places. onSend now returns an optional UUID. And a second closure, onPaymentSuccess, takes the ID. In the button: if onSend returns an ID, clear focus and call onPaymentSuccess with it. The 3.1 alert and dismiss are gone; the success screen replaces them.</p>
+    <span class="notes-label">SAY</span><p>The text&rsquo;s chain, step by step. Click: PaymentScreen collects input. Click: onSend requests the demo payment. Click: ContentView validates and records the transaction. Click: the transaction ID comes back. Click: onPaymentSuccess requests navigation. Click: the NavigationStack displays the success destination. The parent supplies the navigation behaviour; the form never touches the path.</p>
+    <span class="notes-label">CONNECT</span><p>Where those closures are created: the registration.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Wire it up in ContentView (complete code, authored)</p>
+  <h2>The registration holds every dependency</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>ContentView: destinations</span></div><pre class="cb" style="font-size:12px">.navigationDestination(for: NPayRoute.self) { route in
+    switch route {
+    case .payment:
+        PaymentScreen(
+            availableBalancePaise: balancePaise,
+            onSend: sendDemoPayment,
+            onPaymentSuccess: { transactionID in
+                path.append(.success(transactionID: transactionID))
+            })
+    case .history:
+        HistoryScreen(transactions: transactions)
+    case .success(let transactionID):
+        PaymentSuccessScreen(
+            transactionID: transactionID,
+            onDone: { path.removeAll() })
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>Dashboard buttons</span></div><pre class="cb" style="font-size:12px">Button {
+    path.append(.payment)
+} label: {
+    Label(&quot;Send Money&quot;, systemImage: &quot;arrow.up.right&quot;)
+    // same styling as 3.1
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">ContentView owns</span><ul style="margin:6px 0 0"><li>Balance, transactions, <b>and the path</b></li><li>Screens get values and closures</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text gave the pieces; we assembled them into the complete ContentView, flagged as ours. The registration now passes each screen its dependencies. Payment gets the balance, sendDemoPayment as onSend, and an onPaymentSuccess closure that appends the success route. History gets the transactions. Success gets its ID and an onDone that clears the path.</p>
+    <span class="notes-label">SAY</span><p>On the right: the dashboard&rsquo;s links became buttons that append routes, styled as in 3.1, as in the text&rsquo;s path.append examples. A value-based NavigationLink, NavigationLink(value:), would also append to the path; we stay with the text&rsquo;s buttons.</p>
+    <span class="notes-label">SAY</span><p>Click: ContentView now owns three things: the balance, the transactions and the navigation path. Every screen receives values and closures.</p>
+    <span class="notes-label">CONNECT</span><p>Run it: the text&rsquo;s practical test.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Run the route-based flow (practical test)</p>
+  <h2>₹1,500.50 to ravi@npay, step by step</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 130px 130px 130px 130px;gap:14px;align-items:start">
+      <div class="card accent"><span class="label">onChange(of: path), simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">tap Send Money<br>&ensp;[NPay.NPayRoute.payment]<br>tap Send Demo Payment<br>&ensp;[….payment, ….success(transactionID:<br>&ensp;&ensp;DFE60279-…)]<br>tap Back to Dashboard<br>&ensp;[]<br>tap Transaction History<br>&ensp;[NPay.NPayRoute.history]</p></div>
+      <div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/typed.png" alt="1500.50 typed"></div><p class="shot-cap">1500.50 typed</p></div>
+      <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/success.png" alt="Success, by code"></div><p class="shot-cap">Success, by code</p></div></div>
+      <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/home.png" alt="₹23,499.50"></div><p class="shot-cap">₹23,499.50</p></div></div>
+      <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/history.png" alt="History"></div><p class="shot-cap">History</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The practical test: send ₹1,500.50 to ravi@npay. Our run, with the path printed after each change. Send Money appended .payment. The left screenshot: the form filled in, Send enabled.</p>
+    <span class="notes-label">SAY</span><p>Click: Send Demo Payment: the payment returned an ID and the app appended .success with it; no link was tapped. Click: Back to Dashboard cleared the path: the dashboard shows ₹25,000.00 minus ₹1,500.50, ₹23,499.50. Click: Transaction History appended .history; "Sent to ravi@npay", minus ₹1,500.50, is on top.</p>
+    <span class="notes-label">CONNECT</span><p>The whole project, file by file.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; NPay through Lesson 3.2 (complete code, authored)</p>
+  <h2>Two new files, three changed</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Project</span></div><pre class="cb" style="font-size:12.5px">NPay/
+├── NPayApp.swift
+├── ContentView.swift          path, destinations, payment
+├── Navigation/
+│   └── NPayRoute.swift         new
+├── Models/            Money, Transaction
+├── Components/        BalanceCard, BalanceEditor, TransactionRow
+└── Screens/
+    ├── PaymentScreen.swift          onSend → UUID?, onPaymentSuccess
+    ├── PaymentSuccessScreen.swift   new
+    └── HistoryScreen.swift</pre></div>
+      <div class="step"><table class="tbl compact"><thead><tr><th>Check</th><th>Simulator</th></tr></thead><tbody><tr><td>Starting balance</td><td>₹25,000.00</td></tr><tr><td>Send ₹1,500.50 to ravi@npay</td><td>Success screen, by code</td></tr><tr><td>Back to Dashboard</td><td>₹23,499.50; path []</td></tr><tr><td>History</td><td>Sent to ravi@npay, -₹1,500.50</td></tr><tr><td>Success screen&rsquo;s back button</td><td>hidden</td></tr></tbody></table>
+        <p class="small muted" style="margin:8px 0 0">The text described a project ZIP; the code is in this lesson&rsquo;s text file, run in the simulator.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The project through Lesson 3.2. New: NPayRoute.swift in a Navigation folder and PaymentSuccessScreen.swift. Changed: ContentView owns the path and registers destinations; PaymentScreen&rsquo;s onSend returns an optional UUID and it reports success through onPaymentSuccess; sendDemoPayment returns the ID. Models and Components are unchanged from 3.1.</p>
+    <span class="notes-label">SAY</span><p>Click: our checks. ₹25,000.00 at launch; the payment lands on the success screen by code; Back to Dashboard shows ₹23,499.50 with an empty path; History has the new transaction; the success screen has no back button. The text mentioned a ZIP of the project; we did not receive it, so the complete code is written out in the lesson text file and is exactly what ran.</p>
+    <span class="notes-label">CONNECT</span><p>Behind the scenes: why this is just state.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Navigation is state</h2>
+    <p class="lead">Visible destination = f(path)</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The same idea as UI = f(State) in Lesson 2.8.</p>
+    <span class="notes-label">CONNECT</span><p>The principle.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Behind the scenes: navigation is state (section 12)</p>
+  <h2>UI = f(State), and now navigation too</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 160px;gap:28px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <p style="font-size:30px;margin:0;text-align:center"><b>UI</b> = <i>f</i>(State)&emsp;&rarr;&emsp;<b>Visible destination</b> = <i>f</i>(<span class="mono">path</span>)</p>
+        <div class="card accent"><span class="label">When the path changes</span><ul style="margin:6px 0 0"><li>SwiftUI updates the navigation presentation</li><li>The app pushes <b>no</b> view controller; it changes declarative state</li><li>SwiftUI runs the transition</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Authored experiment: launch with a path</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">@State private var path: [NPayRoute] = [.payment, .history]<br>launch &rarr; History on screen, Payment below it<br>Back &rarr; New path: [NPay.NPayRoute.payment]</p></div></div>
+      </div>
+      <div class="step"><div style="width:160px;max-width:100%;margin:0 auto"><div class="shot" style="height:348px"><img src="img/deep.png" alt="Launched deep"></div><p class="shot-cap">Launched deep</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 2.8: UI is a function of state. Navigation follows the same principle: the visible destination is a function of the navigation path. When the path changes, SwiftUI updates the navigation presentation. The app is not directly pushing a UIKit view controller; it changes declarative state, and SwiftUI handles the transition.</p>
+    <span class="notes-label">SAY</span><p>Click: our experiment to prove the function. Start the path with two routes, payment and history, instead of empty. Click: the app launches straight into History, with a back button; Back goes to Payment, and the path prints [.payment]. Nobody navigated: the screen was computed from the state. That is also how deep links and restored navigation work.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s six experiments.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Xcode experiments (section 13)</p>
+  <h2>Six experiments, six results</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:24px;align-items:start">
+      <table class="tbl compact"><thead><tr><th>Experiment</th><th>Simulator</th></tr></thead><tbody><tr><td>1. Empty path, navigate to Payment</td><td><code>[]</code> &rarr; <code>[.payment]</code></td></tr><tr><td>2. After a payment, append success</td><td><code>[.payment, .success(…)]</code>, by code</td></tr><tr><td>3. Print the path after each action</td><td><code>onChange(of: path)</code>: old and new</td></tr><tr><td>4. <code>removeAll()</code> to the dashboard</td><td><code>[]</code>; the dashboard</td></tr><tr><td>5. Append two routes in one action</td><td>one change; lands on History, depth 2</td></tr><tr><td>6. <code>[NPayRoute]</code> vs <code>NavigationPath</code></td><td>mixed types, <code>count</code> only (Part 5)</td></tr></tbody></table>
+      <div class="step"><div class="cw"><div class="ch"><span>Debugging tip</span></div><pre class="cb" style="font-size:12.5px">.onChange(of: path) { oldPath, newPath in
+    print(&quot;Old path:&quot;, oldPath)
+    print(&quot;New path:&quot;, newPath)
+}</pre></div>
+        <p class="small muted" style="margin:8px 0 0">Our complete ContentView keeps this, so you can watch navigation state evolve.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s six experiments and what each gave us. Navigating from an empty path appended .payment. After a payment, the success route was appended by code. Printing the path after each action showed every step. removeAll returned to the dashboard. Two appends in one action produced a single change and went straight to History at depth 2. And NavigationPath took mixed types but only exposes a count.</p>
+    <span class="notes-label">SAY</span><p>Click: the debugging tip: onChange of path with the old and new values. We kept it in the complete ContentView; remove it before shipping.</p>
+    <span class="notes-label">CONNECT</span><p>A question that comes up here: where is the router?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Do we need a router?</h2>
+    <p class="lead">Primitives first, a router on top</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI has navigation, but no Router class.</p>
+    <span class="notes-label">CONNECT</span><p>The comparison.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Don&rsquo;t we have a routing module? (Q&amp;A 1&ndash;2)</p>
+  <h2>Navigation built in; no Router class</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <table class="tbl"><thead><tr><th>Framework</th><th>Routing mechanism</th></tr></thead><tbody><tr><td>Angular</td><td>Angular Router</td></tr><tr><td>React</td><td>React Router (external library)</td></tr><tr><td>Flutter</td><td>Navigator / Router</td></tr><tr><td>SwiftUI</td><td><code>NavigationStack</code> + <code>navigationDestination</code></td></tr><tr><td>UIKit</td><td><code>UINavigationController</code></td></tr></tbody></table>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">In SwiftUI</span><ul style="margin:6px 0 0"><li><code>import SwiftUI</code>: no router package</li><li>Primitives: stack, path, destinations</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">A Router class?</span><ul style="margin:6px 0 0"><li>Not built in at app level</li><li>You can <b>build your own</b> on the primitives</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A question from the lesson discussion: don&rsquo;t we have a routing module, like Angular Router or React Router? Angular ships its router; React uses an external library; Flutter has Navigator and Router. In SwiftUI, navigation is part of the framework: NavigationStack and navigationDestination. In UIKit, UINavigationController.</p>
+    <span class="notes-label">SAY</span><p>Click: so there is no separate router package and no built-in application-level Router class. SwiftUI provides the navigation primitives, and we can build our own router on top to centralise navigation.</p>
+    <span class="notes-label">CONNECT</span><p>What that looks like.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; A router of our own (Q&amp;A 2&ndash;3)</p>
+  <h2>The path, moved into an object</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.8fr) minmax(0,1fr) 140px;gap:18px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>NPayRouter.swift</span></div><pre class="cb" style="font-size:12px">@MainActor
+@Observable
+final class NPayRouter {
+    var path: [NPayRoute] = []
+
+    func push(_ route: NPayRoute) {
+        path.append(route)
+    }
+
+    func pop() {
+        guard !path.isEmpty else { return }
+        path.removeLast()
+    }
+
+    func popToRoot() {
+        path.removeAll()
+    }
+}</pre></div>
+        <p class="small muted" style="margin:8px 0 0">Observation framework: iOS 17+.</p></div>
+      <div class="step"><div class="cw"><div class="ch"><span>ContentView</span></div><pre class="cb" style="font-size:11.5px">@State private var router = NPayRouter()
+
+var body: some View {
+    @Bindable var router = router
+
+    NavigationStack(path: $router.path) {
+        VStack(spacing: 20) {
+            Button(&quot;Send Money&quot;) { router.push(.payment) }
+            Button(&quot;History&quot;) { router.push(.history) }
+        }
+        .navigationDestination(for: NPayRoute.self) { route in
+            switch route {
+            case .payment: Text(&quot;Payment Screen&quot;)
+            case .history: Text(&quot;History Screen&quot;)
+            case .success(let id):
+                Text(&quot;Payment Success: \(id.uuidString)&quot;)
+            }
+        }
+    }
+}</pre></div></div>
+      <div class="step"><div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/router.png" alt="After Send Money"></div><p class="shot-cap">After Send Money</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPayRouter: a main-actor, @Observable class from Apple&rsquo;s Observation framework, iOS 17 and later. It owns the path array and offers push, a guarded pop, and popToRoot. The same array operations as Part 3, behind names.</p>
+    <span class="notes-label">SAY</span><p>Click: connecting it. ContentView owns the router with @State, as the canon does for observable objects. Inside body, @Bindable var router gives us bindings into the object, so $router.path can drive NavigationStack. The buttons call router.push; the destinations are registered as before, here as placeholder Texts.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran the Q&amp;A&rsquo;s code unchanged: Send Money pushed "Payment Screen". Today it is enough that the router&rsquo;s path behaves exactly like our @State array.</p>
+    <span class="notes-label">CONNECT</span><p>Should NPay have one now?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Should NPay have a router? (Q&amp;A 4&ndash;5)</p>
+  <h2>Later: when navigation spans screens and tabs</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 470 270" style="max-height:290px" role="img" aria-labelledby="rt">
+        <title id="rt">View, NPayRouter, navigation path, NavigationStack, navigationDestination</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="470" height="46" rx="12"/><use href="#i-layout" x="14" y="10" width="26" height="26"/><text x="52" y="20">NPay view</text><text class="sm" x="52" y="38">user taps Send Money</text></g>
+        <path class="wire" d="M235 47V55M228 48l7 7 7-7"/>
+        <g class="nd lit"><rect class="sh" x="0" y="56" width="470" height="46" rx="12"/><use href="#i-gear" x="14" y="66" width="26" height="26"/><text x="52" y="76">NPayRouter</text><text class="sm" x="52" y="94">push(.payment)</text></g>
+        <path class="wire" d="M235 103V111M228 104l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="112" width="470" height="46" rx="12"/><use href="#i-db" x="14" y="122" width="26" height="26"/><text x="52" y="132">Navigation path</text><text class="sm" x="52" y="150">stores [.payment]</text></g>
+        <path class="wire" d="M235 159V167M228 160l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="168" width="470" height="46" rx="12"/><use href="#i-layers" x="14" y="178" width="26" height="26"/><text x="52" y="188">NavigationStack</text><text class="sm" x="52" y="206">observes the bound path</text></g>
+        <path class="wire" d="M235 215V223M228 216l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="224" width="470" height="46" rx="12"/><use href="#i-link" x="14" y="234" width="26" height="26"/><text x="52" y="244">navigationDestination</text><text class="sm" x="52" y="262">.payment &rarr; PaymentScreen</text></g>
+      </svg>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="cw"><div class="ch"><span>Eventually</span></div><pre class="cb" style="font-size:12px">NPayApp
+  +-- NPayRouter
+  |     +-- NavigationStack
+  |     +-- NavigationPath
+  |     +-- Route resolution
+  +-- Features
+        +-- Dashboard
+        +-- Payments
+        +-- History
+        +-- Profile</pre></div></div>
+        <div class="rule step" data-label="Boundary"><ul style="margin:6px 0 0"><li>A router manages <b>where</b> the user goes</li><li>Not payments, not business logic</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The flow with a router: a view asks the router to push .payment; the router stores it in the path; NavigationStack observes the bound path; navigationDestination resolves .payment to PaymentScreen. The router sits where ContentView&rsquo;s @State path sits today.</p>
+    <span class="notes-label">SAY</span><p>Click: should NPay have one? Yes, as the app grows, but understand the native primitives first. The suggestion is to introduce NPayRouter when navigation is coordinated across several screens and tabs: then the app owns a router, which owns the stack, the path and route resolution, next to the features: dashboard, payments, history, profile.</p>
+    <span class="notes-label">SAY</span><p>Click: one boundary to keep: the router manages where the user goes. Payment processing and business logic stay out of it. Native NavigationStack underneath, our own small abstraction on top, no extra dependencies.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.2 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p style="font-size:23px"><b>Routes are values</b><br><span class="muted" style="font-size:19px">a Hashable enum names every destination</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>The path is the stack</b><br><span class="muted" style="font-size:19px">append, removeLast, removeAll; the stack writes back</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:23px"><b>Results drive navigation</b><br><span class="muted" style="font-size:19px">payment returns an ID; the parent appends .success</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A typed route is a Hashable enum that names each destination, carrying only the data needed to resolve it, like a transaction ID. The path array is the stack above the root: append pushes, removeLast pops, removeAll goes home, and the stack updates the array when the user goes back; navigationDestination maps each route to a view. And application logic drives navigation: the payment returns an ID, the parent appends the success route, and the payment code never knows about screens.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is a typed navigation route?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is a typed navigation route?</p><ol class="q-opts"><li>A network URL</li><li>A Swift type representing a destination</li><li>A UIKit thread</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>NPayRoute</code> names each destination as an enum case.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking of routes as URLs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. <code>NPayRoute</code> names each destination as an enum case.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why does NPayRoute conform to Hashable?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why does <code>NPayRoute</code> conform to <code>Hashable</code>?</p><ol class="q-opts"><li>To enable HTTP requests</li><li>To create animations</li><li>To support navigation path values</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Both <code>NavigationStack(path:)</code> and <code>navigationDestination(for:)</code> require it: real compiler errors.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking Hashable is optional.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. Both <code>NavigationStack(path:)</code> and <code>navigationDestination(for:)</code> require it: real compiler errors.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does path.append(.payment) do?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>path.append(.payment)</code> do?</p><ol class="q-opts"><li>Adds a navigation destination</li><li>Starts a new process</li><li>Creates a database record</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">The path is the stack: appending pushes Payment.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting a push call.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Almost everyone picks A.</p>
+    <span class="notes-label">SAY</span><p>A. The path is the stack: appending pushes Payment.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does path.removeAll() represent?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layout"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>path.removeAll()</code> represent?</p><ol class="q-opts"><li>Delete all transactions</li><li>Return to root</li><li>Terminate the app</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">An empty path shows only the dashboard.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing the path with app data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. An empty path shows only the dashboard.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why return a transaction ID from payment logic?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why does <code>sendDemoPayment</code> return a transaction ID?</p><ol class="q-opts"><li>To increase the balance</li><li>To create a thread</li><li>To identify the successful transaction</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">The success route carries it; <code>nil</code> means rejected.</p>
+          <p class="q-trap"><b>Common trap:</b> Returning only a Bool.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. The success route carries it; <code>nil</code> means rejected.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Must every NavigationPath element have the same type?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>NavigationPath</code> require every element to have the same concrete type?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Ours held a route, an <code>Int</code> and a <code>String</code>; count 3.</p>
+          <p class="q-trap"><b>Common trap:</b> Mixing it up with <code>[NPayRoute]</code>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Ours held a route, an <code>Int</code> and a <code>String</code>; count 3.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="path after system Back from [.payment, .history]?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">The path is <code>[.payment, .history]</code>. The user taps the system back button. What is <code>path</code> now?</p><ol class="q-opts"><li><code>[.payment, .history]</code>: we never changed it</li><li><code>[.payment]</code></li><li><code>[]</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The stack writes back through <code>$path</code>: onChange printed <code>[.payment]</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking only our code changes the path.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The stack writes back through <code>$path</code>: onChange printed <code>[.payment]</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="path.removeLast() on an empty path?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>path</code> is <code>[]</code> and code calls <code>path.removeLast()</code>. What happens?</p><ol class="q-opts"><li>Nothing</li><li>The app crashes</li><li>It returns <code>nil</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">&ldquo;Can&rsquo;t remove last element from an empty collection&rdquo;: guard with <code>isEmpty</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming a safe no-op.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. &ldquo;Can&rsquo;t remove last element from an empty collection&rdquo;: guard with <code>isEmpty</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.1: is a popped destination&#x27;s @State kept?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 3.1: after a destination is popped and pushed again, is its <code>@State</code> kept?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The counter went 3 &rarr; 0: popping ends the state lifetime.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting off-screen state to persist.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.1.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. The counter went 3 &rarr; 0: popping ends the state lifetime.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.2 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.3</td><td><b>TabView &amp; multi-tab navigation</b></td><td>Home, Payments, History, Profile; consistent shared data</td></tr><tr><td class="mono">Later</td><td><b>A router across tabs</b></td><td><code>NPayRouter</code> when navigation spans tabs</td></tr><tr><td class="mono">Unit 4</td><td><b>Application architecture</b></td><td>payment logic out of ContentView; the router beside it</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.3 adds a TabView with Home, Payments, History and Profile tabs while keeping navigation state and shared account data consistent. A router like NPayRouter becomes worthwhile once navigation is coordinated across tabs. Unit 4 moves payment logic out of ContentView; the payment function that returns an ID is already ready for that.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.2 &middot; Lab</p>
+  <h2>Route-based NPay</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Replace links with routes; navigate after a payment.</p><ol class="lab"><li>Add <code>NPayRoute</code> and a <code>path</code> to ContentView.</li><li>Register destinations; buttons append routes.</li><li>Return <code>UUID?</code>; add <code>PaymentSuccessScreen</code>.</li><li>Pay ₹1,500.50 to ravi@npay; check the screens.</li><li>Print the path; try two appends, then Back.</li><li>Try <code>NavigationPath</code> with mixed types.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your printed path log for the practical test</li><li>A success-screen screenshot</li><li>One sentence: why the payment returns an ID</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: [.payment], then [.payment, .success(…)] with no tap, then [] after Back to Dashboard with ₹23,499.50 and "Sent to ravi@npay" in History; two appends land on History at depth 2 and the system Back leaves [.payment]; a mixed NavigationPath reports its count, and a type with no destination shows a warning symbol.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.2 complete</p>
+    <h2>Typed Routes &amp;<br>Programmatic Navigation</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.3 &mdash; TabView &amp; Multi-Tab Navigation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now model destinations as a Hashable route enum, drive a NavigationStack with a path array, register destinations with navigationDestination, navigate from code after a payment returns an ID, choose between an array and NavigationPath, and explain when a router of your own is worth it.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.3: TabView and multi-tab navigation. NPay gets Home, Payments, History and Profile tabs, with navigation state and account data kept consistent.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,1160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4.2 — MVVM Internals: PaymentViewModel</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 04 · Lesson 4.2 — MVVM Internals: PaymentViewModel">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 04 &middot; Lesson 4.2</p>
+    <h1 style="font-size:54px;line-height:1.05">MVVM Internals:<br>PaymentViewModel</h1>
+    <p class="lead" style="max-width:760px">Move the payment screen&rsquo;s <b>state and behaviour</b> into a ViewModel, and watch how SwiftUI keeps it alive.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.1 extracted payment validation into PaymentValidator. Today we introduce one of the most important ideas in professional iOS development, the ViewModel. We build PaymentViewModel step by step, connect it to SwiftUI and to NPay&rsquo;s store, split payment into prepare and confirm, and then investigate what really happens to it in memory: when it is created, when it is kept, when it goes away.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.2 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Say what belongs in a ViewModel, and what doesn&rsquo;t</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Make a ViewModel observable and bind to it</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p>Inject the shared store; never create a second one</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Prepare, review and confirm in two stages</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Explain ViewModel lifetime under @State</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>Avoid reference cycles in ViewModels</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.2 &middot; Where we are</p>
+  <h2>Today: NPay&rsquo;s first ViewModel</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 04 &middot; Application Architecture &amp; MVVM</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 04 progress: lesson 4.2 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">4.1</text><text x="12" y="50" style="font-size:14px">Architecture</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd lit"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">4.2</text><text x="126.667" y="50" style="font-size:14px">MVVM</text><text x="126.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">4.3</text><text x="241.333" y="50" style="font-size:14px">Observation</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">4.4</text><text x="356" y="50" style="font-size:14px">Dependency</text><text x="356" y="68" style="font-size:14px">injection</text></g>
+        <g class="nd ghost"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">4.5</text><text x="470.667" y="50" style="font-size:14px">Repository</text><text x="470.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">4.6</text><text x="585.333" y="50" style="font-size:14px">Use cases</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">4.7</text><text x="700" y="50" style="font-size:14px">UI state</text><text x="700" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">4.8</text><text x="814.667" y="50" style="font-size:14px">Modules</text><text x="814.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">4.9</text><text x="929.333" y="50" style="font-size:14px">Testing</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">4.10</text><text x="1044" y="50" style="font-size:14px">Integration</text><text x="1044" y="68" style="font-size:14px">lab</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>4.1: PaymentValidator, extracted and tested.</span><span><b>Today</b>PaymentViewModel: state, ownership, lifetime.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last time we pulled the payment rules out of the view into PaymentValidator and proved NPay still behaved the same. Today the screen&rsquo;s state and behaviour move into a PaymentViewModel. The text arrived in two parts; the second restarts at Section 16.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Why a ViewModel</h2>
+    <p class="lead">The screen is doing too much</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Presentation and behaviour, separated.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our engineering problem (section 1)</p>
+  <h2>PaymentsScreen: UI, rules, actions and state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 750 250" style="max-height:270px" role="img" aria-labelledby="ba">
+        <title id="ba">Before: PaymentsScreen does everything over NPayStore. After: PaymentsScreen, PaymentViewModel, PaymentValidator and NPayStore</title>
+        <text x="170" y="16" text-anchor="middle">Before</text><text x="580" y="16" text-anchor="middle">After</text>
+        <g class="nd alert" data-lit="1"><rect class="sh" x="0" y="30" width="340" height="60" rx="12"/><use href="#i-phone" x="14" y="47" width="26" height="26"/><text x="52" y="57">PaymentsScreen</text><text class="sm" x="52" y="75">UI + validation + actions + state</text></g>
+        <path class="wire" d="M170 91V138M163 131l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="140" width="340" height="54" rx="12"/><use href="#i-db" x="14" y="154" width="26" height="26"/><text x="52" y="173">NPayStore</text></g>
+        <g class="nd"><rect class="sh" x="410" y="30" width="340" height="54" rx="12"/><use href="#i-phone" x="424" y="44" width="26" height="26"/><text x="462" y="54">PaymentsScreen</text><text class="sm" x="462" y="72">presentation</text></g>
+        <path class="wire" d="M580 85V108M573 101l7 7 7-7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="410" y="110" width="340" height="54" rx="12"/><use href="#i-layers" x="424" y="124" width="26" height="26"/><text x="462" y="134">PaymentViewModel</text><text class="sm" x="462" y="152">screen state + behaviour</text></g>
+        <path class="wire" d="M580 165V188M573 181l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="410" y="190" width="340" height="54" rx="12"/><use href="#i-check" x="424" y="204" width="26" height="26"/><text x="462" y="223">PaymentValidator + NPayStore</text></g>
+      </svg>
+    </div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">PaymentsScreen today</span><ul style="margin:6px 0 0"><li>Reads the draft; validates</li><li>Presents review; calls the store</li><li>Handles results; navigates</li></ul></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>PaymentsScreen</th><th>3.12</th><th>After this lesson</th></tr></thead><tbody><tr><td>Lines</td><td>160</td><td>120 (+ ViewModel 117)</td></tr><tr><td>State properties</td><td>6</td><td>4 (focus, sheet, success, discard)</td></tr><tr><td>Uses of the store</td><td>14</td><td>0</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">Counted in our code before and after the refactoring.</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Our PaymentsScreen reads the payment draft, validates the form, presents the review sheet, calls NPayStore, handles payment results and coordinates navigation. Tomorrow add transaction limits, loading indicators, network errors and biometric verification, and the view keeps growing. Click: before, in orange: one view doing UI, validation, actions and state on top of the store.</p>
+    <span class="notes-label">SAY</span><p>Click: after: PaymentsScreen keeps presentation; a PaymentViewModel takes the screen&rsquo;s state and behaviour, and it talks to PaymentValidator and NPayStore. Click: measured in our own code: the screen goes from a hundred and sixty lines to a hundred and twenty, from six state properties to four, and from fourteen uses of the store to none. The ViewModel is a hundred and seventeen lines, but they are now in one place, testable without a view.</p>
+    <span class="notes-label">CONNECT</span><p>So what exactly is a ViewModel?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; What exactly is a ViewModel? (section 2)</p>
+  <h2>State and behaviour for one screen</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>What it might expose</span></div><pre class="cb" style="font-size:14px">viewModel.recipient
+viewModel.amountText
+viewModel.isValid
+viewModel.errorMessage
+viewModel.submitPayment()</pre></div>
+        <div class="step"><div class="card accent"><span class="label">The view</span><ul style="margin:6px 0 0"><li>Reads its state</li><li>Calls its methods</li></ul></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>PaymentsScreen</th><th>PaymentViewModel</th></tr></thead><tbody><tr><td>TextField layout</td><td>Editable payment data</td></tr><tr><td>Buttons and colours</td><td>Validation state</td></tr><tr><td>Review sheet presentation</td><td>Preparing payment requests</td></tr><tr><td>Keyboard focus</td><td>Submission coordination</td></tr><tr><td>Navigation presentation</td><td>Payment result</td></tr><tr><td>Accessibility labels</td><td>User-facing error state</td></tr></tbody></table></div>
+        <div class="rule step" data-label="Not its job"><ul style="margin:6px 0 0"><li>Where buttons go, what colours they use</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A ViewModel is an object that prepares and manages the state and behaviour a particular screen or feature needs. For NPay it might expose the recipient, the amount text, whether the form is valid, an error message, and a submitPayment method. Click: the view does not need to know every validation rule; it reads the ViewModel&rsquo;s state and calls its methods.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s split. The screen keeps TextField layout, buttons and colours, review sheet presentation, keyboard focus, navigation presentation and accessibility labels. The ViewModel takes editable payment data, validation state, preparing payment requests, submission coordination, the payment result and user-facing error state.</p>
+    <span class="notes-label">SAY</span><p>Click: the ViewModel does not decide where buttons are positioned or what colours they use; those remain presentation responsibilities.</p>
+    <span class="notes-label">CONNECT</span><p>Build one, starting with plain Swift.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>A first ViewModel</h2>
+    <p class="lead">Plain Swift, then observable</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A class, on the main actor, with @Observable.</p>
+    <span class="notes-label">CONNECT</span><p>Plain Swift.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; A ViewModel without SwiftUI (section 3)</p>
+  <h2>Ordinary Swift: properties and a computed property</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentViewModel.swift</span></div><pre class="cb" style="font-size:14px">import Foundation
+
+@MainActor
+final class PaymentViewModel {
+
+    var recipient = &quot;&quot;
+    var amountText = &quot;&quot;
+
+    var isValid: Bool {
+        !recipient.isEmpty &amp;&amp; !amountText.isEmpty
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Why a class?</span><ul style="margin:6px 0 0"><li>Stable reference identity while state changes</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Why @MainActor?</span><ul style="margin:6px 0 0"><li>Its state feeds the UI</li><li>Mutations coordinated with UI work</li></ul></div></div>
+        <div class="warn step" data-label="Nuance"><ul style="margin:6px 0 0"><li>@MainActor doesn&rsquo;t make work fast</li><li>Heavy synchronous work still blocks (3.11)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Create PaymentViewModel.swift. It is ordinary Swift: a recipient, an amount text, and a computed isValid that is true when both are non-empty.</p>
+    <span class="notes-label">SAY</span><p>Click: why a class? A ViewModel often needs a stable reference identity while its state changes: the screen keeps talking to the same object. Click: why @MainActor? Its state is consumed by the user interface; main-actor isolation coordinates those mutations safely with UI work.</p>
+    <span class="notes-label">SAY</span><p>Click: the nuance: @MainActor does not mean every operation is fast. Lesson 3.11 measured it: synchronous work on the main actor delivered zero frames while it ran.</p>
+    <span class="notes-label">CONNECT</span><p>What&rsquo;s missing for SwiftUI?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; How will SwiftUI observe changes? (section 4)</p>
+  <h2>@Observable: one macro, generated machinery</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Add @Observable</span></div><pre class="cb" style="font-size:14px">import SwiftUI
+
+@MainActor
+@Observable
+final class PaymentViewModel {
+
+    var recipient = &quot;&quot;
+    var amountText = &quot;&quot;
+
+    var isValid: Bool {
+        !recipient.isEmpty &amp;&amp; !amountText.isEmpty
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">@Observable</span><ul style="margin:6px 0 0"><li>A macro from the Observation framework</li><li>Tracks property access and change</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Behind the scenes</span><ul style="margin:6px 0 0"><li>The compiler expands the type</li><li>Not a runtime flag</li></ul></div></div>
+        <div class="rule step" data-label="Lesson 4.3"><ul style="margin:6px 0 0"><li>The expansion, in detail</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Our class has no Observation support yet: SwiftUI would never know the recipient changed. Add @Observable, a macro from Apple&rsquo;s Observation framework. It enables observation of property accesses and changes, and SwiftUI uses that to update the views that depend on the properties they read.</p>
+    <span class="notes-label">SAY</span><p>Click: conceptually, the macro expands the type at compile time: the compiler generates additional machinery that participates in the Observation system. It is not simply a runtime flag. Click: Lesson 4.3 looks at that expansion in detail.</p>
+    <span class="notes-label">CONNECT</span><p>Connect it to a view.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Binding a view to it</h2>
+    <p class="lead">@State owns it; @Bindable binds to it</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s MVVM lab, run.</p>
+    <span class="notes-label">CONNECT</span><p>The lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Connect PaymentViewModel to SwiftUI (section 5)</p>
+  <h2>Continue follows isValid</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.05fr) 140px 140px minmax(0,.7fr);gap:16px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentMVVMLab</span></div><pre class="cb" style="font-size:10.5px">struct PaymentMVVMLab: View {
+
+    @State private var viewModel = PaymentViewModel()
+
+    var body: some View {
+        @Bindable var viewModel = viewModel
+
+        VStack(spacing: 20) {
+            TextField(&quot;Recipient&quot;,
+                      text: $viewModel.recipient)
+                .textFieldStyle(.roundedBorder)
+
+            TextField(&quot;Amount&quot;,
+                      text: $viewModel.amountText)
+                .textFieldStyle(.roundedBorder)
+
+            Button(&quot;Continue&quot;) {
+                print(&quot;Payment requested&quot;)
+            }
+            .disabled(!viewModel.isValid)
+        }
+        .padding()
+    }
+}</pre></div>
+      <div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/lab1.png" alt="Recipient only"></div><p class="shot-cap">Recipient only</p></div>
+      <div class="step"><div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/lab2.png" alt="Amount &ldquo;abc&rdquo;"></div><p class="shot-cap">Amount &ldquo;abc&rdquo;</p></div></div>
+      <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11px;line-height:1.55">start:&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;Continue disabled<br>recipient only:&ensp;&ensp;&ensp;disabled<br>+ amount "1":&ensp;&ensp;&ensp;&ensp;<b>enabled</b><br>amount cleared:&ensp;&ensp;&ensp;disabled<br>amount "abc":&ensp;&ensp;&ensp;&ensp;<b>enabled</b><br>tap:&ensp;Payment requested</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s lab view: @State owns a PaymentViewModel; inside body, @Bindable var viewModel gives us bindings; two TextFields write the recipient and amount through those bindings; Continue is disabled unless isValid. We ran it in the simulator, typing through the keyboard input API. Left: recipient only, Continue still disabled.</p>
+    <span class="notes-label">SAY</span><p>Click: with any amount, Continue enables, even "abc". Click: the log: enabled with "1", disabled when the amount is cleared, enabled again with "abc", and the tap printed "Payment requested". isValid checks only that the fields are non-empty; Section 7 fixes that.</p>
+    <span class="notes-label">CONNECT</span><p>What did we introduce?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; TextField to ViewModel (sections 5&ndash;6) &middot; conceptual</p>
+  <h2>The input pipeline</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 124" style="max-height:130px" role="img" aria-labelledby="pipe">
+        <title id="pipe">Keystroke, TextField, binding, ViewModel property, body re-evaluated, Continue updates</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="124" rx="14"/><use href="#i-tap" x="72" y="14" width="28" height="28"/><text x="86" y="88" text-anchor="middle">Keystroke</text><text class="sm" x="86" y="108" text-anchor="middle">the user types</text></g>
+        <path class="wire" d="M173 62H186M179 55l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="188" y="0" width="172" height="124" rx="14"/><use href="#i-frame" x="260" y="14" width="28" height="28"/><text x="274" y="88" text-anchor="middle">TextField</text><text class="sm" x="274" y="108" text-anchor="middle">writes through the binding</text></g>
+        <path class="wire" d="M361 62H374M367 55l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="376" y="0" width="172" height="124" rx="14"/><use href="#i-link" x="448" y="14" width="28" height="28"/><text x="462" y="88" text-anchor="middle">@Bindable binding</text><text class="sm" x="462" y="108" text-anchor="middle">sets viewModel.recipient</text></g>
+        <path class="wire" d="M549 62H562M555 55l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="564" y="0" width="172" height="124" rx="14"/><use href="#i-layers" x="636" y="14" width="28" height="28"/><text x="650" y="88" text-anchor="middle">ViewModel property</text><text class="sm" x="650" y="108" text-anchor="middle">changes; Observation records it</text></g>
+        <path class="wire" d="M737 62H750M743 55l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="752" y="0" width="172" height="124" rx="14"/><use href="#i-code" x="824" y="14" width="28" height="28"/><text x="838" y="88" text-anchor="middle">Body re-evaluated</text><text class="sm" x="838" y="108" text-anchor="middle">the view read that property</text></g>
+        <path class="wire" d="M925 62H938M931 55l7 7-7 7"/>
+        <g class="nd" data-lit="6+"><rect class="sh" x="940" y="0" width="172" height="124" rx="14"/><use href="#i-check" x="1012" y="14" width="28" height="28"/><text x="1026" y="88" text-anchor="middle">Continue updates</text><text class="sm" x="1026" y="108" text-anchor="middle">disabled reflects isValid</text></g>
+      </svg>
+    </div>
+    <p class="small muted" style="margin:6px 0 0">Stage 6 is the text&rsquo;s; stages 1&ndash;5 are ours, from section 5&rsquo;s list (only the last stage of the text&rsquo;s stepper was shared).</p>
+    <div class="gap"></div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px">
+      <div class="step"><div class="card accent"><span class="label">@State</span><ul style="margin:6px 0 0"><li>Owns the instance</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">@Bindable</span><ul style="margin:6px 0 0"><li>Bindings to its properties</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">TextField</span><ul style="margin:6px 0 0"><li>Writes through them</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">SwiftUI</span><ul style="margin:6px 0 0"><li>Tracks what body read</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The input pipeline, conceptually. Only the last stage of the text&rsquo;s stepper was shared, so stages one to five are ours, built from Section 5&rsquo;s list. Click through: a keystroke; the TextField writes through its binding; the @Bindable binding sets viewModel.recipient; the property changes and Observation records the change; the body that read it is re-evaluated; Continue&rsquo;s disabled state reflects isValid.</p>
+    <span class="notes-label">SAY</span><p>Click through the four pieces from Section 5: @State owns the observable ViewModel instance; @Bindable provides bindings to its editable properties; TextField writes through those bindings; SwiftUI tracks the ViewModel properties the view reads.</p>
+    <span class="notes-label">CONNECT</span><p>Now, real validation.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Rules and dependencies</h2>
+    <p class="lead">Validator rules; the shared store</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The ViewModel coordinates; others own.</p>
+    <span class="notes-label">CONNECT</span><p>Validation.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Introduce proper payment validation (section 7)</p>
+  <h2>The ViewModel asks; the validator decides</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentViewModel</span></div><pre class="cb" style="font-size:11.5px">var parsedAmountPaise: Int? {
+    Money.parsePaise(amountText)
+}
+
+func validate(
+    availableBalancePaise: Int
+) -&gt; Bool {
+    guard let amount = parsedAmountPaise else {
+        return false
+    }
+    do {
+        try PaymentValidator().validate(
+            recipient: recipient,
+            amountPaise: amount,
+            balancePaise: availableBalancePaise
+        )
+        return true
+    } catch {
+        return false
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>recipient</th><th>amount</th><th>isValid</th><th>validate(₹25,000)</th></tr></thead><tbody><tr><td>ravi@npay</td><td>1500.50</td><td>true</td><td>true</td></tr><tr><td>ravi@npay</td><td>abc</td><td>true</td><td><b>false</b></td></tr><tr><td>&ensp;&ensp;&ensp;</td><td>100</td><td>true</td><td><b>false</b></td></tr><tr><td>ravi@npay</td><td>30000</td><td>true</td><td><b>false</b></td></tr><tr><td>ravi@npay</td><td>0</td><td>true</td><td><b>false</b></td></tr><tr><td></td><td></td><td>false</td><td>false</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">Both run in the simulator, same inputs.</p></div>
+        <div class="rule step" data-label="Separation"><ul style="margin:6px 0 0"><li>Validator owns the rules</li><li>ViewModel coordinates</li><li>View asks for the result</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Non-empty is not enough. We parse the amount with Money.parsePaise from Lesson 2.12 into parsedAmountPaise, then validate against the balance: no parsable amount is invalid; otherwise ask Lesson 4.1&rsquo;s PaymentValidator, and turn its throw into false.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran both checks on the same inputs. The non-empty isValid accepted "abc", a blank recipient, thirty thousand rupees and zero. validate rejected all four, and agreed on the valid payment and the empty form.</p>
+    <span class="notes-label">SAY</span><p>Click: the separation: the validator owns the rules; the ViewModel coordinates validation; the SwiftUI view only asks for the result.</p>
+    <span class="notes-label">CONNECT</span><p>Validation needs the balance. Where does it come from?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; How does the ViewModel reach NPayStore? (section 8)</p>
+  <h2>Inject the store; never create one</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Initializer injection</span></div><pre class="cb" style="font-size:12px">@MainActor
+@Observable
+final class PaymentViewModel {
+
+    var recipient = &quot;&quot;
+    var amountText = &quot;&quot;
+    var errorMessage: String?
+
+    private let store: NPayStore
+
+    init(store: NPayStore) {
+        self.store = store
+    }
+}</pre></div>
+        <div class="cw"><div class="ch"><span>Incorrect</span></div><pre class="cb" style="font-size:13px">private let store = NPayStore()</pre></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">A ViewModel with its own NPayStore, paying ₹1,500.50</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">its own store:&ensp;2,349,950 paise<br>NPay&rsquo;s store:&ensp;2,500,000, 3 transactions<br>Home:&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;₹25,000.00</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">PaymentViewModel(store: NPay&rsquo;s store)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">Home:&ensp;₹23,499.50</p></div></div>
+        <div class="rule step" data-label="Why injection"><ul style="margin:6px 0 0"><li>The dependency is declared</li><li>The same store as the rest of NPay</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPayStore still owns the demo balance and transactions, and stays the source of truth for now. The ViewModel receives it through its initializer and keeps it in a private let. It also gains an errorMessage.</p>
+    <span class="notes-label">SAY</span><p>The incorrect version creates its own store with private let store = NPayStore(). Click: we ran exactly that: a ViewModel with its own store paid ₹1,500.50. Its private store dropped to 2,349,950 paise, while NPay&rsquo;s real store stayed at 2,500,000 with three transactions, and Home kept showing ₹25,000.00. A second, invisible balance.</p>
+    <span class="notes-label">SAY</span><p>Click: the same payment through a ViewModel given NPay&rsquo;s store: Home showed ₹23,499.50. Click: initializer injection declares the dependency explicitly, and the ViewModel uses the same store instance as the rest of NPay, the lesson of 3.1&rsquo;s second @State owner, again.</p>
+    <span class="notes-label">CONNECT</span><p>Now the submission.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Submitting in two stages</h2>
+    <p class="lead">Prepare for review; confirm to pay</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two user actions, two methods.</p>
+    <span class="notes-label">CONNECT</span><p>One method first.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Build the payment submission method (section 9)</p>
+  <h2>Coordinate: validator, store, presentation state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>submitPayment() (condensed)</span></div><pre class="cb" style="font-size:11px">func submitPayment() -&gt; UUID? {
+    guard let amount = Money.parsePaise(amountText) else {
+        errorMessage = &quot;Invalid amount&quot;
+        return nil
+    }
+    do {
+        try PaymentValidator().validate(
+            recipient: recipient, amountPaise: amount,
+            balancePaise: store.balancePaise)
+    } catch {
+        errorMessage = &quot;Payment validation failed&quot;
+        return nil
+    }
+    guard let transactionID = store.recordDemoPayment(
+        recipient: recipient, amountPaise: amount) else {
+        errorMessage = &quot;Unable to record payment&quot;
+        return nil
+    }
+    recipient = &quot;&quot;; amountText = &quot;&quot;; errorMessage = nil
+    return transactionID
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What it does</span><ul style="margin:6px 0 0"><li>Validator checks the rules</li><li>Store records the transaction</li><li>ViewModel updates its state</li><li>Returns the ID</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Navigation stays out</span><ul style="margin:6px 0 0"><li>The router decides where the user goes</li></ul></div></div>
+        <div class="rule step" data-label="But"><ul style="margin:6px 0 0"><li>Review and confirm are separate user actions (3.4)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s first submission method, condensed on the slide. Parse the amount, or set "Invalid amount". Validate with PaymentValidator against the store&rsquo;s balance, or set "Payment validation failed". Ask the store to record the demo payment, or set "Unable to record payment". On success clear the form and the error, and return the transaction ID.</p>
+    <span class="notes-label">SAY</span><p>It coordinates the workflow: the validator checks the rules, the store records the transaction, the ViewModel updates its presentation state, and it returns the ID so the caller can coordinate navigation. Click: navigation deliberately stays outside the ViewModel; the router remains responsible for where the user goes.</p>
+    <span class="notes-label">SAY</span><p>Click: but remember Lesson 3.4: Review and Confirm are two different user actions. One method that validates and executes at once doesn&rsquo;t match the flow.</p>
+    <span class="notes-label">CONNECT</span><p>Split it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Two stages: prepare, then confirm (sections 11&ndash;12)</p>
+  <h2>The architecture mirrors the user&rsquo;s two actions</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1100 60" style="max-height:66px" role="img" aria-labelledby="two">
+        <title id="two">Payment form, preparePayment, review sheet, confirmPayment, success</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="206" height="60" rx="12"/><text x="16" y="27">Payment form</text><text class="sm" x="16" y="45">edit</text></g>
+        <path class="wire" d="M207 30H222M215 23l7 7-7 7"/>
+        <g class="nd" data-lit="1"><rect class="sh" x="224" y="0" width="206" height="60" rx="12"/><text x="240" y="27">preparePayment()</text><text class="sm" x="240" y="45">validate, snapshot</text></g>
+        <path class="wire" d="M431 30H446M439 23l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="448" y="0" width="206" height="60" rx="12"/><text x="464" y="27">Review sheet</text><text class="sm" x="464" y="45">shows the request</text></g>
+        <path class="wire" d="M655 30H670M663 23l7 7-7 7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="672" y="0" width="206" height="60" rx="12"/><text x="688" y="27">confirmPayment(_:)</text><text class="sm" x="688" y="45">revalidate, record</text></g>
+        <path class="wire" d="M879 30H894M887 23l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="896" y="0" width="206" height="60" rx="12"/><text x="912" y="27">Success</text><text class="sm" x="912" y="45">router navigates</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentViewModel (outline; full code in the text)</span></div><pre class="cb" style="font-size:11.5px">struct ValidatedPaymentRequest: Identifiable {
+    let id = UUID()
+    let recipient: String
+    let amountPaise: Int
+}
+
+func preparePayment() -&gt; ValidatedPaymentRequest?
+// parse + validate; set errorMessage or
+// return an immutable request for review
+
+func confirmPayment(
+    _ request: ValidatedPaymentRequest
+) -&gt; UUID?
+// validate again against the current balance,
+// record, clear the form, return the ID</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Validate twice</span><ul style="margin:6px 0 0"><li>First: better feedback before review</li><li>Second: the balance may have changed</li></ul></div></div>
+        <div class="rule step" data-label="Final authority"><ul style="margin:6px 0 0"><li>The store still enforces its own rules</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The flow from Lesson 3.4: form, review sheet, confirm, success. Tapping Review must not process the payment. Click: stage one, preparePayment, parses and validates, then returns an immutable ValidatedPaymentRequest, or sets "Invalid amount" or "Please check payment details". The review sheet shows that request. Click: stage two, confirmPayment, validates again against the current balance, setting "Payment details are no longer valid" if that fails, records the payment, clears the form and returns the ID.</p>
+    <span class="notes-label">SAY</span><p>ValidatedPaymentRequest replaces Lesson 3.4&rsquo;s review snapshot in our code. Click: why validate twice? The first validation improves the user experience; the second protects the operation against stale input, because the balance can change between opening the review and confirming. Click: and the store, as the final authority for this local simulation, still checks its own rules.</p>
+    <span class="notes-label">CONNECT</span><p>Does the second validation matter? We made the balance change.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Why validate twice? Measured (section 12)</p>
+  <h2>The balance changed during review</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:180px minmax(0,1fr);gap:24px;align-items:start">
+      <div class="step"><div style="width:180px;max-width:100%;margin:0 auto"><div class="shot" style="height:391px"><img src="img/stalee.png" alt="After Confirm"></div><p class="shot-cap">After Confirm</p></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Simulator, integrated NPay</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">prepare ₹20,000 &rarr; review sheet: ravi@npay<br>meanwhile ₹10,000 leaves &rarr; balance 1,500,000 paise<br>Confirm &rarr; balance <b>still 1,500,000</b>, sheet closed<br>screen: &ldquo;Payment details are no longer valid&rdquo;</p></div>
+        <div class="step"><div class="card accent"><span class="label">Without the second check</span><ul style="margin:6px 0 0"><li>The store would still refuse (its own rule)</li><li>But the ViewModel couldn&rsquo;t say why</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We tested the second validation in the integrated app. Prepare ₹20,000 to ravi@npay: the review sheet opens. While it is open, our script records a ₹10,000 payment elsewhere through the store, standing in for anything that changes the balance: the balance falls to fifteen thousand rupees. Then Confirm.</p>
+    <span class="notes-label">SAY</span><p>confirmPayment&rsquo;s revalidation failed: the balance stayed at 1,500,000 paise, the sheet closed, and, click, the Payments screen shows the ViewModel&rsquo;s message "Payment details are no longer valid" with Review disabled, because twenty thousand is now more than the balance.</p>
+    <span class="notes-label">SAY</span><p>Click: without the second check, the store would still have refused, its own rule, but the ViewModel would only see a nil and could not tell the user why.</p>
+    <span class="notes-label">CONNECT</span><p>Who owns the ViewModel in the real app?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Ownership and lifetime</h2>
+    <p class="lead">Who creates it, who keeps it</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Body runs often; the ViewModel lives long.</p>
+    <span class="notes-label">CONNECT</span><p>The owner.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Who owns the ViewModel? (section 10)</p>
+  <h2>A feature root creates it with the shared store</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentsFeatureRoot</span></div><pre class="cb" style="font-size:12.5px">struct PaymentsFeatureRoot: View {
+    @State private var viewModel: PaymentViewModel
+
+    init(store: NPayStore) {
+        _viewModel = State(
+            initialValue: PaymentViewModel(store: store)
+        )
+    }
+
+    var body: some View {
+        PaymentsScreen(viewModel: viewModel)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">_viewModel</span><ul style="margin:6px 0 0"><li>Initializes the wrapper&rsquo;s storage</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">In NPay (ours)</span><ul style="margin:6px 0 0"><li><code>PaymentsFeatureRoot(store:router:)</code></li><li>Passes the router on</li></ul></div></div>
+        <div class="warn step" data-label="Lifecycle"><ul style="margin:6px 0 0"><li>@State keeps the first instance</li><li>A later store change may not reach it</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In the small lab, @State private var viewModel = PaymentViewModel() was fine: the view owned it. In NPay the ViewModel needs the shared store, so a parent composition view, PaymentsFeatureRoot, creates it in its initializer with the store, and passes it to PaymentsScreen. We write underscore viewModel because we are initializing the property wrapper&rsquo;s storage, which is different from assigning to the wrapped property after initialization.</p>
+    <span class="notes-label">SAY</span><p>Click: in our NPay, flagged as ours, the Payments tab now shows PaymentsFeatureRoot with the store and the router; the router is passed through so the screen can navigate on success, as Section 22 describes.</p>
+    <span class="notes-label">SAY</span><p>Click: the lifecycle nuance: @State preserves its value while the view&rsquo;s identity is stable. If the parent later passed a different store to the same identity, the original ViewModel could remain. Dependencies should be stable for the owner&rsquo;s lifetime, or the design must handle replacement explicitly.</p>
+    <span class="notes-label">CONNECT</span><p>ViewModel versus store.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; ViewModel versus store (section 13)</p>
+  <h2>Feature state versus application state</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>PaymentViewModel</th><th>NPayStore</th></tr></thead><tbody><tr><td>Owns payment form state</td><td>Owns demo account state</td></tr><tr><td>Exposes validation feedback</td><td>Owns the transaction collection</td></tr><tr><td>Prepares review requests</td><td>Records demo payments</td></tr><tr><td>Coordinates submission</td><td>Updates the balance</td></tr><tr><td>Screen / feature lifetime</td><td>Application-root lifetime</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px">
+      <div class="step"><div class="card accent"><span class="label">Moved in our code</span><ul style="margin:6px 0 0"><li><code>paymentDraft</code> left NPayStore</li><li>Recipient and amount live in the ViewModel</li></ul></div></div>
+      <div class="rule step" data-label="Distinction"><ul style="margin:6px 0 0"><li>A ViewModel isn&rsquo;t a repository or domain service</li><li>It coordinates a feature&rsquo;s presentation</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s comparison. PaymentViewModel owns payment form state, exposes validation feedback, prepares review requests and coordinates submission, with a screen or feature lifetime. NPayStore owns the demo account state and the transaction collection, records demo payments and updates the balance, with an application-root lifetime.</p>
+    <span class="notes-label">SAY</span><p>Click: in our code that meant moving the payment draft out of NPayStore, where Lesson 3.5 put it: recipient and amount now live in the ViewModel. Click: and the important distinction: a ViewModel is not automatically a repository or a domain service; its primary job is to coordinate the state and behaviour a feature&rsquo;s presentation needs.</p>
+    <span class="notes-label">CONNECT</span><p>Is the ViewModel recreated? Experiment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; ViewModel identity, measured (sections 14, 17)</p>
+  <h2>The initializer runs often; one instance is kept</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 14: log the initializer</span></div><pre class="cb" style="font-size:13px">init(store: NPayStore) {
+    self.store = store
+    print(&quot;PaymentViewModel initialized&quot;)
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Integrated NPay, simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">six tab switches:&ensp;&ensp;initializer ran <b>7</b> times<br>typed &ldquo;ra&rdquo;, left, came back: <b>9</b> times<br>draft after all of it:&ensp;recipient &ldquo;ra&rdquo;<br>live instances:&ensp;&ensp;&ensp;&ensp;&ensp;1 kept (+1 briefly)<br>each extra one:&ensp;&ensp;&ensp;&ensp;&ldquo;PaymentViewModel deinitialized&rdquo;</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Why</span><ul style="margin:6px 0 0"><li><code>PaymentViewModel(store:)</code> is evaluated whenever the parent view value is built</li><li>@State keeps its original storage and drops the new one</li></ul></div></div>
+        <div class="warn step" data-label="Section 17"><ul style="margin:6px 0 0"><li>Init logs don&rsquo;t prove lifetime</li><li>Watch identity and deinit too</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 14&rsquo;s experiment: log the initializer, then navigate between tabs. We also tracked which instances were alive, through a debug-only hook. Click: six tab switches, and the initializer ran seven times. Typing "ra", leaving and coming back: nine. Yet the draft was still "ra": the ViewModel holding it was never replaced. One instance was kept, sometimes one extra existed for a moment, and every extra one printed "PaymentViewModel deinitialized" right away.</p>
+    <span class="notes-label">SAY</span><p>Click: why? Every time NPayRootView&rsquo;s body runs, it builds a new PaymentsFeatureRoot value, and its initializer evaluates PaymentViewModel(store:). SwiftUI keeps the @State storage it already has for that identity and discards the new object. Click: that is exactly Section 17&rsquo;s caveat: do not rely on the number of initializer log messages to prove object lifetime. View structs are recreated freely; the state-owned ViewModel is not.</p>
+    <span class="notes-label">CONNECT</span><p>And body evaluations?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Debugging Observation (section 15)</p>
+  <h2>Body runs; the ViewModel stays</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Inside PaymentsScreen.body, temporarily</span></div><pre class="cb" style="font-size:14px">let _ = Self._printChanges()</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Typing &ldquo;ra&rdquo; into the recipient field</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">PaymentsScreen: \PaymentViewModel.recipient changed.<br>PaymentsScreen: \PaymentViewModel.recipient changed.</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Read it</span><ul style="margin:6px 0 0"><li>Two keystrokes, two body evaluations</li><li>Named: the ViewModel&rsquo;s <code>recipient</code></li></ul></div></div>
+        <div class="rule step" data-label="Nuance"><ul style="margin:6px 0 0"><li>Body evaluation &ne; a new ViewModel</li><li>Different lifetimes</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Temporarily add let underscore equals Self._printChanges() inside PaymentsScreen&rsquo;s body, then type into the recipient field. Click: our console for two keystrokes: twice, "PaymentsScreen: backslash PaymentViewModel dot recipient changed." With Observation, SwiftUI names the exact property of the observable object that the body depended on: a key path.</p>
+    <span class="notes-label">SAY</span><p>Click: two keystrokes, two body evaluations, each caused by the recipient property. Click: and the nuance: a body evaluation does not mean SwiftUI recreated the ViewModel. The view description and the ViewModel object have different lifetimes, as the last slide measured.</p>
+    <span class="notes-label">CONNECT</span><p>The lifetime picture.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Who creates it, who retains it (sections 17&ndash;18)</p>
+  <h2>@State owns an @Observable ViewModel</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 560 224" style="max-height:240px" role="img" aria-labelledby="own">
+        <title id="own">PaymentsFeatureRoot owns the state storage; the PaymentViewModel instance; PaymentsScreen reads it</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="560" height="60" rx="12"/><use href="#i-layers" x="14" y="17" width="26" height="26"/><text x="52" y="27">PaymentsFeatureRoot</text><text class="sm" x="52" y="45">owns @State storage</text></g>
+        <path class="wire" d="M280 61V80M273 73l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="82" width="560" height="60" rx="12"/><use href="#i-db" x="14" y="99" width="26" height="26"/><text x="52" y="109">PaymentViewModel instance</text><text class="sm" x="52" y="127">stable while the owner&rsquo;s identity survives</text></g>
+        <path class="wire" d="M280 143V162M273 155l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="164" width="560" height="60" rx="12"/><use href="#i-phone" x="14" y="181" width="26" height="26"/><text x="52" y="191">PaymentsScreen</text><text class="sm" x="52" y="209">reads state, creates bindings</text></g>
+      </svg>
+    </div>
+        <p class="small muted" style="margin:6px 0 0">Lifetime follows the owning storage, not the number of body runs.</p></div>
+      <div class="step"><table class="tbl compact"><thead><tr><th>Older observation</th><th>Modern Observation (iOS 17+)</th></tr></thead><tbody><tr><td>ObservableObject</td><td>@Observable</td></tr><tr><td>@Published</td><td>Observable stored properties</td></tr><tr><td>@StateObject</td><td>@State for owned models</td></tr><tr><td>@ObservedObject</td><td>Plain references; @Bindable for bindings</td></tr><tr><td>@EnvironmentObject</td><td>@Environment(Model.self)</td></tr></tbody></table>
+        <p class="small muted" style="margin:6px 0 0">Common correspondences, not exact one-to-one replacements.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The ownership picture. PaymentsFeatureRoot owns the @State storage. Click: the PaymentViewModel instance in it, in teal, is a stable reference while the owner&rsquo;s identity survives. PaymentsScreen reads its state and creates bindings. SwiftUI can re-evaluate PaymentsScreen&rsquo;s body many times without creating a new ViewModel: its lifetime is tied to the owning state storage, not to how many times body runs.</p>
+    <span class="notes-label">SAY</span><p>Click: why @State? Older SwiftUI code uses ObservableObject with @Published properties, owned with @StateObject. With iOS 17&rsquo;s Observation: @Observable, plain stored properties, and @State for a model the view owns. @ObservedObject becomes an ordinary reference, with @Bindable when bindings are needed; @EnvironmentObject becomes @Environment with the model type, as NPayPreferences did in Lesson 3.9. These are common correspondences, not exact replacements in every situation; Lesson 4.3 examines their runtime behaviour.</p>
+    <span class="notes-label">CONNECT</span><p>What should the ViewModel store, and what should it compute?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>State, errors, navigation</h2>
+    <p class="lead">Derive, report, return</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What the ViewModel exposes, and what it leaves to others.</p>
+    <span class="notes-label">CONNECT</span><p>Derived state.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Derived state (sections 19&ndash;20)</p>
+  <h2>Compute it; don&rsquo;t store a copy</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Stored flag vs computed property</span></div><pre class="cb" style="font-size:13px">// Stored: must be kept in sync
+var recipient = &quot;&quot;
+var amountText = &quot;&quot;
+var isValid = false
+
+// Derived: always current
+var isValid: Bool {
+    !recipient.isEmpty &amp;&amp; !amountText.isEmpty
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">viewModel.recipient = "ravi@npay"</span><ul style="margin:6px 0 0"><li>Observation records the change</li><li>Views that read it are re-evaluated</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">A stored isValid</span><ul style="margin:6px 0 0"><li>Must be updated on every input change</li><li>One missed update: wrong button state</li></ul></div></div>
+        <div class="rule step" data-label="Default"><ul style="margin:6px 0 0"><li>Simple derived state: computed</li><li>Cache only expensive results</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>When the user enters ravi@npay, the assignment to viewModel.recipient is a tracked mutation: views that depend on the recipient can be invalidated and re-evaluated. The text&rsquo;s interactive simulation showed derived values, recipient valid, amount syntax valid, following the inputs.</p>
+    <span class="notes-label">SAY</span><p>Click: a computed isValid does not need its own stored observable value; it derives from the underlying properties. Store it instead, and the ViewModel must keep it synchronized whenever either input changes: more chances for inconsistency. Click: simple derived state is best as a computed property; for expensive derivations, like Lesson 3.11&rsquo;s sort of fifty thousand records, caching may be appropriate.</p>
+    <span class="notes-label">CONNECT</span><p>What about errors?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Errors and navigation (sections 21&ndash;22)</p>
+  <h2>The ViewModel reports; the view presents and navigates</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Expose errors, not alerts</span></div><pre class="cb" style="font-size:12.5px">// PaymentViewModel
+var errorMessage: String?
+
+// PaymentsScreen
+if let errorMessage = viewModel.errorMessage {
+    Text(errorMessage)
+        .font(.caption)
+        .foregroundStyle(.red)
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Who decides what</span><ul style="margin:6px 0 0"><li>ViewModel: an error occurred</li><li>View: inline text, alert, or another presentation</li></ul></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="cw"><div class="ch"><span>Navigation stays with the router</span></div><pre class="cb" style="font-size:12.5px">if let transactionID =
+    viewModel.confirmPayment(request) {
+    router.showPaymentSuccess(transactionID)
+}</pre></div></div>
+        <div class="step"><div class="card accent"><span class="label">Why return a result</span><ul style="margin:6px 0 0"><li>The ViewModel stays about payments</li><li>Tests need no navigation system</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Should a ViewModel call SwiftUI&rsquo;s .alert()? No: .alert is a view modifier. The ViewModel exposes an error state, an optional errorMessage, and the view decides how to present it, here as red caption text. Our integrated screen does exactly this, which is how the stale-review message appeared; it replaced Lesson 3.4&rsquo;s failure alert. Later lessons use a structured error type instead of a string.</p>
+    <span class="notes-label">SAY</span><p>Click: the ViewModel determines that an error occurred; the view decides between inline text, an alert, or another accessible presentation.</p>
+    <span class="notes-label">SAY</span><p>Click: does the ViewModel need NPayRouter? One approach injects a router; another lets the ViewModel return a result and the view or a coordinator navigates. NPay uses the second: if confirmPayment returns an ID, the router shows payment success. In our code that happens in the sheet&rsquo;s onDismiss, as in Lesson 3.4. Click: it keeps the ViewModel focused on payments, and its tests need no navigation system.</p>
+    <span class="notes-label">CONNECT</span><p>Last: memory.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Memory and integration</h2>
+    <p class="lead">ARC still applies; the app still works</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Deinit, cycles, and the full payment.</p>
+    <span class="notes-label">CONNECT</span><p>Deinit.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; What happens when the screen disappears? (section 23)</p>
+  <h2>Tab switches keep it; removing the owner frees it</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 23</span></div><pre class="cb" style="font-size:14px">deinit {
+    print(&quot;PaymentViewModel deinitialized&quot;)
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Integrated NPay: switching tabs</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">the draft-holding ViewModel: never deinitialized<br>(only the discarded extra instances were)</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Lab: an <code>if</code> removes PaymentsFeatureRoot</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">open:&ensp;&ensp;&ensp;&ensp;live 1<br>close:&ensp;&ensp;&ensp;PaymentViewModel deinitialized &rarr; live 0<br>reopen:&ensp;&ensp;a new instance (initializer #2)</p></div></div>
+        <div class="rule step" data-label="Nuance"><ul style="margin:6px 0 0"><li>Disappearing &ne; released</li><li>Lifetime follows real references</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentViewModel is a class, so ARC manages its lifetime: when the owning state storage releases it and no other strong references remain, it is deinitialized. Add a deinit that prints. Click: switching tabs in NPay never deinitialized the ViewModel that held the draft: the Payments tab&rsquo;s identity survives tab switches, Lesson 3.3. Only the discarded extra instances from two slides ago printed deinit.</p>
+    <span class="notes-label">SAY</span><p>Click: a small lab of ours removes the owner instead: a button toggles an if around PaymentsFeatureRoot. Open: one live ViewModel. Close: "PaymentViewModel deinitialized", zero live. Reopen: a brand-new instance, initializer number two, with an empty form.</p>
+    <span class="notes-label">SAY</span><p>Click: so do not assume a screen disappearing means its ViewModel is released, or kept: it depends on the actual references, which depend on view identity.</p>
+    <span class="notes-label">CONNECT</span><p>One way to keep it alive by accident.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Avoiding reference cycles (section 24)</p>
+  <h2>A closure the ViewModel owns, capturing the ViewModel</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Strong capture, then weak capture</span></div><pre class="cb" style="font-size:13.5px">viewModel.callback = {
+    viewModel.performAction()
+}
+
+viewModel.callback = { [weak viewModel] in
+    viewModel?.performAction()
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Mac run, @MainActor @Observable class</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">strong: initialized<br>strong: performAction<br>after strongCapture()&ensp;&ensp;&larr; <b>no deinit</b><br>weak: initialized<br>weak: performAction<br>weak: deinitialized<br>after weakCapture()</p></div></div>
+        <div class="rule step" data-label="Unit 1"><ul style="margin:6px 0 0"><li>SwiftUI doesn&rsquo;t remove cycle risks</li><li>ARC, weak, escaping closures (1.8)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>If the ViewModel stores a closure that captures the ViewModel strongly, the ViewModel owns the closure and the closure owns the ViewModel: neither can be released. A weak capture breaks the cycle: the closure holds viewModel weakly and calls it optionally.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran both on the Mac with an @MainActor @Observable class that prints its lifecycle. The strong version initialized, ran its action, and when the function ended, no deinit: leaked. The weak version initialized, ran, and deinitialized as soon as the function ended.</p>
+    <span class="notes-label">SAY</span><p>Click: this is why Unit 1 studied ARC, strong and weak references and escaping closures, Lesson 1.8. SwiftUI does not eliminate reference-cycle risks in reference-type models.</p>
+    <span class="notes-label">CONNECT</span><p>The whole feature, working.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Complete payment architecture (sections 16, 25)</p>
+  <h2>MVVM payment flow, verified</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 920 270" style="max-height:270px" role="img" aria-labelledby="arch">
+        <title id="arch">PaymentsScreen, PaymentViewModel, PaymentValidator, NPayStore; NPayRouter navigates to success</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="560" height="58" rx="12"/><use href="#i-phone" x="14" y="16" width="26" height="26"/><text x="52" y="26">PaymentsScreen</text><text class="sm" x="52" y="44">text fields, buttons, focus, review sheet</text></g>
+        <path class="wire" d="M280 59V68M273 61l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="70" width="560" height="58" rx="12"/><use href="#i-layers" x="14" y="86" width="26" height="26"/><text x="52" y="96">PaymentViewModel</text><text class="sm" x="52" y="114">form state, validation, error feedback</text></g>
+        <path class="wire" d="M280 129V138M273 131l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="140" width="560" height="58" rx="12"/><use href="#i-check" x="14" y="156" width="26" height="26"/><text x="52" y="166">PaymentValidator</text><text class="sm" x="52" y="184">pure Swift payment rules</text></g>
+        <path class="wire" d="M280 199V208M273 201l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="210" width="560" height="58" rx="12"/><use href="#i-db" x="14" y="226" width="26" height="26"/><text x="52" y="236">NPayStore</text><text class="sm" x="52" y="254">shared demo balance and transactions</text></g>
+        <g class="nd"><rect class="sh" x="620" y="0" width="300" height="58" rx="12"/><use href="#i-decision" x="634" y="16" width="26" height="26"/><text x="672" y="26">NPayRouter</text><text class="sm" x="672" y="44">navigates to success</text></g>
+        <path class="wire dash" d="M561 29H618M611 22l7 7-7 7"/>
+      </svg>
+    </div>
+        <p class="small muted" style="margin:6px 0 0">Conceptual. The view calls the router after the ViewModel reports success; the router isn&rsquo;t a store dependency.</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Section 25 checks, integrated NPay</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">draft kept across tabs: ravi@npay, 1500.50<br>Confirm: 2,349,950 paise, 4 transactions<br>router: paymentsPath 1 route, Payment Recorded<br>Home ₹23,499.50 &middot; History top: Sent to ravi@npay<br>form after success: empty</p></div></div>
+        <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/payments.png" alt="Payments, with a ViewModel"></div><p class="shot-cap">Payments, with a ViewModel</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The complete architecture after this lesson. PaymentsScreen: text fields, buttons, focus and the review sheet. Click: PaymentViewModel: form state, validation coordination and error feedback. PaymentValidator: pure Swift rules. NPayStore: shared demo balance and transactions. NPayRouter, to the side: the view invokes it after the ViewModel reports success; it is not a data dependency of the store. The ViewModel coordinates the feature but does not render views or own navigation.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s lab checklist, verified on our integrated NPay. The draft survived switching tabs, now inside the ViewModel. Confirm left 2,349,950 paise and four transactions; the router pushed one route and "Payment Recorded" appeared; Home showed ₹23,499.50 and History "Sent to ravi@npay" on top; and the form was empty afterwards. Balance and history stay consistent.</p>
+    <span class="notes-label">SAY</span><p>Click: the Payments screen, unchanged to the eye: the refactoring moved code, not pixels.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.2 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>ViewModel = a screen&rsquo;s state and behaviour</b><br><span class="muted" style="font-size:19px">the view keeps layout, focus, presentation</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p style="font-size:23px"><b>Inject the shared store; return results</b><br><span class="muted" style="font-size:19px">no second store; the router navigates</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p style="font-size:23px"><b>Lifetime follows the owner</b><br><span class="muted" style="font-size:19px">initializer ran 9 times; one instance kept the draft</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A ViewModel holds a screen&rsquo;s state and behaviour, @MainActor and @Observable, while the view keeps layout, focus and presentation, and asks it for results. It receives the shared store through its initializer, never creating its own, splits payment into prepare and confirm with validation at both, and returns an ID so the view can ask the router to navigate. And its lifetime follows the @State storage that owns it: the initializer ran nine times in our run, yet one instance kept the draft until its owner went away, and a strong self-capture would have kept it forever.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does SwiftUI recreate the ViewModel every time body executes?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does SwiftUI recreate the ViewModel every time <code>body</code> executes?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Body ran on every keystroke; the same instance kept the draft.</p>
+          <p class="q-trap"><b>Common trap:</b> Equating body runs with object lifetime.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Body ran on every keystroke; the same instance kept the draft.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is the purpose of @Bindable?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the purpose of <code>@Bindable</code>?</p><ol class="q-opts"><li>Start a network request</li><li>Create bindings to observable properties</li><li>Create a database</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>$viewModel.recipient</code> for a TextField.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting @State to provide bindings to an object passed in.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. <code>$viewModel.recipient</code> for a TextField.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why prefer computed validation over duplicated stored flags?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why prefer computed validation over duplicated stored flags?</p><ol class="q-opts"><li>To increase memory usage</li><li>To disable Observation</li><li>To avoid synchronization errors</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">A computed isValid is always current.</p>
+          <p class="q-trap"><b>Common trap:</b> Storing derived state by habit.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. A computed isValid is always current.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should the ViewModel directly construct SwiftUI alert views?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should the ViewModel directly construct SwiftUI alert views?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It exposes errorMessage; the view chooses how to show it.</p>
+          <p class="q-trap"><b>Common trap:</b> Putting view modifiers in the ViewModel.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. It exposes errorMessage; the view chooses how to show it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does @MainActor guarantee expensive synchronous code won&#x27;t block the UI?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>@MainActor</code> guarantee that expensive synchronous code won&rsquo;t block the UI?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It runs on the main actor: 0 frames during heavy work (3.11).</p>
+          <p class="q-trap"><b>Common trap:</b> Reading isolation as speed.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It runs on the main actor: 0 frames during heavy work (3.11).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can a ViewModel class participate in ARC reference cycles?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can a ViewModel class participate in ARC reference cycles?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Strong self-capture: no deinit in our run.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking SwiftUI manages object memory.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. Strong self-capture: no deinit in our run.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="private let store = NPayStore() inside the ViewModel; pay ₹1,500.50. Home shows?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">A ViewModel declares <code>private let store = NPayStore()</code> and records a ₹1,500.50 payment. What does Home show?</p><ol class="q-opts"><li>₹23,499.50</li><li>₹25,000.00</li><li>A crash</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The payment went to a second store nobody else reads.</p>
+          <p class="q-trap"><b>Common trap:</b> Creating dependencies instead of injecting them.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The payment went to a second store nobody else reads.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Switch tabs six times: how many PaymentViewModel inits?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">NPay&rsquo;s Payments tab owns its ViewModel with <code>_viewModel = State(initialValue: PaymentViewModel(store:))</code>. After six tab switches, the draft is&hellip;</p><ol class="q-opts"><li>Lost: a new ViewModel</li><li>Kept, though the initializer ran several times</li><li>Kept, and the initializer ran once</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">7 initializer runs; @State kept the original instance.</p>
+          <p class="q-trap"><b>Common trap:</b> Using init logs as proof of lifetime.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick C.</p>
+    <span class="notes-label">SAY</span><p>B. 7 initializer runs; @State kept the original instance.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 4.1: what does PaymentValidator depend on?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 4.1: what does PaymentValidator depend on?</p><ol class="q-opts"><li>SwiftUI</li><li>Foundation only</li><li>NPayStore</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">That&rsquo;s why five tests ran without an app.</p>
+          <p class="q-trap"><b>Common trap:</b> Letting rules import the UI.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 4.1.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. That&rsquo;s why five tests ran without an app.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.2 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">4.3</td><td><b>Observation framework internals</b></td><td>how @Observable tracks the reads we saw today</td></tr><tr><td class="mono">4.4</td><td><b>Dependency injection</b></td><td>the store passed in today, generalized</td></tr><tr><td class="mono">4.6</td><td><b>Use cases</b></td><td>SendPaymentUseCase takes over from the store</td></tr><tr><td class="mono">4.7</td><td><b>UI state modeling</b></td><td>structured errors instead of a String</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.3 opens up @Observable: how property access is tracked, how it differs from ObservableObject, and how SwiftUI decides what to invalidate. 4.4 generalizes today&rsquo;s initializer injection. 4.6 moves payment execution into a use case, and 4.7 replaces errorMessage with structured UI state.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.2 &middot; Lab</p>
+  <h2>PaymentViewModel</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Move the screen&rsquo;s state into a ViewModel.</p><ol class="lab"><li>Create PaymentViewModel: @MainActor, @Observable.</li><li>Move recipient and amount into it; bind with @Bindable.</li><li>Validate with PaymentValidator; inject the store.</li><li>Add preparePayment and confirmPayment.</li><li>Keep navigation in NPayRouter.</li><li>Log init and deinit; switch tabs; compare.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your ViewModel and feature root</li><li>Your init/deinit log with tab switches</li><li>The 12-item checklist, ticked</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: the draft survives tab switches; init logs appear more than once but one instance keeps the state; ₹23,499.50 and the new History row after a payment; a stale review is refused with a message.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 4.2 complete</p>
+    <h2>MVVM Internals:<br>PaymentViewModel</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 4.3 &mdash; Observation Framework Internals</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now build an observable ViewModel, bind a view to it, inject the shared store, prepare and confirm payments in two stages, and explain how long the ViewModel lives and why.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 4.3: Observation framework internals, how @Observable works behind the scenes.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

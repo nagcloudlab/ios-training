@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.5 — State Preservation</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.5 — State Preservation">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.5</p>
+    <h1 style="font-size:54px;line-height:1.05">State Preservation<br>Across Navigation</h1>
+    <p class="lead" style="max-width:760px">A half-typed payment should survive a trip to History and a dismissed review. Not by luck: by giving the draft an <b>owner that lives long enough</b>.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.4 added a review sheet. Today a question that grows with every app: what happens to a partially completed payment when the user switches tabs, navigates away or dismisses a sheet? We will separate three ideas that are easy to confuse, view values, view identity and state storage, prove each one in the simulator, then move NPay&rsquo;s payment draft into the shared store on purpose.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.5 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Separate a view&rsquo;s <b>value</b>, its <b>identity</b> and its <b>state</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Predict when local <code>@State</code> resets, and force it with <code>.id()</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></span><p>Model a <b>draft</b> separately from a payment request</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p>Move the draft into <code>NPayStore</code>; edit it with <code>@Bindable</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Decide <b>when</b> a draft is cleared</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Tell preservation from <b>persistence</b>; pick each state&rsquo;s owner</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.5 &middot; Where we are</p>
+  <h2>Today: a draft that survives on purpose</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.5 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd lit"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd ghost"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.4: review sheet, confirm once, navigate after dismissal.</span><span><b>Today</b>A payment draft owned by the store, kept until paid or discarded.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.4 completed the review flow. Today the draft gets a deliberate owner. Next lesson: animations and transitions.</p>
+    <span class="notes-label">CONNECT</span><p>The journey.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The milestone</h2>
+    <p class="lead">Don&rsquo;t lose the user&rsquo;s input</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Preserve the draft until it is paid or discarded.</p>
+    <span class="notes-label">CONNECT</span><p>The journey.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our NPay milestone (section 1)</p>
+  <h2>Should the input disappear? No.</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 104" style="max-height:118px" role="img" aria-labelledby="jr">
+        <title id="jr">Open Payments, enter a payment, check History, back to Payments, keep editing</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="208" height="104" rx="14"/><use href="#i-file" x="90" y="14" width="28" height="28"/><text x="104" y="82" text-anchor="middle">Open Payments</text></g>
+        <path class="wire" d="M210 52H226M219 45l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="228" y="0" width="208" height="104" rx="14"/><use href="#i-tap" x="318" y="14" width="28" height="28"/><text x="332" y="68" text-anchor="middle">Enter</text><text class="sm" x="332" y="88" text-anchor="middle">ravi@npay, ₹1,500</text></g>
+        <path class="wire" d="M438 52H454M447 45l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="456" y="0" width="208" height="104" rx="14"/><use href="#i-clock" x="546" y="14" width="28" height="28"/><text x="560" y="68" text-anchor="middle">Check History</text><text class="sm" x="560" y="88" text-anchor="middle">another tab</text></g>
+        <path class="wire" d="M666 52H682M675 45l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="684" y="0" width="208" height="104" rx="14"/><use href="#i-file" x="774" y="14" width="28" height="28"/><text x="788" y="82" text-anchor="middle">Back to Payments</text></g>
+        <path class="wire" d="M894 52H910M903 45l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="912" y="0" width="208" height="104" rx="14"/><use href="#i-check" x="1002" y="14" width="28" height="28"/><text x="1016" y="68" text-anchor="middle">Keep editing</text><text class="sm" x="1016" y="88" text-anchor="middle">same payment</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px;gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">NPay&rsquo;s rule</span><ul style="margin:6px 0 0"><li>Keep the draft until a <b>successful</b> payment</li><li>Or until the user <b>discards</b> it</li></ul></div>
+        <div class="rule step" data-label="Essential"><ul style="margin:6px 0 0"><li>Preservation depends on <b>ownership</b> and <b>identity</b></li><li>Not on whether a screen is visible</li></ul></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/typed.png" alt="Draft typed"></div><p class="shot-cap">Draft typed</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/back.png" alt="After History"></div><p class="shot-cap">After History</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The journey: open Payments, enter ravi@npay and ₹1,500, switch to History to check an earlier transaction, come back, and keep editing the same payment. Should the input disappear? For NPay, no. We preserve it until the user completes the payment successfully or explicitly discards the draft.</p>
+    <span class="notes-label">SAY</span><p>Click: the sentence to keep in mind all lesson: state preservation depends on ownership and identity, not merely on whether a screen is visible. The text&rsquo;s simulation compared screen-local state with shared draft state; we will run both for real.</p>
+    <span class="notes-label">SAY</span><p>On the right, today&rsquo;s app: the draft typed. Click: after a trip to History and back, the same draft.</p>
+    <span class="notes-label">CONNECT</span><p>Start with the familiar approach: local @State.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Local @State</h2>
+    <p class="lead">Works, until the screen is replaced</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two experiments, two results.</p>
+    <span class="notes-label">CONNECT</span><p>The familiar code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; First experiment: local @State (section 2)</p>
+  <h2>Kept across tabs; lost when replaced</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Screen-local draft</span></div><pre class="cb" style="font-size:13px">struct PaymentsScreen: View {
+    @State private var recipient = &quot;&quot;
+    @State private var amountText = &quot;&quot;
+
+    var body: some View {
+        VStack {
+            TextField(&quot;Recipient&quot;, text: $recipient)
+            TextField(&quot;Amount&quot;, text: $amountText)
+        }
+        .padding()
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">A: inside a TabView, switch to History and back</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">typed: "ravi@npay"<br>after History and back: "ravi@npay"</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">B: if/else replaces the screen, then shows it again</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">typed: "ravi@npay"<br>after replacing the screen and back: ""</p></div></div>
+        <div class="rule step" data-label="So"><ul style="margin:6px 0 0"><li>A stable TabView kept the state (as in 3.3)</li><li>Removed from the hierarchy, a new identity: reset</li><li>A draft that must survive needs a <b>longer-lived owner</b></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The familiar approach: recipient and amountText as @State inside PaymentsScreen. It works; the user can type into both fields. But what happens when the screen is removed from the hierarchy? We ran the text&rsquo;s screen two ways.</p>
+    <span class="notes-label">SAY</span><p>Click: A, the screen as a tab, switching to History and back: the text survived, as Lesson 3.3 measured. Click: B, the screen inside an if-else that replaces it with another view and then brings it back: the field came back empty. Removing the screen from its structural position ended that identity; the new one started with fresh @State.</p>
+    <span class="notes-label">SAY</span><p>Click: so switching tabs does not automatically destroy local state, and a stable TabView preserved it here. But if a payment draft must survive deliberate screen replacement or other navigation changes, it needs a longer-lived owner.</p>
+    <span class="notes-label">CONNECT</span><p>Why exactly? Three concepts.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Value, identity, state</h2>
+    <p class="lead">Three concepts, never confused</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 2.8, revisited with proof.</p>
+    <span class="notes-label">CONNECT</span><p>The three concepts.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; View identity versus view value (section 3)</p>
+  <h2>A new struct is not a new identity</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1100 64" style="max-height:80px" role="img" aria-labelledby="vis">
+        <title id="vis">View value, view identity, state storage</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="340" height="64" rx="12"/><use href="#i-code" x="14" y="19" width="26" height="26"/><text x="52" y="29">View value</text><text class="sm" x="52" y="47">a Swift struct describing UI</text></g>
+        <g class="nd lit"><rect class="sh" x="380" y="0" width="340" height="64" rx="12"/><use href="#i-key" x="394" y="19" width="26" height="26"/><text x="432" y="29">View identity</text><text class="sm" x="432" y="47">how SwiftUI links a logical view to state</text></g>
+        <g class="nd"><rect class="sh" x="760" y="0" width="340" height="64" rx="12"/><use href="#i-db" x="774" y="19" width="26" height="26"/><text x="812" y="29">State storage</text><text class="sm" x="812" y="47">managed values tied to that identity</text></g>
+        <path class="wire dash" d="M342 32H376M369 25l7 7-7 7"/>
+        <path class="wire" d="M722 32H756M749 25l7 7-7 7"/>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Lesson 2.8</span><ul style="margin:6px 0 0"><li>Views are value types, recreated freely</li><li><code>@State</code> survives while the <b>identity</b> does</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Experiment (authored)</span><ul style="margin:6px 0 0"><li>An editor whose <code>init</code> prints</li><li>Type ravi@npay; re-render the parent twice</li></ul></div></div>
+      </div>
+      <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">TracedEditor.init (a new view value)<br>[Re-render Parent]<br>TracedEditor.init (a new view value)<br>[Re-render Parent]<br>TracedEditor.init (a new view value)<br>field: "ravi@npay"</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three concepts that must not be confused. A view value: a Swift struct describing part of the UI, cheap and recreated all the time. A view identity: how SwiftUI associates a logical view with its state. State storage: the managed values associated with that identity. The value points at an identity; the identity owns the state.</p>
+    <span class="notes-label">SAY</span><p>Recall Lesson 2.8: a view struct can be recreated while its @State stays alive. Click: our experiment: an editor whose initializer prints, inside a parent we re-render on purpose. Click: three new view values, three init lines, and the field still says ravi@npay. Writing PaymentsScreen() again does not reset anything; only a new identity does.</p>
+    <span class="notes-label">CONNECT</span><p>So change the identity and watch.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Force a state reset with .id() (section 4)</p>
+  <h2>New identity, new state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 260px;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>IdentityLab.swift</span></div><pre class="cb" style="font-size:12px">struct IdentityLab: View {
+    @State private var identity = UUID()
+
+    var body: some View {
+        VStack(spacing: 20) {
+            DraftEditor()
+                .id(identity)
+            Button(&quot;Replace View Identity&quot;) {
+                identity = UUID()
+            }
+        }
+        .padding()
+    }
+}
+
+struct DraftEditor: View {
+    @State private var recipient = &quot;&quot;
+
+    var body: some View {
+        VStack {
+            TextField(&quot;Recipient&quot;, text: $recipient)
+                .textFieldStyle(.roundedBorder)
+            Text(&quot;Current: \(recipient)&quot;)
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="width:260px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/idbefore.png" alt="Typed: Current: ravi@npay"></div><p class="shot-cap">Typed: Current: ravi@npay</p></div>
+        <div class="step"><div style="width:260px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/idafter.png" alt="After Replace View Identity"></div><p class="shot-cap">After Replace View Identity</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s proof. IdentityLab keeps a UUID in @State and gives DraftEditor an explicit identity with .id(identity). The button replaces the UUID. DraftEditor has its own @State recipient and shows it.</p>
+    <span class="notes-label">SAY</span><p>Type ravi@npay: "Current: ravi@npay". Click: tap Replace View Identity: the field is empty and "Current:" shows nothing. Changing the explicit identity made SwiftUI treat the editor as a new logical view, and its local state was initialized for that new identity.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s warning about random IDs, tested.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Unstable identity (section 4)</p>
+  <h2><code>.id(UUID())</code> in body: state dies on every update</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Don&rsquo;t (authored experiment)</span></div><pre class="cb" style="font-size:13.5px">DraftEditor()
+    .id(UUID())   // a new identity on every evaluation
+
+Text(&quot;Taps: \(taps)&quot;)
+Button(&quot;Count Tap&quot;) { taps += 1 }</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">typed: "ravi@npay"<br>[Count Tap]: an unrelated state change<br>field: ""</p></div></div>
+        <div class="warn step" data-label="Avoid"><ul style="margin:6px 0 0"><li>Random IDs generated during <code>body</code></li><li>Any re-evaluation becomes a new view: input lost</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text warns: avoid generating random .id(UUID()) values during normal body evaluation. We tested exactly that: the same DraftEditor, but with .id(UUID()) written inline, next to an unrelated counter.</p>
+    <span class="notes-label">SAY</span><p>Click: type ravi@npay, then tap Count Tap. The counter has nothing to do with the editor, but tapping it re-evaluated the parent&rsquo;s body, which generated a new UUID, which gave the editor a new identity: the field is empty. Click: unstable identity destroys useful state and causes unexpected UI behaviour. Use .id with a value that changes only when you mean it to.</p>
+    <span class="notes-label">CONNECT</span><p>The fix for NPay: a draft model with a deliberate owner.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>A draft model</h2>
+    <p class="lead">Input, kept as input</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A struct for what the user is typing, owned by the store.</p>
+    <span class="notes-label">CONNECT</span><p>The model.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Create a payment draft model (section 5)</p>
+  <h2>A draft is not a payment request</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>Models/PaymentDraft.swift</span></div><pre class="cb" style="font-size:15px">struct PaymentDraft {
+    var recipient: String = &quot;&quot;
+    var amountText: String = &quot;&quot;
+}</pre></div>
+        <div class="card accent"><span class="label">Why a String amount</span><ul style="margin:6px 0 0"><li>Mid-typing values like <code>"1500."</code> must be allowed</li><li>Parse only when reviewing (2.11, 2.12)</li></ul></div>
+      </div>
+      <div class="step"><table class="tbl"><thead><tr><th>Draft</th><th>Payment request</th></tr></thead><tbody><tr><td>Incomplete user input</td><td>Validated domain data</td></tr><tr><td><code>amountText: String</code></td><td><code>amountPaise: Int</code></td></tr><tr><td>Can be invalid</td><td>Valid by construction</td></tr><tr><td>Edited freely</td><td>Immutable once made</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="rule" data-label="Don&rsquo;t confuse them"><ul style="margin:6px 0 0"><li>Different types, different jobs</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Instead of two independent screen-local properties, one model for the draft: PaymentDraft, an ordinary struct holding the user&rsquo;s editable input. The amount stays a String on purpose: while typing, the user may pass through incomplete values such as "1500." that are not yet valid numbers. We parse when the user asks to review, as in Lessons 2.11 and 2.12.</p>
+    <span class="notes-label">SAY</span><p>Click: the design distinction. A draft is incomplete user input: a String amount, possibly invalid, edited freely. A payment request is validated domain data: an amount in paise, valid by construction, immutable once made. We should not confuse the two.</p>
+    <span class="notes-label">CONNECT</span><p>One practical problem with the name.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Two lessons, one name (sections 5, 17)</p>
+  <h2><code>PaymentDraft</code> twice does not compile</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>3.4&rsquo;s review model + 3.5&rsquo;s draft</span></div><pre class="cb" style="font-size:12.5px">struct PaymentDraft: Identifiable {   // 3.4: the review
+    let id = UUID()
+    let recipient: String
+    let amountPaise: Int
+}
+
+struct PaymentDraft {                 // 3.5: the input
+    var recipient: String = &quot;&quot;
+    var amountText: String = &quot;&quot;
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">swiftc</span><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;invalid redeclaration of 'PaymentDraft'</span></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><table class="tbl"><thead><tr><th>Type (our names)</th><th>Is</th></tr></thead><tbody><tr><td><code>PaymentDraft</code></td><td>editable input, in the store (3.5)</td></tr><tr><td><code>PaymentReview</code></td><td>immutable snapshot for the sheet (3.4&rsquo;s type, renamed)</td></tr></tbody></table></div>
+        <div class="rule step" data-label="Section 17"><ul style="margin:6px 0 0"><li>The review shows a <b>snapshot</b>, not the live draft</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A practical problem: Lesson 3.4 already has a PaymentDraft, the Identifiable review model with an amount in paise. Lesson 3.5 introduces another PaymentDraft, the editable input. Click: put both in one project and the compiler stops: invalid redeclaration of PaymentDraft.</p>
+    <span class="notes-label">SAY</span><p>Click: our resolution, flagged as ours: keep the text&rsquo;s PaymentDraft for the editable input, and rename 3.4&rsquo;s review model to PaymentReview. Click: the names now match the jobs, and Section 17&rsquo;s design: when the review opens, it gets an immutable snapshot of what the user is reviewing, not the live draft.</p>
+    <span class="notes-label">CONNECT</span><p>Where should the draft live?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Where should the draft live? (sections 6, 11)</p>
+  <h2>In the store the root owns</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Store/NPayStore.swift</span></div><pre class="cb" style="font-size:12.5px">@MainActor
+@Observable
+final class NPayStore {
+    var balancePaise = 2_500_000
+    var transactions: [Transaction] = []
+
+    var paymentDraft = PaymentDraft()
+
+    func clearPaymentDraft() {
+        paymentDraft = PaymentDraft()
+    }
+
+    // recordDemoPayment(recipient:amountPaise:) as in 3.3
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="diagram">
+      <svg class="art" viewBox="0 0 420 202" style="max-height:200px" role="img" aria-labelledby="own">
+        <title id="own">NPayRootView owns NPayStore, which holds the draft that PaymentsScreen edits</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="420" height="54" rx="12"/><use href="#i-layers" x="14" y="14" width="26" height="26"/><text x="52" y="24">NPayRootView</text><text class="sm" x="52" y="42">owns NPayStore</text></g>
+        <path class="wire" d="M210 56V70M203 63l7 7 7-7"/>
+        <g class="nd lit"><rect class="sh" x="0" y="74" width="420" height="54" rx="12"/><use href="#i-db" x="14" y="88" width="26" height="26"/><text x="52" y="98">NPayStore.paymentDraft</text><text class="sm" x="52" y="116">recipient + amount text</text></g>
+        <path class="wire" d="M210 130V144M203 137l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="148" width="420" height="54" rx="12"/><use href="#i-file" x="14" y="162" width="26" height="26"/><text x="52" y="172">PaymentsScreen</text><text class="sm" x="52" y="190">reads and edits the shared draft</text></g>
+      </svg>
+    </div>
+        <div class="step"><div class="card accent"><span class="label">Lifetime</span><ul style="margin:6px 0 0"><li>As long as the root&rsquo;s store: tab switches, screen recreation</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Acceptable for now (section 11)</span><ul style="margin:6px 0 0"><li>Draft = editing state; payment = behaviour</li><li>Split into ViewModels and use cases in Unit 4</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The 3.3 store gets a new property, paymentDraft, and a clearPaymentDraft method that replaces it with an empty draft. Because NPayRootView owns the store with @State, the draft can survive ordinary tab switches and screen recreation for as long as the root lives.</p>
+    <span class="notes-label">SAY</span><p>Click: the ownership chain: the root owns the store; the store holds the draft; PaymentsScreen reads and edits it. Click: the text&rsquo;s honest note: the store now mixes editing state and application behaviour. Acceptable while learning; Unit 4 introduces dedicated ViewModels and use cases.</p>
+    <span class="notes-label">CONNECT</span><p>How does the screen edit a property of an object?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>@Bindable</h2>
+    <p class="lead">Bindings into an observable object</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>TextFields need bindings; the draft lives in a class.</p>
+    <span class="notes-label">CONNECT</span><p>The code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Connect the draft using @Bindable (section 7)</p>
+  <h2><code>$store.paymentDraft.recipient</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentsScreen (text)</span></div><pre class="cb" style="font-size:13px">struct PaymentsScreen: View {
+    @Bindable var store: NPayStore
+
+    var body: some View {
+        VStack(spacing: 16) {
+            TextField(&quot;Recipient&quot;,
+                      text: $store.paymentDraft.recipient)
+            TextField(&quot;Amount&quot;,
+                      text: $store.paymentDraft.amountText)
+        }
+        .textFieldStyle(.roundedBorder)
+        .padding()
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl"><thead><tr><th>Wrapper</th><th>Role</th></tr></thead><tbody><tr><td><code>@Observable</code></td><td>the class takes part in Observation</td></tr><tr><td><code>@State</code></td><td><b>owns</b> it (NPayRootView)</td></tr><tr><td><code>@Bindable</code></td><td>gives <b>bindings</b> to its properties</td></tr></tbody></table></div>
+        <div class="step"><div class="card accent"><span class="label">Owner unchanged</span><ul style="margin:6px 0 0"><li>The screen <b>receives</b> the store</li><li>Internals: Unit 4</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Inside PaymentsScreen, the store property is marked @Bindable. That is what makes $store.paymentDraft.recipient legal: a binding that reads and writes a property of a property of an observable object. The TextFields bind to the shared draft instead of local state.</p>
+    <span class="notes-label">SAY</span><p>Click: three wrappers, three jobs. @Observable makes the class participate in Observation. @State owns an observable object in the view hierarchy: NPayRootView does that. @Bindable gives bindings to the mutable properties of an object someone else owns. The compiler and Observation internals come in Unit 4.</p>
+    <span class="notes-label">SAY</span><p>Click: focus on ownership: the screen receives the store; it does not own it. The 3.3 router used the same @Bindable, inside body, to bind the tab selection.</p>
+    <span class="notes-label">CONNECT</span><p>Trace one keystroke.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; What happens when the user types? (section 8) &middot; conceptual</p>
+  <h2>Six stages, one keystroke</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1132 120" style="max-height:140px" role="img" aria-labelledby="pl">
+        <title id="pl">User types, binding writes, store mutates, Observation notes readers, body re-evaluated, screen updates</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="120" rx="14"/><use href="#i-tap" x="72" y="14" width="28" height="28"/><text x="86" y="84" text-anchor="middle">User types</text><text class="sm" x="86" y="104" text-anchor="middle">TextField edits the string</text></g>
+        <path class="wire" d="M174 60H188M181 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="190" y="0" width="172" height="120" rx="14"/><use href="#i-link" x="262" y="14" width="28" height="28"/><text x="276" y="84" text-anchor="middle">Binding writes</text><text class="sm" x="276" y="104" text-anchor="middle">$store.paymentDraft.recipient</text></g>
+        <path class="wire" d="M364 60H378M371 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="380" y="0" width="172" height="120" rx="14"/><use href="#i-db" x="452" y="14" width="28" height="28"/><text x="466" y="84" text-anchor="middle">Store mutates</text><text class="sm" x="466" y="104" text-anchor="middle">paymentDraft.recipient</text></g>
+        <path class="wire" d="M554 60H568M561 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="570" y="0" width="172" height="120" rx="14"/><use href="#i-eye" x="642" y="14" width="28" height="28"/><text x="656" y="84" text-anchor="middle">Observation notes</text><text class="sm" x="656" y="104" text-anchor="middle">readers of that property</text></g>
+        <path class="wire" d="M744 60H758M751 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="760" y="0" width="172" height="120" rx="14"/><use href="#i-diff" x="832" y="14" width="28" height="28"/><text x="846" y="84" text-anchor="middle">Body re-evaluated</text><text class="sm" x="846" y="104" text-anchor="middle">PaymentsScreen and others</text></g>
+        <path class="wire" d="M934 60H948M941 53l7 7-7 7"/>
+        <g class="nd" data-lit="6"><rect class="sh" x="950" y="0" width="172" height="120" rx="14"/><use href="#i-check" x="1022" y="14" width="28" height="28"/><text x="1036" y="84" text-anchor="middle">Screen updates</text><text class="sm" x="1036" y="104" text-anchor="middle">the draft everywhere</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="step"><div class="card accent"><span class="label">onChange diagnostic (section 18), typing ravi@npay</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">Draft changed: Old: "" New: "r"<br>Draft changed: Old: "r" New: "ra"<br>…<br>Draft changed: Old: "ravi@npa" New: "ravi@npay"</p></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Only stage 1 came with the text; the rest is our conceptual outline. Click: the user types; the TextField receives the edited string. Click: its binding writes through $store.paymentDraft.recipient. Click: the store&rsquo;s draft mutates. Click: Observation notes that views reading that property depend on it. Click: SwiftUI re-evaluates those bodies. Click: the screen shows the new draft.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s debugging tip, onChange of the draft&rsquo;s recipient, in our complete code: nine lines for nine characters, each with the old and new value. Every keystroke is a write into the shared store.</p>
+    <span class="notes-label">CONNECT</span><p>When does the draft go away?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>When to clear</h2>
+    <p class="lead">An explicit rule</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Paid or discarded; nothing else.</p>
+    <span class="notes-label">CONNECT</span><p>The rule.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; When should we clear the draft? (section 9)</p>
+  <h2>Two events clear it; nothing else does</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:start">
+      <div><table class="tbl"><thead><tr><th>Event</th><th>Draft</th></tr></thead><tbody><tr><td>Switching tabs</td><td>preserve</td></tr><tr><td>Dismissing the review sheet</td><td>preserve</td></tr><tr><td>Navigating to History</td><td>preserve</td></tr><tr><td>Successful demo payment</td><td><b>clear</b></td></tr><tr><td>Discard Draft</td><td><b>clear</b></td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="cw"><div class="ch"><span>NPayStore</span></div><pre class="cb" style="font-size:13.5px">func clearPaymentDraft() {
+    paymentDraft = PaymentDraft()
+}</pre></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Call it</span><ul style="margin:6px 0 0"><li>After the payment is <b>recorded</b></li><li>When the user confirms Discard</li></ul></div></div>
+        <div class="warn step" data-label="Not on dismissal"><ul style="margin:6px 0 0"><li>Dismissing may mean &ldquo;let me fix the amount&rdquo;</li><li>Clearing then loses useful input</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An explicit rule for NPay. Switching tabs, dismissing the review sheet and navigating to History all preserve the draft. A successful demo payment clears it, and so does tapping Discard Draft. clearPaymentDraft replaces the draft with an empty one.</p>
+    <span class="notes-label">SAY</span><p>Click: call it after the payment has been successfully recorded, and when the user confirms a discard. Click: why not clear it when the review sheet dismisses? Because dismissal might mean the user wants to correct the amount; clearing at that point would lose useful input.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s experiments, run on the complete app.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Xcode experiments (sections 12, 18)</p>
+  <h2>The diagnostic fires only on the events that matter</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) 140px 140px;gap:18px;align-items:start">
+      <div class="card accent"><span class="label">Complete app, onChange(of: store.paymentDraft.recipient)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">1. type ravi@npay, 1500&ensp;&rarr; 9 &times; Draft changed<br>2-3. History and back&ensp;&ensp;&ensp;&ensp;&ensp;&rarr; (nothing)<br>&ensp;&ensp;&ensp;recipient "ravi@npay", amount "1500"<br>4-5. review, swipe down&ensp;&ensp;&rarr; (nothing)<br>&ensp;&ensp;&ensp;recipient "ravi@npay", amount "1500"<br>6. confirm&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&rarr; Old: ravi@npay New: ""<br>7. back on Payments&ensp;&ensp;&ensp;&ensp;&rarr; recipient "", amount ""<br>Discard Draft &rarr; Discard &rarr; Old: ravi@npay New: ""</p></div>
+      <div class="step"><div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/cleared.png" alt="After paying"></div><p class="shot-cap">After paying</p></div></div>
+      <div class="step"><div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/discard.png" alt="Discard Draft"></div><p class="shot-cap">Discard Draft</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s experiments 1 to 7, with the Section 18 diagnostic in place. Typing produced one "Draft changed" per character. Switching to History and back produced nothing, and the fields still held ravi@npay and 1500. Opening the review and swiping it down produced nothing; the draft was intact. Confirming produced exactly one change: ravi@npay to empty, the clear after recording. Back on Payments, both fields were empty.</p>
+    <span class="notes-label">SAY</span><p>Click: the Payments tab after paying: empty fields, and the available balance already reduced. Click: Discard Draft, our addition, asks first, with the alert pattern from 3.4; Discard cleared the draft, one more change in the log.</p>
+    <span class="notes-label">SAY</span><p>You can also set breakpoints in clearPaymentDraft and recordDemoPayment, as the text suggests, to see exactly when state changes.</p>
+    <span class="notes-label">CONNECT</span><p>Experiment 8: restart the app.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Preservation vs persistence</h2>
+    <p class="lead">Alive is not saved</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In memory survives navigation, not termination.</p>
+    <span class="notes-label">CONNECT</span><p>Restart.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; State preservation versus persistence (sections 10, 14)</p>
+  <h2>Different mechanisms, different lifetimes</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <table class="tbl"><thead><tr><th>Mechanism</th><th>Survives</th></tr></thead><tbody><tr><td><code>@State</code></td><td>while the view&rsquo;s identity survives</td></tr><tr><td>Shared <code>NPayStore</code></td><td>while the store instance survives</td></tr><tr><td><code>@SceneStorage</code></td><td>simple scene state, through supported restoration</td></tr><tr><td><code>@AppStorage</code></td><td>simple values, via UserDefaults</td></tr><tr><td>SwiftData</td><td>structured records, local storage</td></tr></tbody></table>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Experiment 8: relaunch (simulator)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">typed: "ravi@npay", "1500.50"<br>app terminated, launched again<br>after relaunch: "", ""</p></div></div>
+        <div class="rule step" data-label="Definitions"><ul style="margin:6px 0 0"><li><b>Preservation</b>: kept while the owner lives</li><li><b>Persistence</b>: recovered after owner or process is gone</li></ul></div>
+        <div class="warn step" data-label="Before persisting"><ul style="margin:6px 0 0"><li>Recipient and amounts are financial data: privacy first (Unit 6, Unit 7)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two ideas that are frequently confused. The lifetimes: @State lives while its view identity survives. The shared store lives while its instance survives. @SceneStorage can restore simple scene state through supported restoration. @AppStorage persists simple values through UserDefaults. SwiftData persists structured records to local storage.</p>
+    <span class="notes-label">SAY</span><p>Click: experiment 8, run: type a draft, terminate NPay, launch it again: both fields empty. The store is an in-memory object; when the process ended, so did the draft. Click: preservation means keeping a value while its owner is alive; persistence means storing it so it can be recovered after the owner or the process is gone.</p>
+    <span class="notes-label">SAY</span><p>Click: for Unit 3 we deliberately preserve the draft in memory. Persistence comes in Unit 6, and a payment draft holds a recipient and an amount: privacy and security must be considered before storing it, which is Unit 7&rsquo;s territory.</p>
+    <span class="notes-label">CONNECT</span><p>One more experiment: reset the child, keep the draft.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Reset the child, preserve the draft (section 15)</p>
+  <h2>Same <code>.id()</code> trick; this time nothing is lost</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DraftIdentityExperiment.swift (condensed)</span></div><pre class="cb" style="font-size:11.5px">@MainActor @Observable
+final class DraftStore { var recipient = &quot;&quot; }
+
+struct DraftIdentityExperiment: View {
+    @State private var store = DraftStore()
+    @State private var identity = UUID()
+
+    var body: some View {
+        VStack(spacing: 20) {
+            DraftChild(store: store)
+                .id(identity)
+            Button(&quot;Recreate Child Identity&quot;) { identity = UUID() }
+            Text(&quot;Store value: \(store.recipient)&quot;)
+        }
+        .padding()
+    }
+}
+
+struct DraftChild: View {
+    @Bindable var store: DraftStore
+    var body: some View {
+        TextField(&quot;Recipient&quot;, text: $store.recipient)
+            .textFieldStyle(.roundedBorder)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div style="width:320px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/draftexp.png" alt="After Recreate Child Identity"></div><p class="shot-cap">After Recreate Child Identity</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">before: Store value: ravi@npay<br>[Recreate Child Identity]<br>after:&ensp;Store value: ravi@npay<br>field: "ravi@npay"</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s deeper experiment. The same .id() reset as IdentityLab, but the recipient lives in an observable DraftStore owned by the parent, and the child edits it through @Bindable.</p>
+    <span class="notes-label">SAY</span><p>Click: type ravi@npay and tap Recreate Child Identity: the field still says ravi@npay. Click: our run: "Store value: ravi@npay" before and after, and the new child&rsquo;s field shows it. Why: the child received a new identity, so any child-local state would reset, but the recipient was never in the child. It belongs to the DraftStore, still alive in the parent. That is the whole lesson in one experiment: move ownership upward to the lifetime you need.</p>
+    <span class="notes-label">CONNECT</span><p>Then should everything move up?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Choosing owners</h2>
+    <p class="lead">As local as possible, as shared as necessary</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Every piece of state gets the owner its lifetime needs.</p>
+    <span class="notes-label">CONNECT</span><p>The table.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Should every property go into NPayStore? (section 16)</p>
+  <h2>No: decide by lifetime and sharing</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <table class="tbl compact"><thead><tr><th>State</th><th>Recommended owner</th></tr></thead><tbody><tr><td>Current balance</td><td>Shared NPayStore</td></tr><tr><td>Transaction collection</td><td>Shared NPayStore</td></tr><tr><td>Payment draft</td><td>Shared feature-level store</td></tr><tr><td>Review sheet visibility</td><td>PaymentsScreen</td></tr><tr><td>Focused text field</td><td>PaymentsScreen</td></tr><tr><td>Temporary animation state</td><td>The relevant component</td></tr><tr><td>Selected tab</td><td>NPayRouter</td></tr><tr><td>Navigation paths</td><td>NPayRouter</td></tr></tbody></table>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="rule step" data-label="Principle"><ul style="margin:6px 0 0"><li>Keep state as <b>local</b> as possible</li><li>but as <b>shared</b> as necessary</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Why not one global object</span><ul style="margin:6px 0 0"><li>Unnecessary coupling</li><li>Every change touches everything</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Later</span><ul style="margin:6px 0 0"><li>A dedicated payment-flow model for the draft</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Should every state property go into NPayStore? No. Moving everything into one global object creates unnecessary coupling. Decide ownership by intended lifetime and sharing. The balance and the transactions: the shared store. The payment draft: a shared, feature-level store. The review sheet&rsquo;s visibility and the focused field: PaymentsScreen, they matter only there. Temporary animation state: the component that animates. The selected tab and the paths: the router.</p>
+    <span class="notes-label">SAY</span><p>Click: the principle: keep state as local as possible, but as shared as necessary. Click: a single global object couples everything to everything. Click: keeping the draft in NPayStore is a practical learning step; later a dedicated payment-flow model can own it.</p>
+    <span class="notes-label">CONNECT</span><p>Shared state raises one more question: two editors.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Two screens, one draft (section 17)</p>
+  <h2>Edit the draft; review a snapshot</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentsScreen (complete code, authored)</span></div><pre class="cb" style="font-size:11.5px">Button(&quot;Review Payment&quot;) {
+    guard let amountPaise = parsedAmount else { return }
+    focusedField = nil
+    // an immutable snapshot of what the user is reviewing
+    review = PaymentReview(
+        recipient: store.paymentDraft.recipient,
+        amountPaise: amountPaise)
+}
+
+PaymentReviewSheet(review: review) {
+    // validate again against the current balance
+    if let id = store.recordDemoPayment(
+        recipient: review.recipient,
+        amountPaise: review.amountPaise) {
+        store.clearPaymentDraft()   // recorded: the draft is done
+        pendingSuccessID = id
+    } else {
+        paymentFailed = true
+    }
+    self.review = nil
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Shared bindings raise questions</span><ul style="margin:6px 0 0"><li>Who owns the editing workflow?</li><li>Should edits appear in both at once?</li><li>What if the draft is discarded?</li><li>Can a review show <b>stale</b> values?</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">NPay&rsquo;s answer</span><ul style="margin:6px 0 0"><li>Review = immutable <b>snapshot</b> at open</li><li>Confirm re-validates against the current balance</li><li>Editable draft &ne; confirmed input</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Suppose PaymentsScreen and another payment editor both get bindings to the same draft. They can both read and write it. That may be intentional, but it raises coordination questions: which screen owns the editing workflow, should edits in one appear in the other immediately, what happens when the user discards, and can a review sheet show stale values after the draft changes?</p>
+    <span class="notes-label">SAY</span><p>Click: NPay&rsquo;s answer, as the text designs it, in our complete code. Review Payment creates an immutable PaymentReview snapshot of what the user is reviewing. Confirm validates again against the store&rsquo;s current balance, as 3.4 measured. On success the store clears the draft, while the sheet still shows the snapshot, so nothing on screen changes under the user. Editable draft state and confirmed payment input stay separate.</p>
+    <span class="notes-label">CONNECT</span><p>The final architecture.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Final NPay architecture (section 19)</p>
+  <h2>Two owned objects; one draft, edited in place</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 920 220" style="max-height:250px" role="img" aria-labelledby="fin">
+        <title id="fin">NPayRootView owns NPayRouter and NPayStore; PaymentsScreen edits the store draft</title>
+        <g class="nd"><rect class="sh" x="250" y="0" width="420" height="54" rx="12"/><use href="#i-layers" x="264" y="14" width="26" height="26"/><text x="302" y="24">NPayRootView</text><text class="sm" x="302" y="42">owns shared application objects</text></g>
+        <path class="wire" d="M460 56V70H210V86M203 79l7 7 7-7"/>
+        <path class="wire" d="M460 56V70H710V86M703 79l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="90" width="420" height="54" rx="12"/><use href="#i-grid" x="14" y="104" width="26" height="26"/><text x="52" y="114">NPayRouter</text><text class="sm" x="52" y="132">tabs and navigation paths</text></g>
+        <g class="nd lit"><rect class="sh" x="500" y="90" width="420" height="54" rx="12"/><use href="#i-db" x="514" y="104" width="26" height="26"/><text x="552" y="114">NPayStore</text><text class="sm" x="552" y="132">balance, transactions, draft</text></g>
+        <path class="wire" d="M710 146V162M703 155l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="500" y="166" width="420" height="54" rx="12"/><use href="#i-file" x="514" y="180" width="26" height="26"/><text x="552" y="190">PaymentsScreen</text><text class="sm" x="552" y="208">edits the shared draft through @Bindable</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="step"><table class="tbl compact"><thead><tr><th>Checkpoint</th><th>In the simulator</th></tr></thead><tbody><tr><td>Draft across tab switches</td><td>kept</td></tr><tr><td>Draft across review dismissal</td><td>kept</td></tr><tr><td>Draft after a recorded payment</td><td>cleared</td></tr><tr><td>Draft after relaunch</td><td>gone: in memory only</td></tr></tbody></table></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The final architecture for Lesson 3.5. NPayRootView owns the shared application objects: NPayRouter for tabs and navigation paths, NPayStore for the balance, the transactions and now the draft. PaymentsScreen edits the shared draft through @Bindable.</p>
+    <span class="notes-label">SAY</span><p>Click: the integration checkpoint the text set, measured: the draft survived tab switches and the review&rsquo;s dismissal, was cleared after a recorded payment, and was gone after a relaunch, because it is preserved in memory, not persisted. The integration code is ours, written out in the lesson text file.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.5 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p style="font-size:23px"><b>Identity owns state</b><br><span class="muted" style="font-size:19px">new values keep it; a new identity resets it</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p style="font-size:23px"><b>Give drafts an owner</b><br><span class="muted" style="font-size:19px">store + @Bindable; clear when paid or discarded</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p style="font-size:23px"><b>Preserved is not persisted</b><br><span class="muted" style="font-size:19px">in memory dies with the process</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A view value is just a struct; state belongs to the view&rsquo;s identity, so recreating structs keeps it and a new identity, from replacement or .id, resets it. When input must survive navigation, move it to an owner whose lifetime spans the journey, like NPayStore, edit it through @Bindable, and clear it only on a recorded payment or an explicit discard. And preservation is not persistence: anything held in memory is gone when the process ends.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does recreating a view struct reset @State?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does recreating a SwiftUI view struct necessarily reset its <code>@State</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Three new <code>TracedEditor</code> values; the field still said ravi@npay.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing a view value with its identity.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Three new <code>TracedEditor</code> values; the field still said ravi@npay.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What can changing a view&#x27;s .id() cause?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What can changing a view&rsquo;s explicit <code>.id()</code> cause?</p><ol class="q-opts"><li>Automatic persistence</li><li>A state identity reset</li><li>A new iOS process</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">IdentityLab: Replace View Identity emptied the field.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking .id is only for lists.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. IdentityLab: Replace View Identity emptied the field.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why put the NPay draft in a shared store?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why place the NPay payment draft in a shared store?</p><ol class="q-opts"><li>To encrypt it automatically</li><li>To create a new thread</li><li>To give it a lifetime beyond one screen</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">The root owns the store; the draft outlives screen changes.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting the store to add security.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. The root owns the store; the draft outlives screen changes.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does @Bindable provide?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>@Bindable</code> provide?</p><ol class="q-opts"><li>Bindings to mutable observable properties</li><li>Database persistence</li><li>Background execution</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why"><code>$store.paymentDraft.recipient</code> for a TextField.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking @Bindable owns the object.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. <code>$store.paymentDraft.recipient</code> for a TextField.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should dismissing the review erase the draft?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should dismissing the review sheet automatically erase the payment draft?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Dismissal may mean &ldquo;let me fix it&rdquo;; our swipe-down left the draft intact.</p>
+          <p class="q-trap"><b>Common trap:</b> Clearing on every exit.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. Dismissal may mean &ldquo;let me fix it&rdquo;; our swipe-down left the draft intact.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does the in-memory NPayStore survive termination?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does an in-memory <code>NPayStore</code> automatically survive app termination?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">After a relaunch the fields were empty.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating preservation as persistence.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. After a relaunch the fields were empty.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="DraftEditor().id(UUID()) and an unrelated tap?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">A parent shows <code>DraftEditor().id(UUID())</code> and a counter. The user types ravi@npay, then taps the counter. What does the field show?</p><ol class="q-opts"><li>ravi@npay</li><li>Nothing: it reset</li><li>The counter value</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The re-evaluated body made a new UUID, so a new identity.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking .id(UUID()) is harmless.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The re-evaluated body made a new UUID, so a new identity.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Child identity recreated; where&#x27;s the recipient?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>DraftChild</code> edits a parent-owned <code>DraftStore</code> through <code>@Bindable</code>. Its <code>.id</code> is replaced. What does the field show?</p><ol class="q-opts"><li>ravi@npay</li><li>Empty</li><li>A compile error</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">The value lives in the store, not the child: &ldquo;Store value: ravi@npay&rdquo;.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming any .id change loses data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. The value lives in the store, not the child: &ldquo;Store value: ravi@npay&rdquo;.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.4: what decides whether sheet(item:) shows?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 3.4: what makes <code>sheet(item: $review)</code> present?</p><ol class="q-opts"><li><code>review</code> becoming non-nil</li><li>A navigation path change</li><li>A Bool named isPresented</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">An optional Identifiable item: nil means no sheet.</p>
+          <p class="q-trap"><b>Common trap:</b> Mixing presentation with navigation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.4.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. An optional Identifiable item: nil means no sheet.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.5 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.6</td><td><b>SwiftUI animations &amp; transitions</b></td><td>balance updates, confirmation, success feedback; identity in animation</td></tr><tr><td class="mono">Unit 4</td><td><b>ViewModels, use cases, Observation internals</b></td><td>a payment-flow model owns the draft</td></tr><tr><td class="mono">Unit 6</td><td><b>Persistence</b></td><td>drafts that survive a relaunch, with privacy in mind</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.6 animates the balance, the confirmation and the success feedback, and identity matters there too. Unit 4 gives the draft a dedicated payment-flow model and explains Observation and @Bindable from the compiler&rsquo;s side. Unit 6 adds persistence, so a draft could survive a relaunch, after deciding whether it should.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.5 &middot; Lab</p>
+  <h2>A draft that survives on purpose</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Move the draft into the store; prove each lifetime.</p><ol class="lab"><li>Run IdentityLab and DraftIdentityExperiment.</li><li>Add <code>PaymentDraft</code>; rename 3.4&rsquo;s to <code>PaymentReview</code>.</li><li>Store + <code>@Bindable</code>; add <code>clearPaymentDraft()</code>.</li><li>Add the onChange diagnostic; run experiments 1&ndash;7.</li><li>Add Discard Draft with a confirmation.</li><li>Relaunch: what survives?</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your diagnostic log for experiments 1&ndash;7</li><li>Your owner table for NPay&rsquo;s state</li><li>One sentence: preservation vs persistence</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: IdentityLab resets, DraftIdentityExperiment keeps ravi@npay; the diagnostic fires on typing, on the recorded payment and on Discard, never on tab switches or sheet dismissal; after a relaunch the draft is gone.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.5 complete</p>
+    <h2>State Preservation<br>Across Navigation</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.6 &mdash; SwiftUI Animations &amp; Transitions</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now separate view values, identity and state storage, predict and force state resets, model a draft separately from a payment request, give it a store-owned lifetime edited through @Bindable, clear it on purpose, and tell preservation from persistence.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.6: SwiftUI animations and transitions. We animate NPay&rsquo;s balance updates, payment confirmation and success feedback.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

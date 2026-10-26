@@ -113,9 +113,10 @@ def progress(lesson, tid='prog'):
     for i, (k, t1, t2) in enumerate(UNIT_LESSONS):
         x = i * (w + g)
         cls = 'nd lit' if i == n else 'nd ghost' if i > n else 'nd'
+        fs = 14 if w >= 100 or max(len(html.unescape(t1)), len(html.unescape(t2))) <= 9 else 12   # long labels in narrow boxes
         P.append(f'<g class="{cls}"><rect class="sh" x="{x:g}" y="0" width="{w}" height="84" rx="12"/>'
-                 f'<text class="sm" x="{x + 12:g}" y="24">{k}</text><text x="{x + 12:g}" y="50" style="font-size:14px">{t1}</text>'
-                 f'<text x="{x + 12:g}" y="68" style="font-size:14px">{t2}</text></g>')
+                 f'<text class="sm" x="{x + 12:g}" y="24">{k}</text><text x="{x + 12:g}" y="50" style="font-size:{fs}px">{t1}</text>'
+                 f'<text x="{x + 12:g}" y="68" style="font-size:{fs}px">{t2}</text></g>')
     return svg('0 0 1136 84', f'Unit {UNIT_NO} progress: lesson {lesson} of {count}', tid, P, 'max-height:96px')
 
 

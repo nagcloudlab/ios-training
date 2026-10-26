@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.1 — NavigationStack</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.1 — NavigationStack">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.1</p>
+    <h1 style="font-size:54px;line-height:1.05">NavigationStack:<br>How iOS Navigation Works</h1>
+    <p class="lead" style="max-width:760px">NPay grows from one long scroll into <b>three screens</b>: Dashboard, Send Money and History, all sharing <b>one</b> balance.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 3 begins. At the end of Unit 2, NPay was one ScrollView: balance, editor, form and history stacked on one screen. Today the dashboard becomes the starting point and the other features move to their own screens, reached with NavigationStack and NavigationLink. We ran the lesson&rsquo;s first experiment and its complete code unchanged in the simulator, plus the experiments the text asks for.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.1 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>What <code>NavigationStack</code> manages, and why it is not a <code>VStack</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p><code>NavigationLink</code> declares a destination; <code>Button</code> performs an action</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></span><p>A push stays in the <b>same process</b> and window</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p>One state owner, shared by every screen</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>When a destination&rsquo;s state <b>resets</b>, and when its body runs</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Build and verify NPay&rsquo;s first multi-screen flow</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.1 &middot; Where we are</p>
+  <h2>Today: from one screen to three</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.1 of 12</title>
+        <g class="nd lit"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd ghost"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd ghost"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd ghost"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd ghost"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>2.12: the whole app in one ScrollView, with a working payment flow.</span><span><b>Today</b>Dashboard &rarr; Send Money and History, and Back again.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 2 ended with a complete payment flow on one long screen. Unit 3 is about larger SwiftUI apps: navigation first. Today: NavigationStack and NavigationLink. Next lesson: typed routes and programmatic navigation.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The problem</h2>
+    <p class="lead">One scroll, or screens?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 2 put every feature in one ScrollView.</p>
+    <span class="notes-label">CONNECT</span><p>Before and after.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The problem we&rsquo;re solving (section 1)</p>
+  <h2>From one long scroll to three screens</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px 150px 150px;gap:18px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Before &middot; Unit 2</span><ul style="margin:6px 0 0"><li>Balance, editor, form, history</li><li>One <b>ScrollView</b>; scroll to reach anything</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">After &middot; Unit 3</span><ul style="margin:6px 0 0"><li>The <b>dashboard</b> is the start</li><li>Send Money and History: <b>own screens</b></li><li>Back returns</li></ul></div></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/before.png" alt="Before: 2.12"></div><p class="shot-cap">Before: 2.12</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/dash.png" alt="Dashboard"></div><p class="shot-cap">Dashboard</p></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/pay.png" alt="Send Money"></div><p class="shot-cap">Send Money</p></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/history.png" alt="History"></div><p class="shot-cap">History</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Where Unit 2 left us: one ScrollView with the balance editor, quick actions, the payment form and the transactions. To send money you scroll past everything else. It works, but it is not how people expect a payments app to feel.</p>
+    <span class="notes-label">SAY</span><p>Click: the plan. The dashboard becomes the starting point; Send Money and History live on their own screens; Back returns. Click, click, click: today&rsquo;s complete code, running: the dashboard, the Send Money screen, the History screen.</p>
+    <span class="notes-label">CONNECT</span><p>The smallest possible navigation first.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>NavigationStack &amp; NavigationLink</h2>
+    <p class="lead">A container and a destination</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two APIs give us navigation.</p>
+    <span class="notes-label">CONNECT</span><p>The smallest example.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; First concept: NavigationStack (section 2)</p>
+  <h2>Four lines of navigation</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px;gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>NavigationExperiment.swift</span></div><pre class="cb" style="font-size:13.5px">struct NavigationExperiment: View {
+    var body: some View {
+        NavigationStack {
+            NavigationLink(&quot;Send Money&quot;) {
+                Text(&quot;NPay Payment Screen&quot;)
+            }
+            .navigationTitle(&quot;NPay&quot;)
+        }
+    }
+}</pre></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>API</th><th>What it does</th></tr></thead><tbody><tr><td><code>NavigationStack</code></td><td>manages stack-based navigation</td></tr><tr><td><code>NavigationLink</code></td><td>declares a navigation action</td></tr><tr><td>destination closure</td><td>provides the destination&rsquo;s content</td></tr><tr><td><code>.navigationTitle()</code></td><td>configures the title</td></tr></tbody></table></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/exp.png" alt="Launch"></div><p class="shot-cap">Launch</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/exppushed.png" alt="After Send Money"></div><p class="shot-cap">After Send Money</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s first experiment, a new file NavigationExperiment.swift. A NavigationStack wraps the root content. Inside it, a NavigationLink titled Send Money, whose closure provides the destination: here just a Text. navigationTitle sets "NPay" on the root.</p>
+    <span class="notes-label">SAY</span><p>Click: the four APIs. NavigationStack manages stack-based navigation. NavigationLink declares a navigation action. The destination closure provides the destination&rsquo;s content. navigationTitle configures the title.</p>
+    <span class="notes-label">SAY</span><p>On the right, the code running unchanged: "NPay" as a large title and a Send Money link. Click: after activating the link, the destination with a back button. Run the preview and try it.</p>
+    <span class="notes-label">CONNECT</span><p>It is called a stack. Is it like VStack?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Not a layout stack (section 2)</p>
+  <h2><code>NavigationStack</code> is not a <code>VStack</code></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 620 184" style="max-height:200px" role="img" aria-labelledby="nvs">
+        <title id="nvs">A VStack shows all its children; a NavigationStack shows one destination of a hierarchy</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="250" height="40" rx="12"/><text x="16" y="26">Balance</text></g>
+        <g class="nd"><rect class="sh" x="0" y="52" width="250" height="40" rx="12"/><text x="16" y="78">Form</text></g>
+        <g class="nd"><rect class="sh" x="0" y="104" width="250" height="40" rx="12"/><text x="16" y="130">History</text></g>
+        <text class="sm" x="125" y="176" text-anchor="middle">VStack: all children laid out, all visible</text>
+        <g class="nd ghost"><rect class="sh" x="340" y="0" width="250" height="64" rx="12"/><text x="356" y="29">Dashboard</text><text class="sm" x="356" y="47">previous destination</text></g>
+        <g class="nd lit"><rect class="sh" x="360" y="40" width="250" height="104" rx="12"/><text x="376" y="89">PaymentScreen</text><text class="sm" x="376" y="107">the visible destination</text></g>
+        <text class="sm" x="475" y="176" text-anchor="middle">NavigationStack: a hierarchy, one visible</text>
+      </svg>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Two different jobs</span><ul style="margin:6px 0 0"><li><code>VStack</code>: arranges children <b>vertically</b></li><li><code>NavigationStack</code>: manages a hierarchy of <b>destinations</b></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">iOS 26.5 SDK, SwiftUI interface (simplified)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">public struct NavigationStack&lt;Data, Root&gt; : View where Root : View {<br>&ensp;&ensp;public init(@ViewBuilder root: () -> Root) where Data == NavigationPath<br>&ensp;&ensp;public init(path: Binding&lt;NavigationPath&gt;, @ViewBuilder root: () -> Root)<br>&ensp;&ensp;…<br>}</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The name says stack, but this is not a layout stack. A VStack arranges several children vertically, and all of them are on screen together. A NavigationStack manages a hierarchy of navigation destinations: the root, then whatever has been pushed on top. One destination is visible at a time; the earlier ones sit behind it in the hierarchy.</p>
+    <span class="notes-label">SAY</span><p>Click: the declaration from the SDK, what Command-click shows, simplified. It is generic over Data and Root. The plain init takes only the root content; then Data is NavigationPath, a list of destinations SwiftUI keeps for you. The second init takes a path binding: navigation driven by your own state. That is Lesson 3.2.</p>
+    <span class="notes-label">CONNECT</span><p>NavigationLink looks like a button. Is it one?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; NavigationLink versus Button (section 5)</p>
+  <h2>An action, or a destination?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>An action</span></div><pre class="cb" style="font-size:15px">Button(&quot;Send Money&quot;) {
+    print(&quot;Send tapped&quot;)
+}</pre></div><p class="" style="margin:10px 0 0;font-size:19px">A <b>button</b> runs code when tapped.</p></div>
+      <div class="step"><div class="cw"><div class="ch"><span>A destination</span></div><pre class="cb" style="font-size:15px">NavigationLink(&quot;Send Money&quot;) {
+    PaymentScreen()
+}</pre></div><p class="" style="margin:10px 0 0;font-size:19px">A <b>navigation link</b> declares where to go.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="step"><table class="tbl compact"><thead><tr><th>You want to…</th><th>Use</th></tr></thead><tbody><tr><td>Confirm a payment</td><td><code>Button</code></td></tr><tr><td>Move from Dashboard to PaymentScreen</td><td><code>NavigationLink</code></td></tr></tbody></table></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Both are interactive, and both can show the words Send Money, but they express different intentions. A Button represents an action: run this closure. A NavigationLink declares a destination: this is where tapping takes you.</p>
+    <span class="notes-label">SAY</span><p>Click. Why it matters: with the navigation API, SwiftUI can provide the navigation behaviour for you: the push, the back button, the swipe back, the transition, and the navigation semantics. A Button that tried to fake that would have to rebuild it.</p>
+    <span class="notes-label">SAY</span><p>Click: the rule of thumb. Confirming a payment is an operation: a Button. Moving from the dashboard to the payment screen is navigation: a NavigationLink.</p>
+    <span class="notes-label">CONNECT</span><p>What happens between the tap and the new screen?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Behind the tap</h2>
+    <p class="lead">From touch to transition</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The Unit 0 event pipeline, ending in a navigation change.</p>
+    <span class="notes-label">CONNECT</span><p>Six stages.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; From tap to navigation transition (section 3) &middot; conceptual</p>
+  <h2>Six stages, one tap</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1132 120" style="max-height:140px" role="img" aria-labelledby="tap">
+        <title id="tap">Touch event, hit test, link activates, navigation state changes, destination built, transition</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="120" rx="14"/><use href="#i-tap" x="72" y="14" width="28" height="28"/><text x="86" y="84" text-anchor="middle">Touch event</text><text class="sm" x="86" y="104" text-anchor="middle">iOS processes the touch</text></g>
+        <path class="wire" d="M174 60H188M181 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="190" y="0" width="172" height="120" rx="14"/><use href="#i-frame" x="262" y="14" width="28" height="28"/><text x="276" y="84" text-anchor="middle">Hit test</text><text class="sm" x="276" y="104" text-anchor="middle">the NavigationLink is found</text></g>
+        <path class="wire" d="M364 60H378M371 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="380" y="0" width="172" height="120" rx="14"/><use href="#i-link" x="452" y="14" width="28" height="28"/><text x="466" y="84" text-anchor="middle">Link activates</text><text class="sm" x="466" y="104" text-anchor="middle">its destination is chosen</text></g>
+        <path class="wire" d="M554 60H568M561 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="570" y="0" width="172" height="120" rx="14"/><use href="#i-layers" x="642" y="14" width="28" height="28"/><text x="656" y="84" text-anchor="middle">Navigation state</text><text class="sm" x="656" y="104" text-anchor="middle">a destination is added</text></g>
+        <path class="wire" d="M744 60H758M751 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="760" y="0" width="172" height="120" rx="14"/><use href="#i-eye" x="832" y="14" width="28" height="28"/><text x="846" y="84" text-anchor="middle">Destination built</text><text class="sm" x="846" y="104" text-anchor="middle">PaymentScreen&rsquo;s body runs</text></g>
+        <path class="wire" d="M934 60H948M941 53l7 7-7 7"/>
+        <g class="nd" data-lit="6"><rect class="sh" x="950" y="0" width="172" height="120" rx="14"/><use href="#i-play" x="1022" y="14" width="28" height="28"/><text x="1036" y="84" text-anchor="middle">Transition</text><text class="sm" x="1036" y="104" text-anchor="middle">slides in; Back appears</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="card accent"><span class="label">Connect to Unit 0</span><ul style="margin:6px 0 0"><li>The same event pipeline as any tap</li><li>The result is a <b>navigation change</b>, not a print</li></ul></div>
+      <p class="small muted" style="margin:0">Conceptual flow; SwiftUI&rsquo;s private navigation implementation is not guaranteed.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 0 traced a touch through the event pipeline. Navigation is the same pipeline, ending somewhere new. Only stage 1 came with the text; stages 2 to 6 are our conceptual outline, not a description of SwiftUI&rsquo;s private implementation.</p>
+    <span class="notes-label">SAY</span><p>Click: a touch event: iOS processes the interaction. Click: hit testing finds the NavigationLink under the finger. Click: the link activates; it declared PaymentScreen as its destination. Click: the stack&rsquo;s navigation state gains that destination. Click: SwiftUI evaluates the destination&rsquo;s body. Click: the transition runs, the destination slides in and a back button appears.</p>
+    <span class="notes-label">CONNECT</span><p>What exactly was pushed?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; What is actually pushed? (sections 3, 12)</p>
+  <h2>A destination, inside the same app</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 460 230" style="max-height:250px" role="img" aria-labelledby="push">
+        <title id="push">NavigationStack holding the visible PaymentScreen above the previous Dashboard</title>
+        <rect class="sh" x="0" y="0" width="460" height="230" rx="16" style="fill:none;stroke-dasharray:6 5"/>
+        <text class="sm" x="16" y="24">NavigationStack</text>
+        <g class="nd lit"><rect class="sh" x="30" y="40" width="400" height="64" rx="12"/><use href="#i-phone" x="44" y="59" width="26" height="26"/><text x="82" y="69">PaymentScreen</text><text class="sm" x="82" y="87">currently visible destination</text></g>
+        <g class="nd ghost"><rect class="sh" x="30" y="136" width="400" height="64" rx="12"/><use href="#i-layout" x="44" y="155" width="26" height="26"/><text x="82" y="165">Dashboard</text><text class="sm" x="82" y="183">previous destination in the hierarchy</text></g>
+      </svg>
+    </div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">Printed in onAppear (simulator)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">Dashboard: pid 49206, windows 1<br>PaymentScreen: pid 49206, windows 1</p></div></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">What a push is</span><ul style="margin:6px 0 0"><li>A navigation <b>destination</b>, managed by SwiftUI</li><li>Same <b>process</b>, same window</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">What it does not mean</span><ul style="margin:6px 0 0"><li>Off-screen &ne; state discarded</li><li>No promised UIKit view controller per destination</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>At the public API level, SwiftUI manages a navigation destination. The text is careful here, and so are we: do not assume a push creates a new process, a new window, or a particular UIKit view controller for every destination. Navigation happens inside the existing NPay app.</p>
+    <span class="notes-label">SAY</span><p>Click: our evidence. Both screens printed their process ID and the window count when they appeared: the same pid, one window. The tap changed what the one window shows.</p>
+    <span class="notes-label">SAY</span><p>Click: and the dashboard? It stops being the visible destination, but that does not mean its view state is destroyed. The stack keeps the relationship between the active destination and the earlier ones. Whether state survives depends on identity and navigation lifetime, which Part 6 measures.</p>
+    <span class="notes-label">CONNECT</span><p>Now NPay&rsquo;s real destinations.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Build the destinations</h2>
+    <p class="lead">Separate screens, separate structs</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentScreen and HistoryScreen, then the links.</p>
+    <span class="notes-label">CONNECT</span><p>Two placeholder screens.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Our first real destinations (sections 6&ndash;7)</p>
+  <h2>One struct per destination</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentScreen.swift</span></div><pre class="cb" style="font-size:11.5px">struct PaymentScreen: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: &quot;arrow.up.right.circle.fill&quot;)
+                .font(.system(size: 64))
+                .foregroundStyle(.blue)
+            Text(&quot;Send Money&quot;)
+                .font(.title.bold())
+            Text(&quot;NPay payment form will appear here.&quot;)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .navigationTitle(&quot;Send Money&quot;)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}</pre></div>
+      <div class="step"><div class="cw"><div class="ch"><span>HistoryScreen.swift</span></div><pre class="cb" style="font-size:11.5px">struct HistoryScreen: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: &quot;clock.arrow.circlepath&quot;)
+                .font(.system(size: 64))
+                .foregroundStyle(.blue)
+            Text(&quot;Transaction History&quot;)
+                .font(.title.bold())
+            Text(&quot;NPay transaction history will appear here.&quot;)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .navigationTitle(&quot;History&quot;)
+    }
+}
+
+#Preview { NavigationStack { HistoryScreen() } }</pre></div></div>
+    </div>
+    <div class="gap"></div>
+    <div class="step"><div class="card accent"><span class="label">Why a separate struct?</span><ul style="margin:6px 0 0"><li>A distinct <b>destination</b> deserves its own type</li><li>Room for its own state and behaviour later</li></ul></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentScreen.swift: an icon, a title and a placeholder line in a VStack. It sets its own navigation title, Send Money, and asks for the inline title display mode: a small title in the bar instead of the large one.</p>
+    <span class="notes-label">SAY</span><p>Click: HistoryScreen.swift, the same shape, with the default large title. Notice the preview wraps the screen in a NavigationStack; without a stack around it, a destination&rsquo;s navigation title has nowhere to appear.</p>
+    <span class="notes-label">SAY</span><p>Click: why separate structs? PaymentScreen represents a distinct application destination. Its own type improves composition and prepares NPay for navigation-specific state and behaviour.</p>
+    <span class="notes-label">CONNECT</span><p>Wire them into the dashboard.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Integrate with the NPay dashboard (section 8)</p>
+  <h2>Wrap the dashboard, add two links</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 160px;gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>ContentView.swift (body)</span></div><pre class="cb" style="font-size:12px">NavigationStack {
+    ScrollView {
+        VStack(spacing: 24) {
+            // Existing dashboard content
+
+            NavigationLink {
+                PaymentScreen()
+            } label: {
+                Label(&quot;Open Send Money&quot;,
+                      systemImage: &quot;arrow.up.right&quot;)
+            }
+
+            NavigationLink {
+                HistoryScreen()
+            } label: {
+                Label(&quot;Open History&quot;,
+                      systemImage: &quot;clock&quot;)
+            }
+        }
+        .padding()
+    }
+    .navigationTitle(&quot;NPay&quot;)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Steps</span><ul style="margin:6px 0 0"><li><b>NavigationStack</b> outside the ScrollView</li><li>Title on the root content</li><li>Links inside the dashboard&rsquo;s VStack</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Run and check</span><ul style="margin:6px 0 0"><li>Tap each link</li><li>Back returns to the dashboard</li></ul></div></div>
+      </div>
+      <div style="width:160px;max-width:100%;margin:0 auto"><div class="shot" style="height:348px"><img src="img/dash.png" alt="Dashboard (final code)"></div><p class="shot-cap">Dashboard (final code)</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>For this first lab we do not move all the functionality at once. We add the navigation container and the links. The NavigationStack goes outside the existing ScrollView; navigationTitle "NPay" goes on the root content inside it.</p>
+    <span class="notes-label">SAY</span><p>Then two NavigationLinks using the closure form with a separate label: a Label with text and an SF Symbol. Place them inside the dashboard&rsquo;s VStack. On the right, the final version of the dashboard, where the links are styled as wide tinted buttons.</p>
+    <span class="notes-label">SAY</span><p>Click: run NPay, tap each link, and verify that Back works.</p>
+    <span class="notes-label">CONNECT</span><p>Two screens now need the same balance. Who owns it?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>State across screens</h2>
+    <p class="lead">One owner, many screens</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The dashboard keeps the balance and the transactions.</p>
+    <span class="notes-label">CONNECT</span><p>Pass data in, actions up.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; State ownership across screens (section 9)</p>
+  <h2>The dashboard stays the owner</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.62fr) 150px;gap:22px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Owner and destinations</span></div><pre class="cb" style="font-size:12.5px">// ContentView: the owner
+@State private var balancePaise = 2_500_000
+@State private var transactions: [Transaction] = []
+
+// the destinations receive, they don&#x27;t own
+PaymentScreen(
+    availableBalancePaise: balancePaise,
+    onSend: sendDemoPayment
+)
+HistoryScreen(transactions: transactions)</pre></div>
+        <div class="gap"></div>
+        <div class="diagram">
+      <svg class="art" viewBox="0 0 660 162" style="max-height:160px" role="img" aria-labelledby="own">
+        <title id="own">ContentView owns the state and passes it to PaymentScreen and HistoryScreen</title>
+        <g class="nd lit"><rect class="sh" x="150" y="0" width="360" height="56" rx="12"/><use href="#i-db" x="164" y="15" width="26" height="26"/><text x="202" y="25">ContentView</text><text class="sm" x="202" y="43">owns balance and transactions</text></g>
+        <path class="wire" d="M250 60V100M243 93l7 7 7-7"/>
+        <path class="wire" d="M410 60V100M403 93l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="106" width="320" height="56" rx="12"/><use href="#i-send" x="14" y="121" width="26" height="26"/><text x="52" y="131">PaymentScreen</text><text class="sm" x="52" y="149">balance + payment action</text></g>
+        <g class="nd"><rect class="sh" x="340" y="106" width="320" height="56" rx="12"/><use href="#i-clock" x="354" y="121" width="26" height="26"/><text x="392" y="131">HistoryScreen</text><text class="sm" x="392" y="149">transaction data</text></g>
+      </svg>
+    </div></div>
+      <div class="step"><div class="card accent"><span class="label">Measured</span><ul style="margin:6px 0 0"><li>After paying, the still-open screen read <b>Available: ₹23,500.00</b></li><li>It shows the owner&rsquo;s <b>current</b> value</li></ul></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/alert.png" alt="Right after paying"></div><p class="shot-cap">Right after paying</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay already owns its state in ContentView: the balance in paise and the transactions. For this stage of learning, the dashboard stays the state owner. When the payment form moves to PaymentScreen, the dashboard passes it the available balance and the payment action, sendDemoPayment, as the onSend closure from Lesson 2.12. HistoryScreen receives the transaction collection. No screen creates its own balance.</p>
+    <span class="notes-label">SAY</span><p>Click: the evidence. In our run of the complete code, the payment screen was still on screen when the payment succeeded, under the alert. Its "Available" line already read ₹23,500.00: the owner changed, SwiftUI re-evaluated the dashboard, and the destination received the new value. Click: the screenshot.</p>
+    <span class="notes-label">CONNECT</span><p>And if PaymentScreen kept its own copy?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; What if PaymentScreen owns a balance? (section 9)</p>
+  <h2>Two owners, two balances</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>The experiment (authored)</span></div><pre class="cb" style="font-size:12.5px">struct OwnBalancePaymentScreen: View {
+    @State private var balancePaise: Int   // a second owner
+
+    init(startPaise: Int) {
+        _balancePaise = State(initialValue: startPaise)
+    }
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(&quot;Available: \(Money.display(balancePaise))&quot;)
+            Button(&quot;Pay ₹1,500&quot;) { balancePaise -= 150_000 }
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Where</th><th>Shows (simulator)</th></tr></thead><tbody><tr><td>Dashboard</td><td>₹25,000.00</td></tr><tr><td>PaymentScreen, after Pay ₹1,500</td><td>₹23,500.00</td></tr><tr><td>Back on the dashboard</td><td><b>₹25,000.00</b></td></tr></tbody></table></div>
+        <div class="warn step" data-label="Inconsistent"><ul style="margin:6px 0 0"><li>A second <code>@State</code> is a separate <b>owner</b></li><li>The screens disagree about the balance</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s question: what happens if PaymentScreen creates its own @State balancePaise? We wrote it as an experiment: the screen starts its own state from the value it is given and subtracts from that.</p>
+    <span class="notes-label">SAY</span><p>Click: our run. The dashboard shows ₹25,000.00. On the payment screen, after Pay ₹1,500, it shows ₹23,500.00. Back on the dashboard: still ₹25,000.00. The initial value was copied once; after that there are two independent sources of truth.</p>
+    <span class="notes-label">SAY</span><p>Click: that is the bug. A second @State makes the payment screen a separate state owner, and the dashboard and payment screen can show inconsistent balances. Pass the value down and the action up instead.</p>
+    <span class="notes-label">CONNECT</span><p>Destinations do own some state, though: their own input. How long does it live?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Destination lifetime</h2>
+    <p class="lead">Popped means reset</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Local state lives as long as the destination does.</p>
+    <span class="notes-label">CONNECT</span><p>The counter experiment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Observe destination state lifetime (sections 10, 13)</p>
+  <h2>Back, then in again: the count is gone</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentScreen.swift (temporary)</span></div><pre class="cb" style="font-size:11.5px">struct PaymentScreen: View {
+    @State private var count = 0
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(&quot;Payment Screen&quot;)
+                .font(.title)
+            Text(&quot;Count: \(count)&quot;)
+                .font(.headline)
+            Button(&quot;Increment&quot;) {
+                count += 1
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .navigationTitle(&quot;Payment&quot;)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Run it</span><ul style="margin:6px 0 0"><li>Push; Increment &times; 3; Back; push again</li><li>What is <code>count</code>?</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">after 3 taps: Count: 3<br>[Back]<br>pushed again: Count: 0</p></div></div>
+        <div class="rule step" data-label="Why"><ul style="margin:6px 0 0"><li>Popping ended its <b>state lifetime</b></li><li>Keeping drafts: Lesson 3.5</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Replace PaymentScreen temporarily with a counter: @State count, a Text and an Increment button. Push the screen, tap Increment three times, go Back, push it again. What is count?</p>
+    <span class="notes-label">SAY</span><p>Click: our run. Count: 3 after three taps; after Back and a new push, Count: 0.</p>
+    <span class="notes-label">SAY</span><p>Click: why. When the destination was popped, it was removed from the navigation hierarchy and its state lifetime ended. The next push establishes a new destination identity, and its @State starts again at its initial value. Lesson 3.5 shows how to keep a draft across navigation.</p>
+    <span class="notes-label">CONNECT</span><p>So when does SwiftUI actually build and evaluate a destination?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Debugging navigation in Xcode (section 14)</p>
+  <h2>When do <code>init</code> and <code>body</code> run?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>Instrumented destination</span></div><pre class="cb" style="font-size:12.5px">struct TracePaymentScreen: View {
+    init() { print(&quot;PaymentScreen.init&quot;) }
+
+    var body: some View {
+        let _ = Self._printChanges()
+        let _ = print(&quot;PaymentScreen.body&quot;)
+        return VStack {
+            Text(&quot;Payment Screen&quot;)
+        }
+        .onDisappear { print(&quot;PaymentScreen.onDisappear&quot;) }
+    }
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">SDK: NavigationLink.init (simplified)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">init(@ViewBuilder destination: () -&gt; Destination, …) {<br>&ensp;&ensp;self.init(destination: destination(), label: label)<br>}</p></div></div>
+      </div>
+      <div class="step"><div class="card accent"><span class="label">Simulator console</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13.5px;line-height:1.55">Dashboard.body<br>PaymentScreen.init<br>-- tap Send Money<br>TracePaymentScreen: @self changed.<br>PaymentScreen.body<br>-- tap Back<br>PaymentScreen.onDisappear<br>-- tap Send Money again<br>TracePaymentScreen: @self changed.<br>PaymentScreen.body</p></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">What we learn</span><ul style="margin:6px 0 0"><li>The struct is made with the link; <b>body</b> waits for the push</li><li>Body runs again on every push: not a new process or window</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text suggests a breakpoint in the destination&rsquo;s body or Self._printChanges(). We did both kinds of tracing: a print in init, _printChanges and a print in body.</p>
+    <span class="notes-label">SAY</span><p>Click: why init runs early. The SDK&rsquo;s NavigationLink initializer calls your destination closure right away and stores the resulting view value. Click: our console. Dashboard.body, then PaymentScreen.init, before any tap. The struct value exists; its body has not run. Tap Send Money: _printChanges reports @self changed and body runs. Back: onDisappear. Push again: body runs again, with no new init, because the dashboard did not re-evaluate.</p>
+    <span class="notes-label">SAY</span><p>The lesson: body evaluation is cheap and repeated. A body running, even several times, does not mean a new process, a new window, or a new rendering surface.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s Xcode experiments, all run.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Xcode experiments (section 10)</p>
+  <h2>Five experiments, five results</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Experiment</th><th>What we saw (simulator)</th></tr></thead><tbody><tr><td>1. Open PaymentScreen, Back</td><td>Dashboard returns</td></tr><tr><td>2. Open HistoryScreen, Back</td><td>Dashboard returns</td></tr><tr><td>3. <code>@State counter</code> in PaymentScreen</td><td>Resets to 0 after Back and a new push</td></tr><tr><td>4. Command-click <code>NavigationStack</code></td><td><code>NavigationStack&lt;Data, Root&gt;</code>, <code>init(root:)</code>, <code>init(path:root:)</code></td></tr><tr><td>5. Breakpoint in the destination&rsquo;s body</td><td>Hit on each push; never before the first</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Remember"><ul style="margin:6px 0 0"><li>A body may be evaluated many times; that is not a new iOS process</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text asks you to complete five experiments before moving on; here is what each gave us. Opening PaymentScreen and HistoryScreen and going Back returned to the dashboard both times. The counter reset to zero after Back and a new push. Command-click on NavigationStack shows the generic struct and its two initializers. A breakpoint, or our print, in the destination body fires on each push and never before the first.</p>
+    <span class="notes-label">SAY</span><p>Click: the reminder from the text. A destination&rsquo;s body may be evaluated multiple times; that does not mean a new iOS process is created.</p>
+    <span class="notes-label">CONNECT</span><p>How does this compare with UIKit, and what happens to memory?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>UIKit and memory</h2>
+    <p class="lead">Declarative navigation, ARC underneath</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>How NavigationStack relates to UINavigationController, and what Back frees.</p>
+    <span class="notes-label">CONNECT</span><p>The comparison.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; NavigationStack versus UINavigationController (section 15)</p>
+  <h2>Same idea, declarative API</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:24px;align-items:start">
+      <table class="tbl"><thead><tr><th>UIKit</th><th>SwiftUI</th></tr></thead><tbody><tr><td><code>UINavigationController</code></td><td><code>NavigationStack</code></td></tr><tr><td><code>pushViewController</code></td><td><code>NavigationLink</code> or a path update</td></tr><tr><td><code>popViewController</code></td><td>Back navigation or a path update</td></tr><tr><td><code>UIViewController</code> objects</td><td>View descriptions and navigation state</td></tr><tr><td>Imperative navigation API</td><td>Declarative navigation API</td></tr></tbody></table>
+      <div class="rule step" data-label="Insight"><ul style="margin:6px 0 0"><li>SwiftUI may use UIKit internally on iOS</li><li>No fixed one-to-one mapping to view controllers</li><li>Use the public navigation APIs</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In UIKit, navigation is commonly built with UINavigationController: you create view controller objects and call pushViewController and popViewController, an imperative API. SwiftUI&rsquo;s NavigationStack is a declarative abstraction: you describe destinations with links, or with a path, which is Lesson 3.2, and SwiftUI performs the pushes and pops. View controllers become view descriptions plus navigation state.</p>
+    <span class="notes-label">SAY</span><p>Click: the insight. On iOS, SwiftUI may integrate with UIKit internally, but do not assume a fixed one-to-one mapping between SwiftUI destinations and UIKit view controllers. Use the public navigation APIs unless you have a specific interoperability need; Unit 10 covers UIKit integration.</p>
+    <span class="notes-label">CONNECT</span><p>And memory: what happens to a destination&rsquo;s objects after Back?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; What happens to memory when navigating? (section 16)</p>
+  <h2>Back can free memory; it doesn&rsquo;t promise to</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>A destination that owns a service (authored)</span></div><pre class="cb" style="font-size:12.5px">final class DemoPaymentService {
+    init() { print(&quot;DemoPaymentService init&quot;) }
+    deinit { print(&quot;DemoPaymentService deinit&quot;) }
+}
+
+struct ServicePaymentScreen: View {
+    @State private var service: DemoPaymentService?
+
+    var body: some View {
+        Text(&quot;Payment Screen&quot;)
+            .onAppear {
+                if service == nil { service = DemoPaymentService() }
+            }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13.5px;line-height:1.55">-- tap Send Money<br>DemoPaymentService init<br>-- tap Back<br>DemoPaymentService deinit</p></div></div>
+        <div class="card accent"><span class="label">Two systems</span><ul style="margin:6px 0 0"><li><b>SwiftUI</b>: view lifetime and state, by hierarchy</li><li><b>ARC</b>: class instances, by ownership (1.8)</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">So</span><ul style="margin:6px 0 0"><li>Here: freed right after Back</li><li>Off screen &ne; guaranteed immediate deallocation</li><li>A capturing closure can keep it alive</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Connect Unit 0 and Unit 1. When a destination appears it may create state, load resources or reference services; when it disappears, some of that may become eligible for release. Two systems are involved: SwiftUI manages view lifetime and state according to the hierarchy, and ARC manages the lifetime of class instances, as in Lesson 1.8.</p>
+    <span class="notes-label">SAY</span><p>Our experiment, authored: the destination creates a reference-type service in onAppear and keeps it in @State. Click: the run: the service is created on the push; after Back, onDisappear, then deinit: the destination&rsquo;s state was discarded and the last strong reference went with it.</p>
+    <span class="notes-label">SAY</span><p>Click: but read that as "here", not "always". Disappearing from the screen is not a guarantee of immediate deallocation. If a closure retained that service, for example a stored callback or a task, its lifetime would follow those ownership relationships. That is why closure capture and reference cycles matter; we look at them again with ViewModels.</p>
+    <span class="notes-label">CONNECT</span><p>Now the complete code for Lesson 3.1.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>NPay after Lesson 3.1</h2>
+    <p class="lead">Three screens, one state owner</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The complete code: files, screens, and a verified run.</p>
+    <span class="notes-label">CONNECT</span><p>The architecture.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Final NPay architecture (section 17; code 1)</p>
+  <h2>From one file to a project</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 460 266" style="max-height:300px" role="img" aria-labelledby="arch">
+        <title id="arch">NPayApp, NavigationStack, ContentView owning state, then PaymentScreen and HistoryScreen</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="460" height="56" rx="12"/><use href="#i-app" x="14" y="15" width="26" height="26"/><text x="52" y="25">NPayApp</text><text class="sm" x="52" y="43">application entry point</text></g>
+        <path class="wire" d="M230 58V68M223 61l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="70" width="460" height="56" rx="12"/><use href="#i-layers" x="14" y="85" width="26" height="26"/><text x="52" y="95">NavigationStack</text><text class="sm" x="52" y="113">navigation container</text></g>
+        <path class="wire" d="M230 128V138M223 131l7 7 7-7"/>
+        <g class="nd lit"><rect class="sh" x="0" y="140" width="460" height="56" rx="12"/><use href="#i-db" x="14" y="155" width="26" height="26"/><text x="52" y="165">ContentView / Dashboard</text><text class="sm" x="52" y="183">owns NPay demo state</text></g>
+        <path class="wire" d="M115 198V208M108 201l7 7 7-7M345 198V208M338 201l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="210" width="220" height="56" rx="12"/><use href="#i-send" x="14" y="225" width="26" height="26"/><text x="52" y="235">PaymentScreen</text><text class="sm" x="52" y="253">destination</text></g>
+        <g class="nd"><rect class="sh" x="240" y="210" width="220" height="56" rx="12"/><use href="#i-clock" x="254" y="225" width="26" height="26"/><text x="292" y="235">HistoryScreen</text><text class="sm" x="292" y="253">destination</text></g>
+      </svg>
+    </div>
+      <div class="step"><div class="cw"><div class="ch"><span>Xcode project structure</span></div><pre class="cb" style="font-size:13px">NPay/
+├── NPayApp.swift
+├── ContentView.swift
+├── Models/
+│   ├── Money.swift
+│   └── Transaction.swift
+├── Components/
+│   ├── BalanceCard.swift
+│   ├── BalanceEditor.swift
+│   └── TransactionRow.swift
+└── Screens/
+    ├── PaymentScreen.swift
+    └── HistoryScreen.swift</pre></div>
+        <p class="small muted" style="margin:8px 0 0">Folders organize; every file must belong to the NPay target.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The architecture after Lesson 3.1: NPayApp is the entry point; its WindowGroup shows ContentView, which wraps its content in a NavigationStack; ContentView, the dashboard, owns the demo state; PaymentScreen and HistoryScreen are destinations.</p>
+    <span class="notes-label">SAY</span><p>Click: the complete code splits the old single file into a project: the app and ContentView at the top, Money and Transaction in Models, BalanceCard, BalanceEditor and TransactionRow in Components, the two screens in Screens. The folders are organisational: make sure each file belongs to the NPay target, and remove the duplicate type definitions from the old ContentView.swift.</p>
+    <span class="notes-label">CONNECT</span><p>The payment screen is now real.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; PaymentScreen, complete (code 8)</p>
+  <h2>Pay, confirm, and go back</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.78fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Screens/PaymentScreen.swift (condensed)</span></div><pre class="cb" style="font-size:11px">struct PaymentScreen: View {
+    let availableBalancePaise: Int
+    let onSend: (String, Int) -&gt; Bool
+
+    @State private var recipient = &quot;&quot;
+    @State private var amountText = &quot;&quot;
+    @State private var showSuccess = false
+    @FocusState private var focusedField: Field?
+    @Environment(\.dismiss) private var dismiss
+
+    enum Field: Hashable { case recipient, amount }
+
+    var body: some View {
+        // fields, validation, Send Demo Payment (as in 2.12);
+        // when onSend returns true: focusedField = nil; showSuccess = true
+        Text(&quot;…&quot;)
+            .alert(&quot;Demo Payment Successful&quot;, isPresented: $showSuccess) {
+                Button(&quot;Done&quot;) { dismiss() }
+            } message: {
+                Text(&quot;Your simulated payment was recorded.&quot;)
+            }
+    }
+}</pre></div>
+      <div>
+        <div class="cols" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start">
+          <div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/pay.png" alt="Pushed"></div><p class="shot-cap">Pushed</p></div>
+          <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/alert.png" alt="Sent ₹1,500"></div><p class="shot-cap">Sent ₹1,500</p></div></div>
+          <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/paid.png" alt="Done: ₹23,500"></div><p class="shot-cap">Done: ₹23,500</p></div></div>
+        </div>
+        <div class="gap"></div>
+        <div class="tip" data-label="New: dismiss"><ul style="margin:6px 0 0"><li><code>@Environment(\.dismiss)</code>: a destination asks to be <b>dismissed</b></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Our first real destination. PaymentScreen receives the available balance and the onSend action from the dashboard, and owns only its input: recipient, amount text, the success flag and focus. The fields, the validation and the button are the ones from Lesson 2.12, with a decimal pad and a keyboard Done toolbar.</p>
+    <span class="notes-label">SAY</span><p>New: @Environment dismiss. It lets a destination request its own dismissal; here, popping back to the dashboard. When onSend returns true, the screen clears focus and shows an alert; its Done button calls dismiss. Alerts and sheets in depth are Lesson 3.4.</p>
+    <span class="notes-label">SAY</span><p>On the right, our run. The pushed screen with the balance. Click: after entering ravi@npay and 1500 and sending, the alert; the balance line already reads ₹23,500.00. Click: after Done, dismiss popped back to the dashboard: ₹23,500.00.</p>
+    <span class="notes-label">CONNECT</span><p>And the history screen receives the same data.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; HistoryScreen, complete (codes 9&ndash;10)</p>
+  <h2>The same transactions, on their own screen</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 170px 170px;gap:22px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>HistoryScreen.swift + the link</span></div><pre class="cb" style="font-size:12.5px">struct HistoryScreen: View {
+    let transactions: [Transaction]
+
+    var body: some View {
+        List(transactions) { transaction in
+            TransactionRow(transaction: transaction)
+        }
+        .navigationTitle(&quot;History&quot;)
+    }
+}
+
+// in ContentView
+NavigationLink {
+    HistoryScreen(transactions: transactions)
+} label: {
+    Label(&quot;Transaction History&quot;, systemImage: &quot;clock&quot;)
+}</pre></div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">List</span><ul style="margin:6px 0 0"><li><code>List(transactions)</code>: rows by stable <code>id</code> (2.10)</li></ul></div></div>
+      <div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/history.png" alt="Before paying"></div><p class="shot-cap">Before paying</p></div>
+      <div class="step"><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/paidhistory.png" alt="After paying"></div><p class="shot-cap">After paying</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>HistoryScreen receives the transaction array owned by ContentView and shows it with a List instead of a ScrollView and ForEach: List builds the rows by the transactions&rsquo; stable identifiers, as in Lesson 2.10. The dashboard&rsquo;s link passes transactions in.</p>
+    <span class="notes-label">SAY</span><p>Left screenshot: the three mock transactions. Click: after the payment, the same screen shows "Sent to ravi@npay", minus ₹1,500, on top: one array, owned once, shown by two screens.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s verification checklist.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Xcode verification checklist (code 12)</p>
+  <h2>Eight checks, all run</h2>
+  <div class="body">
+    <table class="tbl compact"><thead><tr><th>Check</th><th>Simulator</th></tr></thead><tbody><tr><td>NPay launches to the dashboard</td><td>₹25,000.00 and the links</td></tr><tr><td>Send Money opens PaymentScreen</td><td>Available: ₹25,000.00</td></tr><tr><td>Back returns to the dashboard</td><td>yes</td></tr><tr><td>A valid demo payment reduces the balance</td><td>₹25,000.00 &rarr; ₹23,500.00</td></tr><tr><td>It appears in recent transactions</td><td>Sent to ravi@npay, -₹1,500.00</td></tr><tr><td>HistoryScreen shows the same collection</td><td>yes, on top</td></tr><tr><td>Invalid amounts can&rsquo;t be submitted</td><td>0, 12.345, 25000.01: disabled</td></tr><tr><td>Balance editor updates the shared balance</td><td>+ ₹1,000: ₹24,500.00 on both screens</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="step"><div class="card accent"><span class="label">Still intentional</span><ul style="margin:6px 0 0"><li>ContentView owns payment and transaction state: application architecture in Unit 4</li></ul></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s eight checks, run against the complete code. NPay launches to the dashboard with ₹25,000.00. Send Money opens PaymentScreen showing ₹25,000.00 available. Back returns. ravi@npay and 1500: the balance becomes ₹23,500.00 and "Sent to ravi@npay", minus ₹1,500.00, appears in the recent transactions, and on top in HistoryScreen. 0, 12.345 and 25000.01 keep the button disabled. Plus ₹1,000 on the dashboard gives ₹24,500.00, and the payment screen then shows the same ₹24,500.00 available.</p>
+    <span class="notes-label">SAY</span><p>Click: what we achieved: three real screens sharing one logical state. One limitation remains on purpose: ContentView still owns the payment and transaction state. Unit 4 moves that into a proper application architecture.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.1 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>A hierarchy, not a layout</b><br><span class="muted" style="font-size:19px">NavigationStack manages destinations; one is visible</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p style="font-size:23px"><b>Links declare, buttons act</b><br><span class="muted" style="font-size:19px">NavigationLink for screens; Button for operations</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p style="font-size:23px"><b>One owner; local state is temporary</b><br><span class="muted" style="font-size:19px">pass data down; a popped screen&rsquo;s @State resets</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. NavigationStack manages a hierarchy of destinations inside the same process and window; it is not a layout container. NavigationLink declares where to go; Button performs an action. And state has one owner, the dashboard, which passes values and actions to its destinations, while a destination&rsquo;s own @State lives only as long as that destination: pop it and push again, and it starts over.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does NavigationStack manage?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>NavigationStack</code> manage?</p><ol class="q-opts"><li>Vertical layout</li><li>Navigation hierarchy</li><li>Thread scheduling</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">It manages destinations; one is visible at a time.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading &ldquo;stack&rdquo; as a layout stack.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B; some A.</p>
+    <span class="notes-label">SAY</span><p>B. It manages destinations; one is visible at a time.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does navigation create a new application process?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does navigation create a new application process?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Both screens printed the same pid and one window.</p>
+          <p class="q-trap"><b>Common trap:</b> Picturing each screen as a separate app.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. Both screens printed the same pid and one window.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Which API best expresses moving to another screen?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Which API best expresses moving to another screen?</p><ol class="q-opts"><li><code>NavigationLink</code></li><li><code>Spacer</code></li><li><code>Text</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">A link declares a destination; SwiftUI provides the push and Back.</p>
+          <p class="q-trap"><b>Common trap:</b> Faking navigation with a Button.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Almost everyone picks A.</p>
+    <span class="notes-label">SAY</span><p>A. A link declares a destination; SwiftUI provides the push and Back.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should every destination create its own balance?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should every destination create its own independent account balance?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">A second <code>@State</code> is a second owner: our screens showed ₹23,500 and ₹25,000.</p>
+          <p class="q-trap"><b>Common trap:</b> Copying shared data into local state.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. A second <code>@State</code> is a second owner: our screens showed ₹23,500 and ₹25,000.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can a destination&#x27;s @State reset after it is popped?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can destination-local <code>@State</code> reset after the destination is popped and recreated?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Popping ends its state lifetime; the next push starts from the initial value.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting off-screen state to persist.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say no.</p>
+    <span class="notes-label">SAY</span><p>Yes. Popping ends its state lifetime; the next push starts from the initial value.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Count after Increment ×3, Back, push again?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">PaymentScreen has <code>@State private var count = 0</code>. Push it, tap Increment three times, go Back, push it again. What does it show?</p><ol class="q-opts"><li>Count: 3</li><li>Count: 0</li><li>Count: 4</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Our run: Count: 3, then Count: 0 after the new push.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the struct keeps the value.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Our run: Count: 3, then Count: 0 after the new push.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Is NavigationStack the same kind of container as VStack?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Is <code>NavigationStack</code> the same kind of layout container as <code>VStack</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">A VStack lays out children; a NavigationStack manages destinations.</p>
+          <p class="q-trap"><b>Common trap:</b> Going by the name.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. A VStack lays out children; a NavigationStack manages destinations.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does NavigationLink create its destination&#x27;s body immediately?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>NavigationLink</code> necessarily create its destination&rsquo;s body immediately?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The destination struct is made with the link; its body ran only on the push.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing a view value with its body.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. The destination struct is made with the link; its body ran only on the push.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 2.9: who owns balancePaise?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 2.9: in <code>BalanceEditor(balancePaise: $balancePaise)</code>, who owns the value?</p><ol class="q-opts"><li><code>BalanceEditor</code></li><li><code>ContentView</code></li><li>The environment</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A binding reads and writes the owner&rsquo;s state; it owns nothing.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking @Binding stores a copy.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 2.9.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. A binding reads and writes the owner&rsquo;s state; it owns nothing.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.1 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.2</td><td><b>Typed routes &amp; programmatic navigation</b></td><td><code>NavigationPath</code>, <code>navigationDestination</code>, a confirmation screen</td></tr><tr><td class="mono">3.4</td><td><b>Sheets &amp; alerts</b></td><td>the success alert, studied properly</td></tr><tr><td class="mono">3.5</td><td><b>Drafts across navigation</b></td><td>keeping input when a screen is popped</td></tr><tr><td class="mono">Unit 4</td><td><b>Application architecture</b></td><td>payment state out of ContentView</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.2 replaces destination closures with a typed route model: NavigationPath, navigationDestination, and navigating to a payment confirmation screen after a simulated payment. Lesson 3.4 studies sheets and alerts; Lesson 3.5 keeps drafts across navigation; Unit 4 moves the payment state out of ContentView.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.1 &middot; Lab</p>
+  <h2>NPay goes multi-screen</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Split NPay into files and screens; verify the checklist.</p><ol class="lab"><li>Create the files from the project structure.</li><li>Run NavigationExperiment; tap Send Money.</li><li>Open each screen; check Back.</li><li>Pay ₹1,500 to ravi@npay; check both screens.</li><li>Add a counter to PaymentScreen; pop and push.</li><li>Command-click NavigationStack; break in a body.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your completed 8-item checklist</li><li>Counter values before and after Back</li><li>One sentence: who owns the balance, and why</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: ₹25,000.00 → ₹23,500.00 after paying ravi@npay ₹1,500, the alert, then back on the dashboard with "Sent to ravi@npay" in recent transactions and on top of History; invalid amounts keep Send disabled; the counter returns to 0 after Back and a new push; the body breakpoint fires on each push and not before.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.1 complete</p>
+    <h2>NavigationStack:<br>How iOS Navigation Works</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.2 &mdash; Typed Routes &amp; Programmatic Navigation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain what NavigationStack manages and why it is not a layout stack, choose NavigationLink for destinations and Button for actions, show that a push stays in the same process, keep one owner of state across screens, and predict when a destination&rsquo;s state resets and its body runs.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.2: typed routes and programmatic navigation. We control navigation through state, with NavigationPath and navigationDestination, and navigate to a confirmation screen after a payment.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

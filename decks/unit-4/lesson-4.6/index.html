@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4.6 — Domain Models, Use Cases &amp; Clean Architecture</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 04 · Lesson 4.6 — Domain Models, Use Cases &amp; Clean Architecture">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 04 &middot; Lesson 4.6</p>
+    <h1 style="font-size:54px;line-height:1.05">Domain Models, Use Cases<br>&amp; Clean Architecture</h1>
+    <p class="lead" style="max-width:760px">Who owns the <b>business rules of sending money</b>? Not the screen, not the database: a use case.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.5 gave NPay an account repository. Today&rsquo;s question: who owns the business rules of sending money? We introduce domain value objects that cannot hold invalid values, a SendPaymentUseCase that represents the operation itself, a payment policy, and the dependency rule. Then we test the rules without any UI, push concurrent payments against them, and connect the use case to NPay&rsquo;s real review flow.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.6 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Model money and recipients as value objects</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></span><p>Turn form text into an immutable command</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Write a use case for one business operation</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Apply the dependency rule</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Enforce concurrency-sensitive rules at the mutation</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p>Submit exactly what the user reviewed</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.6 &middot; Where we are</p>
+  <h2>Today: the payment operation itself</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 04 &middot; Application Architecture &amp; MVVM</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 04 progress: lesson 4.6 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">4.1</text><text x="12" y="50" style="font-size:14px">Architecture</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">4.2</text><text x="126.667" y="50" style="font-size:14px">MVVM</text><text x="126.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">4.3</text><text x="241.333" y="50" style="font-size:14px">Observation</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">4.4</text><text x="356" y="50" style="font-size:14px">Dependency</text><text x="356" y="68" style="font-size:14px">injection</text></g>
+        <g class="nd"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">4.5</text><text x="470.667" y="50" style="font-size:14px">Repository</text><text x="470.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd lit"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">4.6</text><text x="585.333" y="50" style="font-size:14px">Use cases</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">4.7</text><text x="700" y="50" style="font-size:14px">UI state</text><text x="700" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">4.8</text><text x="814.667" y="50" style="font-size:14px">Modules</text><text x="814.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">4.9</text><text x="929.333" y="50" style="font-size:14px">Testing</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">4.10</text><text x="1044" y="50" style="font-size:14px">Integration</text><text x="1044" y="68" style="font-size:14px">lab</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>4.5: AccountRepository on an actor.</span><span><b>Today</b>Domain models, SendPaymentUseCase, the dependency rule.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last time data access got its own boundary. Today the business operation does. The text came in three pieces: Part 1, Part 2, and a continuation from Section 16 that finishes the lesson.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Domain models</h2>
+    <p class="lead">Business concepts, not screens</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Where the rules of sending money live.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our engineering milestone (sections 1&ndash;2)</p>
+  <h2>A component that is the operation</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 560 300" style="max-height:300px" role="img" aria-labelledby="evo">
+        <title id="evo">Screen, ViewModel, SendPaymentUseCase, AccountRepository, InMemoryAccountRepository</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="560" height="52" rx="12"/><use href="#i-phone" x="14" y="13" width="26" height="26"/><text x="52" y="23">PaymentsScreen</text><text class="sm" x="52" y="41">collects input, shows results</text></g>
+        <path class="wire" d="M280 53V60M273 53l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="62" width="560" height="52" rx="12"/><use href="#i-layers" x="14" y="75" width="26" height="26"/><text x="52" y="85">PaymentViewModel</text><text class="sm" x="52" y="103">screen state</text></g>
+        <path class="wire" d="M280 115V122M273 115l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="124" width="560" height="52" rx="12"/><use href="#i-check" x="14" y="137" width="26" height="26"/><text x="52" y="147">SendPaymentUseCase</text><text class="sm" x="52" y="165">application payment rules</text></g>
+        <path class="wire" d="M280 177V184M273 177l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="186" width="560" height="52" rx="12"/><use href="#i-key" x="14" y="199" width="26" height="26"/><text x="52" y="209">AccountRepository</text><text class="sm" x="52" y="227">account operations</text></g>
+        <path class="wire" d="M280 239V246M273 239l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="248" width="560" height="52" rx="12"/><use href="#i-db" x="14" y="261" width="26" height="26"/><text x="52" y="271">InMemoryAccountRepository</text><text class="sm" x="52" y="289">demo account data</text></g>
+      </svg>
+    </div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Domain concepts in NPay</span><ul style="margin:6px 0 0"><li>Money, Account, Payment</li><li>Recipient, Transaction, Payment status</li></ul></div></div>
+        <div class="step"><div class="cw"><div class="ch"><span>UI editing state vs domain value</span></div><pre class="cb" style="font-size:12px">var amountText = &quot;1500.50&quot;   // form
+let amountPaise = 150_050     // domain</pre></div></div>
+        <div class="rule step" data-label="Why separate"><ul style="margin:6px 0 0"><li>&ldquo;1500.&rdquo; is fine while typing</li><li>It isn&rsquo;t a payment amount</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Who owns the rules of sending money? Should the ViewModel validate limits? Should the repository decide whether a payment is allowed? Click: today a new component appears: SendPaymentUseCase, representing the application operation "send money to a recipient", between the ViewModel and the repository.</p>
+    <span class="notes-label">SAY</span><p>Click: a domain model represents concepts belonging to the business: money, account, payment, recipient, transaction, payment status. They exist independently of SwiftUI, Xcode or any database.</p>
+    <span class="notes-label">SAY</span><p>Click: compare the form&rsquo;s amountText, "1500.50", UI editing state, with the domain&rsquo;s 150,050 paise, a validated monetary quantity. Click: "1500." is valid intermediate text while the user types, but it is not a completed payment amount; the domain should hold meaningful business values, not arbitrary input.</p>
+    <span class="notes-label">CONNECT</span><p>Build those values.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Value objects</h2>
+    <p class="lead">Invalid states hard to represent</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentAmount, PaymentRecipient, the command.</p>
+    <span class="notes-label">CONNECT</span><p>Amount.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; PaymentAmount and PaymentRecipient (sections 3&ndash;4)</p>
+  <h2>Throwing initializers guard the invariants</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Domain value objects (PaymentDomainError: invalidAmount, invalidRecipient, insufficientBalance, limitExceeded)</span></div><pre class="cb" style="font-size:10.5px">struct PaymentAmount: Equatable, Sendable {
+    let paise: Int
+
+    init(paise: Int) throws {
+        guard paise &gt; 0 else {
+            throw PaymentDomainError.invalidAmount
+        }
+        self.paise = paise
+    }
+}
+
+struct PaymentRecipient: Equatable, Sendable {
+    let identifier: String
+
+    init(_ identifier: String) throws {
+        let trimmed = identifier.trimmingCharacters(
+            in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw PaymentDomainError.invalidRecipient
+        }
+        self.identifier = trimmed
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Mac run, the text&rsquo;s code</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11px;line-height:1.55">PaymentAmount(paise: 150050)&ensp;&rarr; 150050<br>PaymentAmount(paise: 0)&ensp;&ensp;&ensp;&ensp;&rarr; throws invalidAmount<br>PaymentAmount(paise: -100)&ensp;&rarr; throws invalidAmount<br>PaymentRecipient("&ensp;ravi@npay ") &rarr; "ravi@npay"<br>PaymentRecipient("&ensp;&ensp;&ensp;")&ensp;&ensp;&ensp;&ensp;&rarr; throws invalidRecipient</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Invariant</span><ul style="margin:6px 0 0"><li>A PaymentAmount is always positive</li><li>A PaymentRecipient is never blank</li></ul></div></div>
+        <div class="warn step" data-label="Only one rule"><ul style="margin:6px 0 0"><li>Positive can still exceed the balance or a limit</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Until now Money was a formatting utility. PaymentAmount, named so it does not clash with Money, wraps paise, and its throwing initializer refuses anything not positive. PaymentRecipient trims the identifier and refuses an empty one. Both throw PaymentDomainError, whose four cases are invalid amount, invalid recipient, insufficient balance and limit exceeded.</p>
+    <span class="notes-label">SAY</span><p>Click: run on the Mac: 150,050 is accepted; zero and minus a hundred throw invalidAmount; "ravi@npay" with spaces is trimmed; blanks throw invalidRecipient. Click: these are domain invariants: if you hold a PaymentAmount, it is positive; if you hold a PaymentRecipient, it is not blank. A value object makes invalid states hard to represent.</p>
+    <span class="notes-label">SAY</span><p>Click: but one invariant is not every rule: a positive amount can still exceed the balance or a limit. And real UPI recipient validation needs far more, with authoritative verification; NPay stays a simulation.</p>
+    <span class="notes-label">CONNECT</span><p>Combine them into a request.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; A domain payment request (section 5)</p>
+  <h2>From text to command</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 110" style="max-height:118px" role="img" aria-labelledby="conv">
+        <title id="conv">TextField text, parsed paise, PaymentAmount, SendPaymentCommand, SendPaymentUseCase</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="208" height="110" rx="14"/><use href="#i-frame" x="90" y="14" width="28" height="28"/><text x="104" y="74" text-anchor="middle">TextField</text><text class="sm" x="104" y="94" text-anchor="middle">"1500.50"</text></g>
+        <path class="wire" d="M209 55H226M219 48l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="228" y="0" width="208" height="110" rx="14"/><use href="#i-code" x="318" y="14" width="28" height="28"/><text x="332" y="74" text-anchor="middle">Money.parsePaise</text><text class="sm" x="332" y="94" text-anchor="middle">150050</text></g>
+        <path class="wire" d="M437 55H454M447 48l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="456" y="0" width="208" height="110" rx="14"/><use href="#i-check" x="546" y="14" width="28" height="28"/><text x="560" y="74" text-anchor="middle">PaymentAmount</text><text class="sm" x="560" y="94" text-anchor="middle">validated, positive</text></g>
+        <path class="wire" d="M665 55H682M675 48l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="684" y="0" width="208" height="110" rx="14"/><use href="#i-file" x="774" y="14" width="28" height="28"/><text x="788" y="74" text-anchor="middle">SendPaymentCommand</text><text class="sm" x="788" y="94" text-anchor="middle">recipient + amount</text></g>
+        <path class="wire" d="M893 55H910M903 48l7 7-7 7"/>
+        <g class="nd" data-lit="5+"><rect class="sh" x="912" y="0" width="208" height="110" rx="14"/><use href="#i-gear" x="1002" y="14" width="28" height="28"/><text x="1016" y="74" text-anchor="middle">SendPaymentUseCase</text><text class="sm" x="1016" y="94" text-anchor="middle">executes</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>SendPaymentCommand</span></div><pre class="cb" style="font-size:13px">struct SendPaymentCommand: Sendable {
+    let recipient: PaymentRecipient
+    let amount: PaymentAmount
+}</pre></div>
+      <div class="step"><div class="card accent"><span class="label">No UI types inside</span><ul style="margin:6px 0 0"><li>No Binding, TextField or View</li><li>A meaningful application request</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The conversion from UI to domain, step by step. Click: the TextField holds "1500.50". Click: Money.parsePaise turns it into 150,050. Click: PaymentAmount validates it as a positive amount. Click: SendPaymentCommand pairs it with a validated recipient. Click: SendPaymentUseCase executes the operation.</p>
+    <span class="notes-label">SAY</span><p>SendPaymentCommand is just a recipient and an amount, both value objects, and Sendable. Click: it contains no Binding, TextField or View: it is a meaningful application request that would make sense with any user interface.</p>
+    <span class="notes-label">CONNECT</span><p>What executes it?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Use cases</h2>
+    <p class="lead">One operation the application supports</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SendPaymentUseCase, first version.</p>
+    <span class="notes-label">CONNECT</span><p>Definition.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; What is a use case? Build one (sections 6&ndash;7)</p>
+  <h2>SendPaymentUseCase, version 1</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 7</span></div><pre class="cb" style="font-size:10.5px">struct SendPaymentUseCase {
+    let repository: any AccountRepository
+
+    func execute(_ command: SendPaymentCommand)
+        async throws -&gt; PaymentRecord {
+        let snapshot = try await repository.fetchSnapshot()
+
+        guard command.amount.paise &lt;= snapshot.balancePaise else {
+            throw PaymentDomainError.insufficientBalance
+        }
+
+        let perPaymentLimitPaise = 100_000_00
+        guard command.amount.paise &lt;= perPaymentLimitPaise else {
+            throw PaymentDomainError.limitExceeded
+        }
+
+        return try await repository.recordPayment(
+            recipient: command.recipient.identifier,
+            amountPaise: command.amount.paise)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">A use case is</span><ul style="margin:6px 0 0"><li>An operation the app supports</li><li>Not a screen, a table or a request</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Steps</span><ul style="margin:6px 0 0"><li>Snapshot; check balance</li><li>Check a ₹1,00,000 limit (illustrative)</li><li>Record; return the record</li></ul></div></div>
+        <div class="warn step" data-label="Not final"><ul style="margin:6px 0 0"><li>The balance can change before recordPayment</li><li>The repository must check again</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A use case represents an operation the application supports: SendPayment, FetchBalance, FetchTransactionHistory. It coordinates the rules and dependencies the operation needs. It is not a screen, not a database table, not necessarily a network request; sending money stays meaningful even if SwiftUI is replaced.</p>
+    <span class="notes-label">SAY</span><p>Click: version one uses Lesson 4.5&rsquo;s repository. It fetches a snapshot, rejects the payment if the amount exceeds the balance, applies an illustrative per-payment limit of ₹1,00,000, which is not a statement of actual UPI limits, then asks the repository to record the payment and returns the record.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s concurrency detail: the early balance check expresses the rule but is not the final guarantee; another operation can change the balance between fetchSnapshot and recordPayment. That is why the repository revalidates atomically. Part 6 measures exactly this.</p>
+    <span class="notes-label">CONNECT</span><p>So which rules go where?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Why not every rule in the repository? (section 8)</p>
+  <h2>Policy in the use case; integrity at the data</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Rule</th><th>Use case</th><th>Repository</th></tr></thead><tbody><tr><td>Amount positive</td><td>Domain value object</td><td>Defensive validation</td></tr><tr><td>Recipient non-empty</td><td>Domain value object</td><td>Defensive validation</td></tr><tr><td>Per-payment limit</td><td>Use-case policy</td><td>May also need enforcement</td></tr><tr><td>Sufficient balance</td><td>Preliminary check</td><td>Atomic final check</td></tr><tr><td>Record transaction</td><td>Requests the operation</td><td>Performs it</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px">
+      <div class="step"><div class="card accent"><span class="label">Different jobs</span><ul style="margin:6px 0 0"><li>Use case: application policy</li><li>Repository: data integrity, data operations</li></ul></div></div>
+      <div class="warn step" data-label="Real payments"><ul style="margin:6px 0 0"><li>Authoritative limits and balance checks: the trusted backend</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Repositories and use cases have different responsibilities: the use case represents application policy; the repository protects data integrity and performs data operations. Some rules are enforced at both boundaries for different reasons.</p>
+    <span class="notes-label">SAY</span><p>The text&rsquo;s table: positive amount and non-empty recipient are guaranteed by the value objects, and validated defensively again by the repository. The per-payment limit is use-case policy, though authoritative enforcement may also be required. Sufficient balance: a preliminary check in the use case, the atomic final check in the repository. Recording: the use case requests it, the repository performs it.</p>
+    <span class="notes-label">SAY</span><p>Click: different jobs. Click: and for a real payment system, authoritative limits and balance checks belong on the trusted backend; the exact division depends on the domain and the backend contract.</p>
+    <span class="notes-label">CONNECT</span><p>Test the use case, no UI.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Testing the domain</h2>
+    <p class="lead">Rules, without a simulator</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Labs from sections 14, 15 and 22.</p>
+    <span class="notes-label">CONNECT</span><p>The runs.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Test the use case and policy (sections 14, 15, 22)</p>
+  <h2>Three labs, no SwiftUI</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Section 14: runUseCaseLab()</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">Payment: B54D1D0A-6633-4F8C-8628-54153C2E2188<br>Balance: 2349950&ensp;&ensp;(₹25,000.00 &minus; ₹1,500.50)</p></div>
+        <div class="step"><div class="card accent"><span class="label">Section 15: ₹1,50,000 from ₹2,00,000</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">Payment limit enforced</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Section 22: PaymentPolicy alone</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">Limit correctly enforced</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">What each tests</span><ul style="margin:6px 0 0"><li>The operation end to end, in memory</li><li>An application policy</li><li>The policy alone: no repository at all</li></ul></div></div>
+        <div class="rule step" data-label="Benefit"><ul style="margin:6px 0 0"><li>No simulator, form or navigation stack</li><li>Lesson 4.9: a real test suite</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 14 runs the use case against an in-memory repository: ravi@npay, ₹1,500.50, and the balance comes back 2,349,950 paise, ₹23,499.50, as expected. Click: Section 15 tests the illustrative limit: ₹2,00,000 in the account, ₹1,50,000 requested: "Payment limit enforced". Click: Section 22 tests PaymentPolicy, which arrives in Part 6, on its own: a valid amount passes, an excessive one throws limitExceeded.</p>
+    <span class="notes-label">SAY</span><p>Click: the first exercises the whole operation in memory; the second an application policy; the third the policy without even a repository. Click: we needed no simulator, payment form or navigation stack. That separation is the benefit; Lesson 4.9 builds the real test suite. The text&rsquo;s seven-stage execution stepper was shared only at stage one, so the deck shows these runs instead.</p>
+    <span class="notes-label">CONNECT</span><p>Which way do the dependencies point?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>The dependency rule</h2>
+    <p class="lead">Source code points toward policy</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Clean Architecture in NPay.</p>
+    <span class="notes-label">CONNECT</span><p>The layers.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; What is the Dependency Rule? (sections 10&ndash;11)</p>
+  <h2>Infrastructure depends on the domain, not the reverse</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 600 274" style="max-height:290px" role="img" aria-labelledby="rule">
+        <title id="rule">Presentation, application, domain, infrastructure; infrastructure points up to the domain</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="600" height="58" rx="12"/><use href="#i-phone" x="14" y="16" width="26" height="26"/><text x="52" y="26">Presentation</text><text class="sm" x="52" y="44">SwiftUI + PaymentViewModel</text></g>
+        <g class="nd"><rect class="sh" x="0" y="72" width="600" height="58" rx="12"/><use href="#i-gear" x="14" y="88" width="26" height="26"/><text x="52" y="98">Application</text><text class="sm" x="52" y="116">SendPaymentUseCase</text></g>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="144" width="600" height="58" rx="12"/><use href="#i-key" x="14" y="160" width="26" height="26"/><text x="52" y="170">Domain</text><text class="sm" x="52" y="188">PaymentAmount, PaymentRecipient, repository contract</text></g>
+        <g class="nd"><rect class="sh" x="0" y="216" width="600" height="58" rx="12"/><use href="#i-db" x="14" y="232" width="26" height="26"/><text x="52" y="242">Infrastructure</text><text class="sm" x="52" y="260">InMemoryAccountRepository</text></g>
+        <path class="wire" d="M300 59V70M293 63l7 7 7-7"/>
+        <path class="wire" d="M300 131V142M293 135l7 7 7-7"/>
+        <path class="wire" data-lit="2+" d="M300 274V218M293 225l7-7 7 7"/>
+      </svg>
+    </div>
+        <p class="small muted" style="margin:6px 0 0">Arrows: source-code dependencies. Calls still flow out to infrastructure, through domain-owned abstractions.</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Dependency inversion, in practice</span><ul style="margin:6px 0 0"><li>The use case depends on the protocol</li><li>The actor implements it</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">A protocol for the use case?</span><ul style="margin:6px 0 0"><li>Not now: a struct is fine</li><li>Add one for ViewModel tests if needed</li></ul></div></div>
+        <div class="rule step" data-label="NPay rule"><ul style="margin:6px 0 0"><li>Abstractions where they earn it</li><li>Not layers to imitate a diagram</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Clean Architecture says source-code dependencies should point toward the application&rsquo;s core policies. Presentation, SwiftUI and the ViewModel, depends on the application layer, SendPaymentUseCase, which depends on the domain: click: the value objects and the repository contract. The domain does not depend on SwiftUI, URLSession or a database framework.</p>
+    <span class="notes-label">SAY</span><p>Click: and infrastructure, InMemoryAccountRepository, points up: it implements the domain&rsquo;s protocol. At runtime the use case still calls outward into the actor, but through an abstraction the domain owns. Click: that is dependency inversion in practice, Lesson 4.4&rsquo;s principle.</p>
+    <span class="notes-label">SAY</span><p>Click: do we need a protocol for the use case too? Not yet: a concrete struct is fine; if ViewModel tests need to mock it, introduce one then. Click: use abstractions where they give meaningful testability or replaceability, not to imitate a diagram.</p>
+    <span class="notes-label">CONNECT</span><p>Now the hard part: concurrency.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Rules under concurrency</h2>
+    <p class="lead">Check early; enforce at the mutation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two payments, a daily limit, a better use case.</p>
+    <span class="notes-label">CONNECT</span><p>Overlapping checks.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Payment limits and concurrency (section 16)</p>
+  <h2>Two ₹1,500 payments at once from ₹2,000</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Mac run, the text&rsquo;s code: version 1 + section 12&rsquo;s ViewModel</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">early checks don&rsquo;t overlap (as run):<br>&ensp;A recorded; B &ldquo;Insufficient balance&rdquo; (early check)<br><br>20 ms latency in fetchSnapshot (ours):<br>&ensp;both early checks see ₹2,000<br>&ensp;A &ldquo;Unable to complete payment&rdquo;; B recorded<br>&ensp;balance ₹500: the repository caught it</p></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Learned</span><ul style="margin:6px 0 0"><li>The early check is useful, not final</li><li>The atomic repository check is final</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Noticed</span><ul style="margin:6px 0 0"><li>The repository&rsquo;s own error isn&rsquo;t mapped</li><li>So the user saw the generic message</li></ul></div></div>
+        <div class="rule step" data-label="Principle"><ul style="margin:6px 0 0"><li>Final check and mutation together, at the authoritative boundary</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s simulator, run for real: ₹2,000, two ₹1,500 payments started together through version one and Section 12&rsquo;s ViewModel. In our first run the two early checks did not overlap: A was recorded, and B&rsquo;s snapshot already showed ₹500, so the early check said "Insufficient balance".</p>
+    <span class="notes-label">SAY</span><p>Then we gave fetchSnapshot twenty milliseconds of latency, as a network read would have: both early checks saw ₹2,000 and passed. The repository&rsquo;s atomic check stopped the second payment, balance ₹500, no overdraft. Click: so the early check is useful for fast feedback; the final check and mutation must be atomic at the authoritative boundary.</p>
+    <span class="notes-label">SAY</span><p>Click: and something the run surfaced: the repository threw its own AccountRepositoryError.insufficientBalance, which the use case does not translate, so that user saw "Unable to complete payment" instead of "Insufficient balance". Error mapping across layers is Lesson 4.5&rsquo;s point again, and Lesson 4.7&rsquo;s job. Click: the principle.</p>
+    <span class="notes-label">CONNECT</span><p>A rule that depends on history: a daily limit.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; A daily limit (section 17)</p>
+  <h2>Cumulative rules need the authoritative state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <table class="tbl compact"><thead><tr><th>Payment</th><th>Amount</th><th>Daily total (limit ₹50,000)</th></tr></thead><tbody><tr><td>First</td><td>₹20,000</td><td>₹20,000</td></tr><tr><td>Second</td><td>₹15,000</td><td>₹35,000</td></tr><tr><td>Third</td><td>₹20,000</td><td>₹55,000: rejected</td></tr></tbody></table>
+        <p class="small muted" style="margin:0">A hypothetical limit, for teaching.</p>
+        <div class="step"><div class="card accent"><span class="label">Ours, Mac: three ₹20,000 payments at once, limit ₹50,000</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11px;line-height:1.55">checked from a snapshot, then recorded: <b>3 accepted</b>, ₹60,000<br>rule inside one actor call:&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;2 accepted, ₹40,000</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Where it lives</span><ul style="margin:6px 0 0"><li>Defined: domain / application</li><li>Enforced: where today&rsquo;s total is checked and updated together</li></ul></div></div>
+        <div class="rule step" data-label="Principle"><ul style="margin:6px 0 0"><li>Express rules in the domain</li><li>Enforce concurrency-sensitive invariants at the mutation</li><li>Production: the trusted backend</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A hypothetical daily outgoing limit of ₹50,000. A single-payment limit is not enough: ₹20,000, then ₹15,000 makes ₹35,000, and a third ₹20,000 would make ₹55,000: rejected.</p>
+    <span class="notes-label">SAY</span><p>Click: we tested both placements on the Mac, ours. Three ₹20,000 payments at once. Checking today&rsquo;s total from a snapshot and then recording: all three accepted, ₹60,000, over the limit. Passing the rule into one actor call that sums and records with no suspension: two accepted, ₹40,000.</p>
+    <span class="notes-label">SAY</span><p>Click: so the policy is defined in the domain or application layer, but enforced where the authoritative transaction state is checked and updated consistently: for our simulation, a repository operation that takes the policy; in production, the trusted backend. Click: business rules expressed in the domain; concurrency-sensitive invariants enforced at the authoritative mutation boundary.</p>
+    <span class="notes-label">CONNECT</span><p>Improve the use case accordingly.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Improve our use-case design (section 18)</p>
+  <h2>Static policy here; the balance at the repository</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentPolicy and SendPaymentUseCase (replaces version 1)</span></div><pre class="cb" style="font-size:11px">struct PaymentPolicy: Sendable {
+    let maximumPerPaymentPaise: Int
+
+    func validate(_ amount: PaymentAmount) throws {
+        guard amount.paise &lt;= maximumPerPaymentPaise else {
+            throw PaymentDomainError.limitExceeded
+        }
+    }
+}
+
+struct SendPaymentUseCase {
+    let repository: any AccountRepository
+    let policy: PaymentPolicy
+
+    func execute(_ command: SendPaymentCommand)
+        async throws -&gt; PaymentRecord {
+        try policy.validate(command.amount)
+
+        return try await repository.recordPayment(
+            recipient: command.recipient.identifier,
+            amountPaise: command.amount.paise)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What changed</span><ul style="margin:6px 0 0"><li>No snapshot, no early balance check</li><li>Policy first, then the atomic mutation</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Why better</span><ul style="margin:6px 0 0"><li>No stale-balance decision</li><li>The policy is testable alone (section 22)</li></ul></div></div>
+        <div class="step"><div class="cw"><div class="ch"><span>Demo configuration</span></div><pre class="cb" style="font-size:11.5px">PaymentPolicy(maximumPerPaymentPaise: 10_000_000)
+// ₹1,00,000, illustrative</pre></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Version one did an early balance check from a snapshot and then recorded, duplicating validation and assuming fresh data. Version two separates static policy from the authoritative balance check. PaymentPolicy holds a maximum per payment and validates an amount against it. SendPaymentUseCase now takes the repository and a policy: it validates the policy, then delegates the atomic account mutation.</p>
+    <span class="notes-label">SAY</span><p>Click: why better: the use case no longer makes a balance decision from a possibly stale snapshot, and the policy can be tested independently, as Section 22 did. Click: the demo policy is 10,000,000 paise, ₹1,00,000, purely illustrative. This replaces version one under the same name.</p>
+    <span class="notes-label">CONNECT</span><p>Plug it into NPay.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Into NPay</h2>
+    <p class="lead">Use case, factory, reviewed command</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The review flow, preserved.</p>
+    <span class="notes-label">CONNECT</span><p>The ViewModel.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; ViewModel and composition root (sections 12&ndash;13, 19&ndash;20)</p>
+  <h2>The ViewModel delegates the operation</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentViewModel (section 20&rsquo;s submission)</span></div><pre class="cb" style="font-size:10.5px">private let sendPayment: SendPaymentUseCase
+
+init(sendPayment: SendPaymentUseCase) {
+    self.sendPayment = sendPayment
+}
+
+func submit(_ command: SendPaymentCommand) async -&gt; PaymentRecord? {
+    guard !isSubmitting else { return nil }
+    isSubmitting = true
+    defer { isSubmitting = false }
+    do {
+        let result = try await sendPayment.execute(command)
+        recipient = &quot;&quot;; amountText = &quot;&quot;; errorMessage = nil
+        return result
+    } catch {
+        errorMessage = &quot;Unable to complete demo payment&quot;
+        return nil
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="cw"><div class="ch"><span>NPayFactory (section 19)</span></div><pre class="cb" style="font-size:10.5px">@MainActor
+enum NPayFactory {
+    static func makePaymentViewModel(
+        repository: any AccountRepository
+    ) -&gt; PaymentViewModel {
+        let policy = PaymentPolicy(
+            maximumPerPaymentPaise: 10_000_000)
+        let useCase = SendPaymentUseCase(
+            repository: repository, policy: policy)
+        return PaymentViewModel(sendPayment: useCase)
+    }
+}</pre></div></div>
+        <div class="step"><div class="card accent"><span class="label">Section 12&rsquo;s version</span><ul style="margin:6px 0 0"><li>Parsed the fields itself; specific messages</li><li>Section 20&rsquo;s: one generic message</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 12 replaces the PaymentService dependency with the use case: the ViewModel no longer calls the repository, it delegates the operation. Its first submit parsed the form fields into a command itself and mapped insufficientBalance and limitExceeded to specific messages. Section 20 replaces that with submit taking a command, on the slide: guard against a double submit, execute the use case, clear the form, or set "Unable to complete demo payment".</p>
+    <span class="notes-label">SAY</span><p>Click: the composition root, Section 19: the factory creates the policy and the use case from a repository and hands the use case to the ViewModel, which constructs neither.</p>
+    <span class="notes-label">SAY</span><p>Click: one trade-off to notice: Section 12 gave specific messages; Section 20&rsquo;s version shows one message for every failure: we measured insufficient balance and over-limit both giving "Unable to complete demo payment". Lesson 4.7 models those states properly.</p>
+    <span class="notes-label">CONNECT</span><p>Why submit a command at all?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Submit exactly what was reviewed (section 20)</p>
+  <h2>The command is the contract with the user</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 190px;gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">The flow, preserved (3.4)</span><ul style="margin:6px 0 0"><li>Form &rarr; review sheet &rarr; Confirm &rarr; success</li><li>Opening review never pays; only Confirm does</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Mac run, the text&rsquo;s code</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">the user reviews ₹1,500.50, then the form changes to 2000:<br>&ensp;submit() reading the fields (section 12):&ensp;paid <b>200000</b><br>&ensp;submit(reviewedCommand) (section 20):&ensp;&ensp;paid 150050</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">In NPay (ours)</span><ul style="margin:6px 0 0"><li>Review: <code>prepareCommand()</code> builds the command</li><li>The sheet shows it; Confirm submits that same value</li></ul></div></div>
+      </div>
+      <div class="step"><div style="width:190px;max-width:100%;margin:0 auto"><div class="shot" style="height:413px"><img src="img/review.png" alt="The sheet shows the command"></div><p class="shot-cap">The sheet shows the command</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.4&rsquo;s flow must survive: form, review sheet, Confirm, success. Opening the review never executes a payment; only confirmation does. The integration correction: the earlier submit read the mutable form fields; in a review flow we should submit the exact immutable request the user reviewed.</p>
+    <span class="notes-label">SAY</span><p>Click: we showed the difference on the Mac: the user reviews ₹1,500.50, then the form text changes to 2000 before Confirm. Section 12&rsquo;s submit, reading the fields, paid 200,000 paise: not what was reviewed. Section 20&rsquo;s submit with the reviewed command paid 150,050.</p>
+    <span class="notes-label">SAY</span><p>Click: in NPay, flagged as ours: Review Payment calls prepareCommand, which parses the form into a SendPaymentCommand; click: the sheet shows that command, and Confirm submits the very same value. The repository still revalidates its authoritative state.</p>
+    <span class="notes-label">CONNECT</span><p>And after Confirm?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Navigation after asynchronous submission (section 21)</p>
+  <h2>Success navigates; failure never does</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 110" style="max-height:118px" role="img" aria-labelledby="nav">
+        <title id="nav">Confirm, execute, success, dismiss, navigate</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="208" height="110" rx="14"/><use href="#i-tap" x="90" y="14" width="28" height="28"/><text x="104" y="74" text-anchor="middle">Confirm</text><text class="sm" x="104" y="94" text-anchor="middle">the reviewed command</text></g>
+        <path class="wire" d="M209 55H226M219 48l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="228" y="0" width="208" height="110" rx="14"/><use href="#i-gear" x="318" y="14" width="28" height="28"/><text x="332" y="74" text-anchor="middle">await execute(command)</text><text class="sm" x="332" y="94" text-anchor="middle">policy, then repository</text></g>
+        <path class="wire" d="M437 55H454M447 48l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="456" y="0" width="208" height="110" rx="14"/><use href="#i-check" x="546" y="14" width="28" height="28"/><text x="560" y="74" text-anchor="middle">Success</text><text class="sm" x="560" y="94" text-anchor="middle">pendingSuccessID = record.id</text></g>
+        <path class="wire" d="M665 55H682M675 48l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="684" y="0" width="208" height="110" rx="14"/><use href="#i-layers" x="774" y="14" width="28" height="28"/><text x="788" y="74" text-anchor="middle">Sheet dismissed</text><text class="sm" x="788" y="94" text-anchor="middle">review = nil</text></g>
+        <path class="wire" d="M893 55H910M903 48l7 7-7 7"/>
+        <g class="nd" data-lit="5+"><rect class="sh" x="912" y="0" width="208" height="110" rx="14"/><use href="#i-decision" x="1002" y="14" width="28" height="28"/><text x="1016" y="74" text-anchor="middle">onDismiss</text><text class="sm" x="1016" y="94" text-anchor="middle">router.showPaymentSuccess(id)</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) 150px;gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>NPay, simulator</th><th>Result</th></tr></thead><tbody><tr><td>₹1,500.50</td><td>Payment Recorded; ₹23,499.50; History top &ldquo;Sent to ravi@npay&rdquo;; form cleared</td></tr><tr><td>₹20,000, ₹10,000 left during review</td><td>&ldquo;Unable to complete demo payment&rdquo;; no navigation; balance unchanged; draft kept</td></tr></tbody></table></div>
+        <div class="warn step" data-label="Lifetime"><ul style="margin:6px 0 0"><li>A task can finish after the user has left: Lesson 4.7</li></ul></div>
+      </div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/stale.png" alt="Failure: no success"></div><p class="shot-cap">Failure: no success</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.4&rsquo;s coordination of dismissal and navigation, with an asynchronous step. Click through: the user confirms the reviewed command; the ViewModel awaits the use case; on success the record&rsquo;s ID is stored as the pending navigation result; the sheet is dismissed; its onDismiss asks the router to show payment success.</p>
+    <span class="notes-label">SAY</span><p>Click: run in NPay through our adapter repository over NPayStore, so Home and History keep one source of truth. ₹1,500.50: Payment Recorded, ₹23,499.50, "Sent to ravi@npay" at the top of History, the form cleared. A stale review, ₹20,000 with ₹10,000 removed during review: the store refused, the ViewModel showed "Unable to complete demo payment", there was no navigation, the balance was unchanged and the draft was kept. Click: the screenshot. On failure the text allows keeping the sheet open or showing an error; ours closes it and shows the error inline.</p>
+    <span class="notes-label">SAY</span><p>Click: the senior insight: an asynchronous operation can complete after the user has navigated away; cancellation, task lifetime and presentation state must be managed deliberately. Lesson 4.7 models those states.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.6 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p style="font-size:23px"><b>Values that can&rsquo;t be invalid</b><br><span class="muted" style="font-size:19px">PaymentAmount &gt; 0; PaymentRecipient non-blank</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p style="font-size:23px"><b>A use case is the operation</b><br><span class="muted" style="font-size:19px">policy first; the repository mutates atomically</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p style="font-size:23px"><b>Submit what was reviewed</b><br><span class="muted" style="font-size:19px">the command, not the fields: 150050, not 200000</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Domain value objects hold business values with invariants: a PaymentAmount is positive, a PaymentRecipient is not blank, and a SendPaymentCommand carries both with no UI types. SendPaymentUseCase is the operation itself: it applies the policy, then lets the repository check the balance and record atomically, because early checks and snapshot-based limits failed under concurrency in our runs. And in NPay the review sheet shows a command and Confirm submits that same command, so the user pays exactly what they reviewed.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>11 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is a domain value object?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is a domain value object?</p><ol class="q-opts"><li>A SwiftUI screen</li><li>A type representing a domain concept and its invariants</li><li>A database connection</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">PaymentAmount can&rsquo;t be zero or negative.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating every struct as a value object.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. PaymentAmount can&rsquo;t be zero or negative.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should SendPaymentUseCase import SwiftUI?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should SendPaymentUseCase import SwiftUI?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Foundation only: it ran on the Mac with no UI.</p>
+          <p class="q-trap"><b>Common trap:</b> Letting the operation depend on presentation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. Foundation only: it ran on the Mac with no UI.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why is an early balance check insufficient for final authorization?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why is an early balance check insufficient for final payment authorization?</p><ol class="q-opts"><li>SwiftUI doesn&rsquo;t support integers</li><li>The balance may change before mutation</li><li>Repositories can&rsquo;t throw</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">With latency both early checks saw ₹2,000.</p>
+          <p class="q-trap"><b>Common trap:</b> Trusting a snapshot.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. With latency both early checks saw ₹2,000.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Where should the authoritative balance check occur?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Where should the authoritative balance check occur?</p><ol class="q-opts"><li>Inside BalanceCard</li><li>Only in TextField validation</li><li>At the atomic mutation boundary</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">The repository caught the overdraft.</p>
+          <p class="q-trap"><b>Common trap:</b> Checking far from the write.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. The repository caught the overdraft.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why submit the immutable reviewed command?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why submit the immutable reviewed command?</p><ol class="q-opts"><li>To ensure submitted data matches what was reviewed</li><li>To improve animation speed</li><li>To eliminate all concurrency issues</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Fields changed to 2000; the command still paid 150050.</p>
+          <p class="q-trap"><b>Common trap:</b> Re-reading mutable fields on Confirm.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. Fields changed to 2000; the command still paid 150050.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does actor isolation automatically enforce payment idempotency?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does actor isolation automatically enforce payment idempotency?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The same request twice was recorded twice (4.5).</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing safety with idempotency.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. The same request twice was recorded twice (4.5).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What should happen if payment submission fails?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What should happen if payment submission fails?</p><ol class="q-opts"><li>Clear the account balance</li><li>Navigate to success anyway</li><li>Show an error and avoid success navigation</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Stale review: error shown, paymentsPath empty.</p>
+          <p class="q-trap"><b>Common trap:</b> Navigating before the result.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. Stale review: error shown, paymentsPath empty.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can PaymentPolicy be tested without launching SwiftUI?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can PaymentPolicy be tested without launching SwiftUI?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">&ldquo;Limit correctly enforced&rdquo;, on the Mac.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming rules need the app to test.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. &ldquo;Limit correctly enforced&rdquo;, on the Mac.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Daily limit ₹50,000 checked from a snapshot; three ₹20,000 at once?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">A daily limit of ₹50,000 is checked in the use case from a snapshot, then the payment is recorded. Three ₹20,000 payments start at once. How many are accepted?</p><ol class="q-opts"><li>2</li><li>3</li><li>0</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">All saw ₹0 spent today; inside the actor call: 2.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming a check before an await still holds.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. All saw ₹0 spent today; inside the actor call: 2.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Reviewed ₹1,500.50; fields then changed to 2000; section 12&#x27;s submit() pays?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">The user reviews ₹1,500.50; before Confirm the amount field changes to 2000. Section 12&rsquo;s parameterless <code>submit()</code> pays&hellip;</p><ol class="q-opts"><li>₹1,500.50</li><li>₹2,000</li><li>Nothing</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">It reads the fields: 200000 paise.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming the sheet&rsquo;s values are submitted.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. It reads the fields: 200000 paise.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 4.5: does a dashboard snapshot update itself after a payment?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 11 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 4.5: after a payment, does a DashboardViewModel snapshot update itself?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It showed ₹25,000.00 until refresh().</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting snapshots to observe the repository.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 4.5.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. It showed ₹25,000.00 until refresh().</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.6 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">4.7</td><td><b>UI state modeling</b></td><td>idle, submitting, success, failure; specific error messages</td></tr><tr><td class="mono">4.9</td><td><b>Architecture testing</b></td><td>the policy and use-case labs as a test suite</td></tr><tr><td class="mono">Unit 5</td><td><b>Networking</b></td><td>a remote repository behind the same use case</td></tr><tr><td class="mono">Unit 8</td><td><b>Concurrency</b></td><td>task lifetime and cancellation after navigation</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.7 models the payment lifecycle as explicit UI states, and finally maps each domain error to its own message. 4.9 turns today&rsquo;s labs into tests, Unit 5 puts a remote repository behind the same use case, and Unit 8 deals with tasks that outlive the screen.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.6 &middot; Lab</p>
+  <h2>SendPaymentUseCase</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Values, command, policy, use case.</p><ol class="lab"><li>Add PaymentAmount and PaymentRecipient.</li><li>Add SendPaymentCommand.</li><li>Write PaymentPolicy and SendPaymentUseCase.</li><li>Run sections 14, 15 and 22&rsquo;s labs.</li><li>Inject the use case through NPayFactory.</li><li>Review a command; Confirm submits it.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your domain and use-case files</li><li>Lab output</li><li>The review flow submitting the command</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: 2349950, "Payment limit enforced", "Limit correctly enforced"; in the app ₹23,499.50 after a payment, and an error with no navigation when the balance falls during review.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 4.6 complete</p>
+    <h2>Domain Models, Use Cases<br>&amp; Clean Architecture</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 4.7 &mdash; UI State Modeling</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now model domain values with invariants, build an immutable command, write a use case for a business operation, apply the dependency rule, enforce concurrency-sensitive rules at the mutation, and submit exactly what the user reviewed.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 4.7: UI state modeling for NPay&rsquo;s payment lifecycle.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

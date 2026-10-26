@@ -1,0 +1,1166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.7 — Design System</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.7 — Design System">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.7</p>
+    <h1 style="font-size:54px;line-height:1.05">Reusable Components &amp;<br>NPay Design System</h1>
+    <p class="lead" style="max-width:760px">Tokens, components, screens. Change <b>one</b> colour token and every NPay button and card follows.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.6 added motion. NPay now has several screens, and the same styling is repeated on all of them. Today we build the foundation of an NPay design system: design tokens, reusable components built on generics and @ViewBuilder, a custom modifier, and the rules for what a component must not do. We ran the components in light and dark mode, at a large text size and with changed tokens, and printed the types Swift infers for them.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.7 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Organise a design system: <b>tokens</b>, components, screens</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Build components that take an <b>action</b> and keep their styling</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Use generics and <code>@ViewBuilder</code> for any content</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p>Choose: reusable <b>view</b> or <b>modifier</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Make the system adapt: Dynamic Type, dark mode, disabled</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Keep business logic <b>out</b> of components</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.7 &middot; Where we are</p>
+  <h2>Today: one visual language</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.7 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd lit"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.6: animations for the balance, insertions and success.</span><span><b>Today</b>NPayTheme, NPayButton, NPayCard, NPaySectionHeader, integrated.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.6 finished motion. Today NPay gets a design system. Next lesson: adaptive layouts and GeometryReader.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The milestone</h2>
+    <p class="lead">Stop repeating styling</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Same padding, same background, on every screen.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our NPay milestone (section 1)</p>
+  <h2>Same app, one visual language</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px;gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Repeated on every screen</span></div><pre class="cb" style="font-size:13.5px">.padding(16)
+.background(
+    Color.blue.opacity(0.08),
+    in: RoundedRectangle(cornerRadius: 16)
+)
+
+.buttonStyle(.borderedProminent)</pre></div>
+        <div class="step"><div class="card accent"><span class="label">The question</span><ul style="margin:6px 0 0"><li>Consistent, reusable UI</li><li>Without losing SwiftUI&rsquo;s declarative style</li></ul></div></div>
+        <div class="rule step" data-label="Not changing"><ul style="margin:6px 0 0"><li>Business logic: the same</li><li>Only the <b>visual language</b> becomes shared</li></ul></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="../lesson-3.3/img/home.png" alt="Before: Home since 3.3"></div><p class="shot-cap">Before: Home since 3.3</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/home.png" alt="After: 3.7"></div><p class="shot-cap">After: 3.7</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay has grown to several screens, and styling is repeated everywhere: the same padding and tinted rounded background, the same bordered-prominent buttons. It works, but as NPay grows, repeated styling becomes hard to maintain: change the brand colour and you hunt through every file.</p>
+    <span class="notes-label">SAY</span><p>Click: the engineering question: how do professional iOS apps create consistent, reusable UI without giving up SwiftUI&rsquo;s declarative architecture? Click: and what does not change: business logic. We are creating a reusable visual language.</p>
+    <span class="notes-label">SAY</span><p>On the right, Home before, as it has looked since 3.3. Click: after today: a token-coloured balance card, one branded Send Money button, and the recent transactions in a card with a View All header.</p>
+    <span class="notes-label">CONNECT</span><p>What is a design system?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Tokens</h2>
+    <p class="lead">Shared design decisions</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Colours, spacing and radii as plain Swift constants.</p>
+    <span class="notes-label">CONNECT</span><p>The three layers.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What exactly is a design system? (section 2)</p>
+  <h2>Tokens define, components apply, screens assemble</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 700 224" style="max-height:260px" role="img" aria-labelledby="ds">
+        <title id="ds">Design tokens, reusable components, feature screens</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="700" height="60" rx="12"/><use href="#i-grid" x="14" y="17" width="26" height="26"/><text x="52" y="27">Design tokens</text><text class="sm" x="52" y="45">colours · spacing · typography · corner radii</text></g>
+        <path class="wire" d="M350 62V78M343 71l7 7 7-7"/>
+        <g class="nd lit"><rect class="sh" x="0" y="82" width="700" height="60" rx="12"/><use href="#i-layers" x="14" y="99" width="26" height="26"/><text x="52" y="109">Reusable components</text><text class="sm" x="52" y="127">NPayButton · NPayCard · NPaySectionHeader</text></g>
+        <path class="wire" d="M350 144V160M343 153l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="164" width="700" height="60" rx="12"/><use href="#i-phone" x="14" y="181" width="26" height="26"/><text x="52" y="191">Feature screens</text><text class="sm" x="52" y="209">Home · Payments · History · Profile</text></g>
+      </svg>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">A design system</span><ul style="margin:6px 0 0"><li>Shared design decisions</li><li>Reusable UI components</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Why layers</span><ul style="margin:6px 0 0"><li>Tokens: the shared visual rules</li><li>Components apply them; screens assemble components</li><li>No screen invents its own look</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A design system is a collection of shared design decisions and reusable UI components. For NPay, three layers: design tokens, the colours, spacing, typography and corner radii; reusable components, NPayButton, NPayCard, NPaySectionHeader; and the feature screens, Home, Payments, History, Profile.</p>
+    <span class="notes-label">SAY</span><p>Click: why separate them? The tokens define the shared visual rules; components apply those rules; screens assemble the components. That prevents every screen from independently inventing its own appearance.</p>
+    <span class="notes-label">CONNECT</span><p>The first layer: tokens.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Design tokens (section 3)</p>
+  <h2>Enums as namespaces: no instance, just constants</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DesignSystem/NPayTheme.swift</span></div><pre class="cb" style="font-size:12px">enum NPayTheme {
+    enum Colors {
+        static let primary = Color(red: 0.10, green: 0.34,
+                                   blue: 0.65)
+        static let success = Color.green
+        static let cardBackground = Color.blue.opacity(0.06)
+    }
+    enum Spacing {
+        static let small: CGFloat = 8
+        static let medium: CGFloat = 16
+        static let large: CGFloat = 24
+    }
+    enum Radius {
+        static let small: CGFloat = 10
+        static let card: CGFloat = 18
+    }
+}
+
+NPayTheme.Colors.primary
+NPayTheme.Spacing.medium
+NPayTheme.Radius.card</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What this Swift is</span><ul style="margin:6px 0 0"><li>An <code>enum</code> with <code>static</code> properties</li><li>Nested enums group colours, spacing, radii</li><li>Never instantiated</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Unit 1</span><ul style="margin:6px 0 0"><li>Ordinary namespacing with enums and static members</li><li>No SwiftUI mechanism needed to define tokens</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Why an enum</span><ul style="margin:6px 0 0"><li>No cases: it <b>cannot</b> be instantiated by mistake</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPayTheme.swift: an enum with nested enums, Colors, Spacing and Radius, each with static properties: a primary colour, success and card-background colours; small, medium and large spacing; a small and a card radius. We never create an NPayTheme; we write NPayTheme.Colors.primary, NPayTheme.Spacing.medium, NPayTheme.Radius.card.</p>
+    <span class="notes-label">SAY</span><p>Click: connect to Unit 1: this is ordinary Swift namespace organisation with enums and static members. No special SwiftUI mechanism is involved in defining the tokens. Click: why an enum rather than a struct? An enum with no cases has no values, so nobody can create one by mistake: it can only be a namespace.</p>
+    <span class="notes-label">CONNECT</span><p>Why not just write .blue?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Why not hardcode colours everywhere? (section 4, experiments 1&ndash;2)</p>
+  <h2>Change two tokens, rebuild: everything follows</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px 150px 150px;gap:14px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Before / after</span></div><pre class="cb" style="font-size:12.5px">.foregroundStyle(.blue)
+.foregroundStyle(NPayTheme.Colors.primary)</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Experiment build</span><ul style="margin:6px 0 0"><li><code>primary</code> &rarr; a teal</li><li><code>Radius.card</code> 18 &rarr; 4</li><li>No component or screen edited</li></ul></div></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:200px"><img src="img/catalog.png" alt="Catalog"></div><p class="shot-cap">Catalog</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:200px"><img src="img/catalog_alt.png" alt="Changed tokens"></div><p class="shot-cap">Changed tokens</p></div></div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/home.png" alt="Home"></div><p class="shot-cap">Home</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/home_alt.png" alt="Changed tokens"></div><p class="shot-cap">Changed tokens</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Hardcoding .blue works, until NPay&rsquo;s brand colour changes and there are hundreds of them. With a token, styling references one shared value.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s experiments 1 and 2, done as one rebuild: the primary colour changed to a teal and the card radius from 18 to 4, and nothing else. Click: the component catalog: both buttons and the "Fixed token" text changed colour. Click: Home: the balance card, Send Money and the transactions card all follow; the cards are now nearly square.</p>
+    <span class="notes-label">SAY</span><p>The text&rsquo;s point: tokens are not just convenience; they are an interface contract across teams and features. And for production, colour assets and semantic colours are often better than fixed RGB values; we test that in Part 6.</p>
+    <span class="notes-label">CONNECT</span><p>The second layer: components.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>NPayButton</h2>
+    <p class="lead">Styling inside, action outside</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The first reusable component.</p>
+    <span class="notes-label">CONNECT</span><p>Version 1.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Our first reusable component (sections 5&ndash;6)</p>
+  <h2>A value describing a branded button</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.95fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DesignSystem/NPayButton.swift (v1)</span></div><pre class="cb" style="font-size:11.5px">struct NPayButton: View {
+    let title: String
+    let action: () -&gt; Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.white)
+        .background(NPayTheme.Colors.primary,
+                    in: RoundedRectangle(
+                        cornerRadius: NPayTheme.Radius.small))
+    }
+}
+
+NPayButton(title: &quot;Send Money&quot;) {
+    print(&quot;Send tapped&quot;)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Reusable</span><ul style="margin:6px 0 0"><li>Styling stays <b>inside</b></li><li>The caller supplies the <b>action</b>: 2.7&rsquo;s closures</li></ul></div>
+        <div class="step"><div class="diagram">
+      <svg class="art" viewBox="0 0 430 242" style="max-height:220px" role="img" aria-labelledby="cmp">
+        <title id="cmp">Feature screen, NPayButton, Button, Text and modifiers, SwiftUI runtime</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="430" height="42" rx="12"/><use href="#i-phone" x="14" y="8" width="26" height="26"/><text x="52" y="18">Feature screen</text><text class="sm" x="52" y="36">creates NPayButton(title, action)</text></g>
+        <g class="nd lit"><rect class="sh" x="0" y="50" width="430" height="42" rx="12"/><use href="#i-layers" x="14" y="58" width="26" height="26"/><text x="52" y="68">NPayButton</text><text class="sm" x="52" y="86">a reusable View struct</text></g>
+        <g class="nd"><rect class="sh" x="0" y="100" width="430" height="42" rx="12"/><use href="#i-tap" x="14" y="108" width="26" height="26"/><text x="52" y="118">Button</text><text class="sm" x="52" y="136">the native interactive control</text></g>
+        <g class="nd"><rect class="sh" x="0" y="150" width="430" height="42" rx="12"/><use href="#i-frame" x="14" y="158" width="26" height="26"/><text x="52" y="168">Text + modifiers</text><text class="sm" x="52" y="186">label, padding, colours, shape</text></g>
+        <g class="nd"><rect class="sh" x="0" y="200" width="430" height="42" rx="12"/><use href="#i-gear" x="14" y="208" width="26" height="26"/><text x="52" y="218">SwiftUI runtime</text><text class="sm" x="52" y="236">layout, rendering, interaction</text></g>
+      </svg>
+    </div>
+          <p class="small muted" style="margin:6px 0 0">A view description, not necessarily a UIKit object.</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPayButton: a title and an action. Its body is a native Button whose label is the title, full width, with vertical padding; plain button style, white text, and the primary token as a rounded background with the small radius. The caller writes NPayButton(title:) with a trailing closure. The visual styling stays inside the component; the caller supplies the action, the closure-based architecture of Lesson 2.7.</p>
+    <span class="notes-label">SAY</span><p>Click: behind the scenes: the feature screen creates an NPayButton value; NPayButton is a struct conforming to View; inside, a native Button, the interactive control; then Text and modifiers for label, padding, colours and shape; and the SwiftUI runtime coordinates layout, rendering and interaction, evaluating body as needed.</p>
+    <span class="notes-label">SAY</span><p>Click: creating a reusable view does not necessarily create a separate UIKit view object. SwiftUI composes view descriptions and manages the platform presentation internally.</p>
+    <span class="notes-label">CONNECT</span><p>Version 2: an icon.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; A more flexible NPayButton (section 17)</p>
+  <h2>Six Unit 1 ideas in one component</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayButton (v2, condensed)</span></div><pre class="cb" style="font-size:11.5px">struct NPayButton: View {
+    let title: String
+    let symbol: String?
+    let action: () -&gt; Void
+
+    init(_ title: String,
+         symbol: String? = nil,
+         action: @escaping () -&gt; Void) {
+        self.title = title
+        self.symbol = symbol
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                if let symbol { Image(systemName: symbol) }
+                Text(title)
+            }
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+        }
+        // .buttonStyle, .foregroundStyle, .background as v1
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Use</span></div><pre class="cb" style="font-size:12.5px">NPayButton(&quot;Send Money&quot;,
+           symbol: &quot;arrow.up.right&quot;) {
+    print(&quot;Send tapped&quot;)
+}</pre></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>Swift</th><th>Here</th></tr></thead><tbody><tr><td>Optional property</td><td><code>symbol: String?</code></td></tr><tr><td>Custom initializer</td><td><code>init(_:symbol:action:)</code></td></tr><tr><td>Default argument</td><td><code>symbol = nil</code></td></tr><tr><td>Escaping closure</td><td><code>@escaping</code> action</td></tr><tr><td><code>if let</code></td><td>show the icon only if set</td></tr><tr><td>Protocol conformance</td><td><code>View</code></td></tr></tbody></table></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Version 2 adds an optional SF Symbol. A custom initializer takes an unlabelled title, an optional symbol defaulting to nil, and an escaping action. In body, if let shows the image only when a symbol was given, beside the title in an HStack. Calls read NPayButton("Send Money", symbol: "arrow.up.right") with a trailing closure.</p>
+    <span class="notes-label">SAY</span><p>Click: the Unit 1 connection: an optional property, a custom initializer, a default argument, an escaping closure, conditional binding with if let, and protocol conformance through View. All of them work together in one reusable component. The action must be @escaping because the button stores it and calls it later, after init returns.</p>
+    <span class="notes-label">CONNECT</span><p>What must a button not do?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; What belongs inside NPayButton? (section 18)</p>
+  <h2>Presentation and activation; never the payment</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>The caller decides</span></div><pre class="cb" style="font-size:14px">NPayButton(&quot;Send Money&quot;) {
+    submitPayment()
+}</pre></div>
+        <div class="warn step" data-label="Not inside the button"><ul style="margin:6px 0 0"><li><code>store.recordDemoPayment(...)</code></li><li>A button that knows about money can&rsquo;t be reused</li></ul></div>
+      </div>
+      <div class="step"><div class="diagram">
+      <svg class="art" viewBox="0 0 460 202" style="max-height:220px" role="img" aria-labelledby="resp">
+        <title id="resp">NPayButton handles appearance, PaymentsScreen coordinates, NPayStore records</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="460" height="54" rx="12"/><use href="#i-tap" x="14" y="14" width="26" height="26"/><text x="52" y="24">NPayButton</text><text class="sm" x="52" y="42">appearance + interaction</text></g>
+        <path class="wire" d="M230 56V70M223 63l7 7 7-7"/>
+        <g class="nd lit"><rect class="sh" x="0" y="74" width="460" height="54" rx="12"/><use href="#i-file" x="14" y="88" width="26" height="26"/><text x="52" y="98">PaymentsScreen</text><text class="sm" x="52" y="116">coordinates the payment form</text></g>
+        <path class="wire" d="M230 130V144M223 137l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="148" width="460" height="54" rx="12"/><use href="#i-db" x="14" y="162" width="26" height="26"/><text x="52" y="172">NPayStore</text><text class="sm" x="52" y="190">validates and records the demo payment</text></g>
+      </svg>
+    </div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Later</span><ul style="margin:6px 0 0"><li>Even more important with MVVM and clean architecture (Unit 4)</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Suppose the Send Money button must validate a payment. Should the reusable button contain store.recordDemoPayment? Click: no. The button should not know about financial operations; a button that calls the store is no longer a reusable design component, it is a payment feature.</p>
+    <span class="notes-label">SAY</span><p>Click: the split: NPayButton handles appearance and user activation; PaymentsScreen coordinates the payment form; NPayStore validates and records the demo payment. The caller passes submitPayment in the closure. This separation matters even more with MVVM and clean architecture in Unit 4.</p>
+    <span class="notes-label">CONNECT</span><p>One more thing a button must do: look disabled.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; A finding: .disabled barely shows (integration)</p>
+  <h2>The background is ours, so dimming it is our job</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:150px 150px minmax(0,1fr);gap:20px;align-items:start">
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:210px"><img src="img/payments.png" alt="Disabled (empty form)"></div><p class="shot-cap">Disabled (empty form)</p></div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:210px"><img src="img/valid.png" alt="Enabled (valid form)"></div><p class="shot-cap">Enabled (valid form)</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What we saw</span><ul style="margin:6px 0 0"><li><code>.disabled(!isValid)</code> on NPayButton</li><li>Only the text dimmed; the blue stayed full strength</li></ul></div>
+        <div class="step"><div class="cw"><div class="ch"><span>A fix (authored, not in our integration)</span></div><pre class="cb" style="font-size:11.5px">struct NPayButton: View {
+    // title, symbol, action, init as before
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button(action: action) { /* label as before */ }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(NPayTheme.Colors.primary
+                            .opacity(isEnabled ? 1 : 0.4),
+                        in: RoundedRectangle(
+                            cornerRadius: NPayTheme.Radius.small))
+    }
+}</pre></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Integrating the button into the Payments form showed something the text does not cover. Review Payment is disabled until the form is valid. On the left, disabled; in the middle, enabled. Look closely: only the text dims; the blue background stays at full strength, so a disabled payment button looks almost tappable. With .plain style, the system dims the content it styles; our background is our own drawing.</p>
+    <span class="notes-label">SAY</span><p>Click: a design-system fix, which we wrote and typechecked but did not put into the integration, to keep the text&rsquo;s component as written: read isEnabled from the environment, which .disabled sets, and dim the background. Another reason a design system is more than looking identical: states matter.</p>
+    <span class="notes-label">CONNECT</span><p>The second component: a card that holds anything.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>NPayCard</h2>
+    <p class="lead">Generic over its content</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One card, any SwiftUI view inside.</p>
+    <span class="notes-label">CONNECT</span><p>The code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; NPayCard: generic reusable content (section 7)</p>
+  <h2><code>Content: View</code>, filled by the caller</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DesignSystem/NPayCard.swift</span></div><pre class="cb" style="font-size:12px">struct NPayCard&lt;Content: View&gt;: View {
+
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        content
+            .padding(NPayTheme.Spacing.medium)
+            .frame(maxWidth: .infinity)
+            .background(NPayTheme.Colors.cardBackground,
+                        in: RoundedRectangle(
+                            cornerRadius: NPayTheme.Radius.card))
+    }
+}
+
+NPayCard {
+    VStack {
+        Text(&quot;Account&quot;)
+        Text(&quot;Demo User&quot;)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Unit 1: generics</span><ul style="margin:6px 0 0"><li><code>Content</code>: a generic type parameter</li><li><code>Content: View</code>: must conform to <code>View</code></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label"><code>@ViewBuilder</code> on the property</span><ul style="margin:6px 0 0"><li>The memberwise init takes a builder closure</li><li>Callers write declarative view syntax</li></ul></div></div>
+        <div class="step"><div style="width:260px;max-width:100%;margin:0 auto"><div class="shot" style="height:160px"><img src="img/catalog.png" alt="Two NPayCards: a VStack, an HStack"></div><p class="shot-cap">Two NPayCards: a VStack, an HStack</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We want a card that can contain any SwiftUI content: a Text, or a VStack of several texts. One component, different view types: generics and @ViewBuilder. NPayCard is generic over Content, constrained to View. It stores content, and its body pads it with the medium spacing, makes it full width, and puts the card background behind it with the card radius.</p>
+    <span class="notes-label">SAY</span><p>Click: from Unit 1: Content is a generic type parameter; the constraint means whatever the caller provides must conform to View. Click: @ViewBuilder on the stored property makes Swift&rsquo;s memberwise initializer take a view-builder closure, so callers write the trailing-closure syntax you see. Click: two cards in our catalog: one holding a VStack, one an HStack with an icon.</p>
+    <span class="notes-label">CONNECT</span><p>What types does Swift actually infer?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; What @ViewBuilder builds; why generics matter (sections 8, 15)</p>
+  <h2>Real types, printed with <code>type(of:)</code></h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Code</th><th>type(of:) in the simulator</th></tr></thead><tbody><tr><td><code>NPayCard { Text }</code></td><td><code>NPayCard&lt;Text&gt;</code></td></tr><tr><td><code>NPayCard { VStack { Text; Text } }</code></td><td><code>NPayCard&lt;VStack&lt;TupleView&lt;(Text, Text)&gt;&gt;&gt;</code></td></tr><tr><td><code>NPayCard { HStack { Image; Text } }</code></td><td><code>NPayCard&lt;HStack&lt;TupleView&lt;(Image, Text)&gt;&gt;&gt;</code></td></tr><tr><td><code>NPayCard { Text; Text }</code></td><td><code>NPayCard&lt;TupleView&lt;(Text, Text)&gt;&gt;</code></td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px">
+      <div class="step"><div class="card accent"><span class="label">@ViewBuilder</span><ul style="margin:6px 0 0"><li>Two children &rarr; one <code>TupleView&lt;(Text, Text)&gt;</code></li><li>Not an array of <code>UIView</code>s</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">Generics</span><ul style="margin:6px 0 0"><li>The full structure is in the <b>type</b></li><li>Checked at compile time; no <code>AnyView</code></li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s experiment 5: inspect the inferred generic types. We printed type(of:) for four cards. A single Text: NPayCard of Text. A VStack of two Texts: NPayCard of VStack of TupleView of a pair of Texts. An HStack with an Image and a Text: the same shape with HStack. And two Texts directly in the card: NPayCard of TupleView of Text and Text.</p>
+    <span class="notes-label">SAY</span><p>Click: that last line answers Section 8: how can the closure return two views? The result builder combines them into one composed value, a TupleView here. The text calls it tuple-like and a compiler detail, and that is right: it is what the iOS 26.5 SDK produces today. It is never an array of UIView objects.</p>
+    <span class="notes-label">SAY</span><p>Click: why generics matter: the complete structure of the content is in the type, so it is checked at compile time and SwiftUI has the structural information; nothing is forced into a type-erased AnyView.</p>
+    <span class="notes-label">CONNECT</span><p>So why not AnyView?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Why not AnyView everywhere? (section 16)</p>
+  <h2>Erasure hides the structure</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Generic vs type-erased</span></div><pre class="cb" style="font-size:12.5px">// generic: the structure stays in the type
+struct NPayCard&lt;Content: View&gt;: View {
+    let content: Content
+    var body: some View { content }
+}
+
+// type-erased: one type for any content
+struct ErasedCard: View {
+    let content: AnyView
+    var body: some View { content }
+}
+
+ErasedCard(content: AnyView(Text(&quot;NPay&quot;)))</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">type(of:), simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">AnyView(Text("NPay")): AnyView<br>NPayCard { Text }:&ensp;&ensp;&ensp;NPayCard&lt;Text&gt;</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">AnyView is for</span><ul style="margin:6px 0 0"><li>Storing <b>different</b> view types behind one type</li></ul></div></div>
+        <div class="rule step" data-label="For NPay components"><ul style="margin:6px 0 0"><li>Prefer generics: unnecessary erasure obscures structure</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI provides AnyView, which erases the concrete view type. Compare a generic card, whose content type is part of the card&rsquo;s type, with a type-erased one that stores AnyView. We renamed the erased one ErasedCard so both compile together.</p>
+    <span class="notes-label">SAY</span><p>Click: printed: an AnyView is just AnyView; what was inside is no longer in the type. The generic card keeps it: NPayCard of Text. Click: AnyView is useful when different view types must be stored behind one common type. Click: but unnecessary type erasure obscures structural information and adds complexity, so for NPay&rsquo;s reusable components the generic approach is preferable.</p>
+    <span class="notes-label">CONNECT</span><p>Components can also be modifiers.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Views and modifiers</h2>
+    <p class="lead">Structure, or transformation?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPayCard vs NPayCardModifier; a section header.</p>
+    <span class="notes-label">CONNECT</span><p>The comparison.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Custom ViewModifier versus reusable View (section 9)</p>
+  <h2>Two tools, two jobs</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="cw"><div class="ch"><span>Lesson 2.6&rsquo;s pattern</span></div><pre class="cb" style="font-size:11.5px">struct NPayCardModifier: ViewModifier {
+    func body(content: Content) -&gt; some View {
+        content
+            .padding(16)
+            .background(NPayTheme.Colors.cardBackground,
+                        in: RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+extension View {
+    func npayCardStyle() -&gt; some View {
+        modifier(NPayCardModifier())
+    }
+}
+
+Text(&quot;Recent Transactions&quot;)
+    .npayCardStyle()</pre></div>
+        <div class="step"><div class="card accent"><span class="label">type(of: Text(…).npayCardStyle())</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">ModifiedContent&lt;Text, NPayCardModifier&gt;</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl"><thead><tr><th>Reusable View</th><th>ViewModifier</th></tr></thead><tbody><tr><td>Encapsulates content structure</td><td>Encapsulates a transformation</td></tr><tr><td>Can receive custom child content</td><td>Modifies an existing view</td></tr><tr><td>NPayCard</td><td>NPayCardStyle</td></tr><tr><td>Semantic components</td><td>Shared styling rules</td></tr></tbody></table></div>
+        <div class="step"><div class="card accent"><span class="label">Notice</span><ul style="margin:6px 0 0"><li>The modifier uses 16 and 18, not the tokens</li><li>Experiment 2 changed the card radius; this one stayed</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 2.6 built a ViewModifier for NPay&rsquo;s card style. The text&rsquo;s version: NPayCardModifier pads its content and adds the card background, and an extension adds npayCardStyle(). Click: printed type: ModifiedContent of Text and NPayCardModifier: a wrapper, as 2.6 showed.</p>
+    <span class="notes-label">SAY</span><p>Click: the comparison. A reusable view encapsulates content structure and can receive custom child content: NPayCard. A modifier encapsulates a transformation of an existing view: the card style. Choose a view for a meaningful component with its own structure; a modifier for a styling rule that applies to many different views.</p>
+    <span class="notes-label">SAY</span><p>Click: one thing to spot: the text&rsquo;s modifier hardcodes 16 and 18 instead of using the tokens. In our changed-token build, the NPayCards became square; the "Recent Transactions" text styled by the modifier kept its round corners. A token only helps where it is used.</p>
+    <span class="notes-label">CONNECT</span><p>A component for section headers.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Build NPaySectionHeader (section 10)</p>
+  <h2>One header for Home, History and Profile</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>DesignSystem/NPaySectionHeader.swift</span></div><pre class="cb" style="font-size:11.5px">struct NPaySectionHeader: View {
+    let title: String
+    let actionTitle: String?
+    let action: (() -&gt; Void)?
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.headline)
+            Spacer()
+            if let actionTitle, let action {
+                Button(actionTitle, action: action)
+                    .font(.subheadline)
+            }
+        }
+    }
+}
+
+NPaySectionHeader(title: &quot;Recent Transactions&quot;,
+                  actionTitle: &quot;View All&quot;) {
+    router.select(.history)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">How it&rsquo;s built</span><ul style="margin:6px 0 0"><li>Title left, optional action right</li><li>Both <code>actionTitle</code> and <code>action</code> needed: <code>if let</code> both</li></ul></div>
+        <div class="step"><div style="width:220px;max-width:100%;margin:0 auto"><div class="shot" style="height:260px"><img src="img/home.png" alt="In Home: View All switches to History"></div><p class="shot-cap">In Home: View All switches to History</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Home and History both need section headers. NPaySectionHeader: a title, an optional action title and an optional action. The body is an HStack: the title in headline, a Spacer, and a button only when both the action title and the action are present: if let on both.</p>
+    <span class="notes-label">SAY</span><p>Using it: the memberwise initializer lets the optional action be a trailing closure. In Home, View All asks the router to select the History tab, the 3.3 pattern. Click: in our integrated Home, the header inside the transactions card. The same component can appear in Home, History or Profile without duplicating its layout.</p>
+    <span class="notes-label">CONNECT</span><p>Which styles flow down by themselves?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Adapting</h2>
+    <p class="lead">Environment, Dynamic Type, dark mode</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A design system must adapt, not just match.</p>
+    <span class="notes-label">CONNECT</span><p>Environment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Environment propagation and design systems (section 11)</p>
+  <h2>Some values flow down; padding doesn&rsquo;t</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>The font flows down</span></div><pre class="cb" style="font-size:14px">VStack {
+    Text(&quot;Account&quot;)
+    Text(&quot;Balance&quot;)
+}
+.font(.headline)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Propagates</span><ul style="margin:6px 0 0"><li><code>.font</code>: an <b>environment</b> value for descendants (2.6)</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Doesn&rsquo;t</span><ul style="margin:6px 0 0"><li><code>.padding()</code>: layout around <b>this</b> view only</li></ul></div></div>
+        <div class="rule step" data-label="Two different things"><ul style="margin:6px 0 0"><li>Tokens: ordinary Swift constants</li><li>Environment values: SwiftUI&rsquo;s contextual data</li><li>Custom keys and shared themes: Lesson 3.9</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI lets certain styling values propagate through the hierarchy. A font set on the VStack influences every Text inside it: the font is an environment value, as Lesson 2.6 showed with type(of:).</p>
+    <span class="notes-label">SAY</span><p>Click: not every modifier propagates. .padding changes layout around one specific view; it is not an inherited value. Click: so keep two ideas apart: design tokens are ordinary Swift constants you reference; environment values are SwiftUI&rsquo;s contextual data propagation. Custom environment keys and shared themes are Lesson 3.9.</p>
+    <span class="notes-label">CONNECT</span><p>Users can change the text size. Does the system follow?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Dynamic Type: fixed fonts don&rsquo;t scale (section 19)</p>
+  <h2>At the largest size: 19.3 points vs 74.7</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 160px;gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <table class="tbl"><thead><tr><th>&ldquo;Send Money&rdquo;</th><th>Default size</th><th>Accessibility XXXL</th></tr></thead><tbody><tr><td><code>.font(.system(size: 16))</code></td><td>19.3 pt high</td><td><b>19.3</b> pt</td></tr><tr><td><code>.font(.headline)</code></td><td>24.3 pt</td><td><b>74.7</b> pt</td></tr></tbody></table>
+        <div class="step"><div class="card accent"><span class="label">Semantic styles</span><ul style="margin:6px 0 0"><li><code>.headline</code>, <code>.body</code>, <code>.caption</code> follow the user&rsquo;s setting</li><li>Our components use <code>.headline</code>, so they scaled</li></ul></div></div>
+        <div class="rule step" data-label="Principle"><ul style="margin:6px 0 0"><li>A design system shouldn&rsquo;t make screens identical</li><li>It should make them <b>adapt</b> consistently</li></ul></div>
+      </div>
+      <div class="step"><div style="width:160px;max-width:100%;margin:0 auto"><div class="shot" style="height:300px"><img src="img/catalog_ax.png" alt="Catalog, largest text"></div><p class="shot-cap">Catalog, largest text</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A fixed size, .system(size: 16), stays that size unless you add scaling. Users can choose larger text for accessibility. We measured the height of the same words, "Send Money", in a fixed 16-point font and in the semantic headline style, at the default size and at the largest accessibility size.</p>
+    <span class="notes-label">SAY</span><p>The fixed font was 19.3 points high at both sizes: it ignored the setting. Headline went from 24.3 to 74.7. Click: semantic styles adapt to Dynamic Type; NPayButton and NPaySectionHeader use .headline, and click: our catalog at that size: the buttons and cards grew with the text.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s principle: a design system should not simply make every screen look identical; it should help the interface adapt consistently to accessibility settings. Lesson 3.8 deals with layouts that must make room for that.</p>
+    <span class="notes-label">CONNECT</span><p>And dark mode?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Design tokens versus semantic colours (sections 4, 20)</p>
+  <h2>A fixed colour can&rsquo;t follow the appearance</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:150px 150px minmax(0,1fr);gap:18px;align-items:start">
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:270px"><img src="img/catalog.png" alt="Light"></div><p class="shot-cap">Light</p></div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:270px"><img src="img/catalog_dark.png" alt="Dark"></div><p class="shot-cap">Dark</p></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="cw"><div class="ch"><span>A colour asset</span></div><pre class="cb" style="font-size:11.5px">// Assets.xcassets/NPayPrimary.colorset (our values)
+// Any:  sRGB 0.10, 0.34, 0.65   (the token)
+// Dark: sRGB 0.45, 0.65, 1.00
+
+Text(&quot;Asset NPayPrimary&quot;)
+    .foregroundStyle(Color(&quot;NPayPrimary&quot;))</pre></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>Colour</th><th>on white</th><th>on black</th></tr></thead><tbody><tr><td>Fixed <code>primary</code></td><td>7.1 : 1</td><td><b>2.9 : 1</b></td></tr><tr><td>Asset, dark variant</td><td></td><td>8.6 : 1</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">WCAG contrast ratio, computed from the sRGB values; 4.5 : 1 is the usual minimum for body text.</p></div>
+        <div class="step"><div class="card accent"><span class="label">Also in dark</span><ul style="margin:6px 0 0"><li><code>Color.blue.opacity(0.06)</code> cards almost vanish (Home, next slide)</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The theme&rsquo;s primary is a fixed RGB colour. Fine on white; but test the design in dark mode, experiment 7. Our catalog, light and dark: the "Fixed token" text in the bottom row is dark blue on black, hard to read; next to it, a colour asset, NPayPrimary, with a lighter dark-mode variant we chose.</p>
+    <span class="notes-label">SAY</span><p>For production the text recommends semantic colour assets: create NPayPrimary in Assets.xcassets with light and dark appearances and use Color("NPayPrimary"). Click: in numbers, using the standard WCAG contrast formula on the sRGB values: the fixed primary is 7.1 to 1 on white, but only 2.9 to 1 on black, below the usual 4.5 minimum for text. The asset&rsquo;s dark variant is 8.6 to 1.</p>
+    <span class="notes-label">SAY</span><p>Click: the card background is a fixed 6% blue too; on black it nearly disappears. Semantic assets let the design system adapt without rewriting every component.</p>
+    <span class="notes-label">CONNECT</span><p>Now integrate the system into NPay.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Integration</h2>
+    <p class="lead">Same behaviour, new components</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Buttons, cards and headers in the real app.</p>
+    <span class="notes-label">CONNECT</span><p>Three changes.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Integrate the design system (section 12)</p>
+  <h2>Replace buttons, wrap sections, reuse headers</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 140px 140px;gap:18px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="cw"><div class="ch"><span>Before &rarr; after</span></div><pre class="cb" style="font-size:11.5px">// A. Primary buttons
+Button(&quot;Send Money&quot;) { submitPayment() }
+    .buttonStyle(.borderedProminent)
+NPayButton(&quot;Send Money&quot;) { submitPayment() }
+
+// B. Transaction sections
+NPayCard {
+    VStack(alignment: .leading, spacing: 12) {
+        // C. Section headers
+        NPaySectionHeader(title: &quot;Recent Transactions&quot;,
+                          actionTitle: &quot;View All&quot;) {
+            router.select(.history)
+        }
+        // rows
+    }
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Our integration (authored)</span><ul style="margin:6px 0 0"><li>Home: NPayButton, NPayCard + header; BalanceCard uses tokens</li><li>Review, Confirm, Back to Dashboard: NPayButton</li></ul></div></div>
+      </div>
+      <div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/home.png" alt="Home"></div><p class="shot-cap">Home</p></div>
+      <div class="step"><div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/home_dark.png" alt="Home, dark"></div><p class="shot-cap">Home, dark</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s three changes. A: primary buttons: Button with the bordered-prominent style becomes NPayButton with the same closure. B: transaction sections wrapped in NPayCard instead of hand-written padding and background. C: the NPaySectionHeader with View All. The business logic is unchanged; we improve composition and consistency.</p>
+    <span class="notes-label">SAY</span><p>Click: what we did in the complete app, flagged as ours since the text names this as its next checkpoint: on Home, Send Money is an NPayButton that selects the Payments tab, and the recent transactions sit in an NPayCard with the header; BalanceCard uses the primary and card-radius tokens; Review Payment, Confirm Demo Payment and Back to Dashboard are NPayButtons.</p>
+    <span class="notes-label">SAY</span><p>On the right, Home. Click: Home in dark mode: the balance card and buttons hold up; the transactions card background has all but disappeared, the fixed-colour issue from the last slide.</p>
+    <span class="notes-label">CONNECT</span><p>The rest of the flow.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; The payment flow, with components (integration)</p>
+  <h2>Same flow as 3.5; new buttons</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start">
+      <div style="width:165px;max-width:100%;margin:0 auto"><div class="shot" style="height:359px"><img src="img/valid.png" alt="Review Payment: NPayButton"></div><p class="shot-cap">Review Payment: NPayButton</p></div>
+      <div class="step"><div style="width:165px;max-width:100%;margin:0 auto"><div class="shot" style="height:359px"><img src="img/review.png" alt="Confirm: NPayButton"></div><p class="shot-cap">Confirm: NPayButton</p></div></div>
+      <div class="step"><div style="width:165px;max-width:100%;margin:0 auto"><div class="shot" style="height:359px"><img src="img/success.png" alt="Back to Dashboard: NPayButton"></div><p class="shot-cap">Back to Dashboard: NPayButton</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The payment flow from 3.5 with the new components: Review Payment with an icon. Click: the review sheet&rsquo;s Confirm Demo Payment. Click: the success screen&rsquo;s Back to Dashboard. The draft, review snapshot, re-validation and onDismiss navigation are exactly as before; only the buttons changed, and every one now follows the tokens.</p>
+    <span class="notes-label">CONNECT</span><p>The component catalog.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; NPay component catalog (section 21)</p>
+  <h2>General-purpose vs domain-specific</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) 170px;gap:22px;align-items:start">
+      <div><table class="tbl compact"><thead><tr><th>Component</th><th>Responsibility</th><th>Level</th></tr></thead><tbody><tr><td>NPayTheme</td><td>shared design tokens</td><td>design system</td></tr><tr><td>NPayButton</td><td>branded primary actions</td><td>design system</td></tr><tr><td>NPayCard</td><td>reusable card container</td><td>design system</td></tr><tr><td>NPaySectionHeader</td><td>consistent section headings</td><td>design system</td></tr><tr><td>NPayCardModifier</td><td>reusable card styling</td><td>design system</td></tr><tr><td>BalanceCard</td><td>domain-specific balance display</td><td>feature</td></tr><tr><td>TransactionRow</td><td>domain-specific transaction display</td><td>feature</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Two levels"><ul style="margin:6px 0 0"><li>Both reusable; different architectural levels</li><li>BalanceCard knows money; NPayCard knows only layout</li></ul></div></div>
+      <div class="step"><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:280px"><img src="img/catalog.png" alt="The catalog screen"></div><p class="shot-cap">The catalog screen</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>By the end of the lesson the design system has NPayTheme for tokens, NPayButton for primary actions, NPayCard as a container, NPaySectionHeader for headings and NPayCardModifier for card styling. BalanceCard and TransactionRow are reusable too, but domain-specific feature components.</p>
+    <span class="notes-label">SAY</span><p>Click: both are reusable, at different architectural levels: BalanceCard knows about money and formatting; NPayCard knows only layout. Click: our catalog screen shows every design-system component in one place: worth keeping in a real project, as a preview, to review changes.</p>
+    <span class="notes-label">CONNECT</span><p>Debugging components.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Debugging and experiments</h2>
+    <p class="lead">When does a component re-evaluate?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>_printChanges and the text&rsquo;s experiment list.</p>
+    <span class="notes-label">CONNECT</span><p>The probe.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; _printChanges in a component (sections 13, 22)</p>
+  <h2>The parent changed; most buttons didn&rsquo;t re-run</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayButton with the debugging line (authored lab)</span></div><pre class="cb" style="font-size:12px">var body: some View {
+    let _ = Self._printChanges()
+    Button(action: action) { /* … */ }
+}
+
+// parent: three buttons, an unrelated counter
+TracedNPayButton(title: &quot;Send Money&quot;) { print(&quot;Send tapped&quot;) }
+TracedNPayButton(title: &quot;Static&quot;) {}
+TracedNPayButton(title: &quot;Captures count&quot;) {
+    print(&quot;count is&quot;, count)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">launch: 3 &times; TracedNPayButton: @self changed.<br>Count tapped twice (screen: Count: 2)<br>&ensp;2 &times; TracedNPayButton: @self changed.<br>&ensp;(only the button whose closure captures count)</p></div></div>
+        <div class="rule step" data-label="Read it"><ul style="margin:6px 0 0"><li>New closure values that capture nothing: no re-evaluation here</li><li>A closure that captures changing state: re-evaluated</li><li>And a body run is not a full redraw</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s debugging experiment: put let _ = Self._printChanges() in a reusable component&rsquo;s body and watch when SwiftUI re-evaluates it. We used three copies of the first NPayButton in a parent with an unrelated counter: one whose action prints, one empty, one whose closure captures the counter.</p>
+    <span class="notes-label">SAY</span><p>Click: at launch, three lines, one per button. Then we tapped Count twice; the screen said Count: 2, so the parent re-evaluated twice and built new button values each time. Only two more lines appeared, both from the button whose closure captures count. The other two were not re-evaluated, even though they received brand-new closure values.</p>
+    <span class="notes-label">SAY</span><p>Click: so, on this release, SwiftUI skipped buttons whose inputs had not meaningfully changed, and re-ran the one whose closure captured changing state. That is an observation, not a contract; and as the text says, even when body runs it does not necessarily mean a full redraw.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s experiment list.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Xcode experiments (sections 13, 22)</p>
+  <h2>Every experiment, run</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Experiment</th><th>What we saw</th></tr></thead><tbody><tr><td>1. Change <code>primary</code></td><td>every NPayButton, the balance card, token-coloured text (Part 2)</td></tr><tr><td>2. Change <code>Radius.card</code></td><td>NPayCards and BalanceCard; not the modifier (Parts 2, 5)</td></tr><tr><td>3&ndash;4. NPayCard with a VStack / an HStack</td><td>both render; same card (Part 4)</td></tr><tr><td>5. Inspect inferred types</td><td><code>NPayCard&lt;VStack&lt;TupleView&lt;(Text, Text)&gt;&gt;&gt;</code> … (Part 4)</td></tr><tr><td>6. View vs modifier</td><td><code>ModifiedContent&lt;Text, NPayCardModifier&gt;</code> (Part 5)</td></tr><tr><td>7. Light and dark</td><td>fixed primary 2.9 : 1 on black; cards fade (Part 6)</td></tr><tr><td>Larger text size</td><td><code>.headline</code> 24.3 &rarr; 74.7 pt; fixed 16 pt stays 19.3 (Part 6)</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s experiments, appearing in both pieces, with our results. Changing the primary colour changed every NPayButton, the balance card and token-coloured text. Changing the card radius changed the NPayCards and the balance card, but not the modifier with its hardcoded 18. Cards with a VStack and an HStack both work. The inferred types are the TupleView-based types we printed. The modifier version is a ModifiedContent wrapper. Dark mode exposed the fixed colours. And a larger text size scaled the semantic fonts, not the fixed one.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.7 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Tokens &rarr; components &rarr; screens</b><br><span class="muted" style="font-size:19px">one change in a token reaches everything that uses it</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p style="font-size:23px"><b>Generic, not erased</b><br><span class="muted" style="font-size:19px">Content: View + @ViewBuilder; real types like TupleView</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p style="font-size:23px"><b>Adapt, don&rsquo;t just match</b><br><span class="muted" style="font-size:19px">semantic fonts and colours; disabled states; no business logic</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A design system is layers: tokens are plain Swift constants, components apply them, screens assemble components, so one token change reaches everything that uses it, and nothing that hardcodes around it. Components that take arbitrary content are generic over Content: View with @ViewBuilder, keeping the full structure in the type instead of AnyView. And a good system adapts: semantic fonts scale with Dynamic Type, semantic colours follow dark mode, components show their states, and none of them contains business logic.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is a design token?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is a design token?</p><ol class="q-opts"><li>A network authentication token</li><li>A shared visual constant</li><li>A SwiftUI thread</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>NPayTheme.Colors.primary</code>: one value many components use.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing it with auth tokens.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. <code>NPayTheme.Colors.primary</code>: one value many components use.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why NPayCard&amp;lt;Content: View&amp;gt;?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why declare <code>NPayCard&lt;Content: View&gt;</code>?</p><ol class="q-opts"><li>To create a database</li><li>To disable type checking</li><li>To accept different SwiftUI content types</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why"><code>NPayCard&lt;Text&gt;</code>, <code>NPayCard&lt;VStack&lt;…&gt;&gt;</code>: one component.</p>
+          <p class="q-trap"><b>Common trap:</b> Reaching for AnyView.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. <code>NPayCard&lt;Text&gt;</code>, <code>NPayCard&lt;VStack&lt;…&gt;&gt;</code>: one component.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does @ViewBuilder do?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>@ViewBuilder</code> do?</p><ol class="q-opts"><li>Builds composed SwiftUI view descriptions</li><li>Creates arrays of UIView objects</li><li>Starts background tasks</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Two Texts became one <code>TupleView&lt;(Text, Text)&gt;</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Picturing UIKit views.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. Two Texts became one <code>TupleView&lt;(Text, Text)&gt;</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="When is a ViewModifier appropriate?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">When is a <code>ViewModifier</code> appropriate?</p><ol class="q-opts"><li>For storing payment data</li><li>For reusable view transformations</li><li>For managing navigation paths</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A styling rule for many views: <code>npayCardStyle()</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Using modifiers for structure.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. A styling rule for many views: <code>npayCardStyle()</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Do hardcoded tokens support dark mode automatically?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Do hardcoded design tokens automatically support dark mode?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Fixed primary: 7.1 : 1 on white, 2.9 : 1 on black.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming a token is semantic.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Fixed primary: 7.1 : 1 on white, 2.9 : 1 on black.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does a custom View create a separate UIKit object?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does creating a custom SwiftUI <code>View</code> necessarily create a separate UIKit view object?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It is a view description; SwiftUI manages the platform side.</p>
+          <p class="q-trap"><b>Common trap:</b> One struct = one UIView.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It is a view description; SwiftUI manages the platform side.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should business logic live inside NPayButton?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should business logic live inside <code>NPayButton</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The caller passes the action; the store records payments.</p>
+          <p class="q-trap"><b>Common trap:</b> Making components &ldquo;smart&rdquo;.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. The caller passes the action; the store records payments.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="NPayButton(…).disabled(true): what changes?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-tap"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>NPayButton</code> (plain style, its own blue background) gets <code>.disabled(true)</code>. What do you see?</p><ol class="q-opts"><li>The whole button greys out</li><li>Only the text dims; the blue stays</li><li>It disappears</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Our Payments screen: only the label dimmed. Dim the background via <code>isEnabled</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming the system restyles custom backgrounds.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Our Payments screen: only the label dimmed. Dim the background via <code>isEnabled</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title=".font(.system(size: 16)) at the largest text size?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">&ldquo;Send Money&rdquo; in <code>.font(.system(size: 16))</code> is 19.3 pt high. The user picks the largest accessibility size. Its height?</p><ol class="q-opts"><li>19.3 pt</li><li>about 75 pt</li><li>16 pt</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Fixed sizes ignore Dynamic Type; <code>.headline</code> went to 74.7.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting every font to scale.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. Fixed sizes ignore Dynamic Type; <code>.headline</code> went to 74.7.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.6: does numericText() change the money?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 3.6: what does <code>.contentTransition(.numericText())</code> change?</p><ol class="q-opts"><li>How the balance is calculated</li><li>How the text changes on screen</li><li>The paise value stored</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Presentation only; the paise integer is untouched.</p>
+          <p class="q-trap"><b>Common trap:</b> Mixing presentation with state.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.6.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Presentation only; the paise integer is untouched.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.7 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.8</td><td><b>Adaptive layouts &amp; GeometryReader</b></td><td>iPhone sizes, orientation, Dynamic Type, the layout proposal system</td></tr><tr><td class="mono">3.9</td><td><b>Custom environment keys &amp; shared themes</b></td><td>a theme passed through the environment</td></tr><tr><td class="mono">Unit 4</td><td><b>MVVM &amp; clean architecture</b></td><td>components stay dumb; behaviour moves to view models</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.8 makes NPay adapt to different iPhone sizes, orientations and Dynamic Type, and explains SwiftUI&rsquo;s layout proposals and measurement. Lesson 3.9 adds custom environment keys and shared themes. Unit 4 keeps components free of behaviour as MVVM arrives.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.7 &middot; Lab</p>
+  <h2>An NPay design system</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Add the components; integrate; test the edges.</p><ol class="lab"><li>Add NPayTheme, NPayButton, NPayCard, NPaySectionHeader.</li><li>Replace Home&rsquo;s button and transactions section.</li><li>Print <code>type(of:)</code> for three NPayCards.</li><li>Change <code>primary</code> and <code>Radius.card</code>; rebuild.</li><li>Test dark mode and the largest text size.</li><li>Make a disabled NPayButton look disabled.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your printed NPayCard types</li><li>Light and dark screenshots of Home</li><li>Your disabled-state fix</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: NPayCard types such as NPayCard of VStack of TupleView of (Text, Text); a token change restyles every component that uses it (not the modifier with hardcoded values); dark mode exposes fixed colours; semantic fonts scale and the fixed one does not; .disabled alone only dims the label.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.7 complete</p>
+    <h2>Reusable Components &amp;<br>NPay Design System</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.8 &mdash; Adaptive Layouts, GeometryReader &amp; Responsive SwiftUI</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now organise tokens, components and screens; build components that keep styling and take actions; use generics and @ViewBuilder instead of AnyView; choose between a view and a modifier; make the system adapt to Dynamic Type, dark mode and disabled states; and keep business logic out of components.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.8: adaptive layouts, GeometryReader and responsive SwiftUI, and the layout proposal system underneath.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.4 — Sheets &amp; Alerts</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.4 — Sheets &amp; Alerts">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.4</p>
+    <h1 style="font-size:54px;line-height:1.05">Sheets, Alerts &amp;<br>Modal Presentation</h1>
+    <p class="lead" style="max-width:760px">Before NPay moves money, the user <b>reviews</b> it: a sheet over the form, one confirmation, then success, <b>after</b> the sheet has gone.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In Lesson 3.3, tapping Send Demo Payment recorded the transaction at once. A payments app should let the user check the recipient and amount first. Today: modal presentation. Sheets, full-screen covers, alerts and confirmation dialogs, presentation state and dismissal, and how to coordinate a sheet with navigation. We built the complete flow and measured the parts that can go wrong: the order of dismissal and navigation, a double tap on Confirm, and a balance that changes while the review is open.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.4 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Present a <b>sheet</b> from state, and dismiss it</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Choose: navigation, sheet, cover, alert or dialog</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></span><p>Review a payment with <code>sheet(item:)</code> and a draft</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Navigate <b>after</b> dismissal with <code>onDismiss</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Stop double confirms; re-validate at confirm time</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Know what sheet-local state and dismiss-locking really guarantee</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.4 &middot; Where we are</p>
+  <h2>Today: review before paying</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.4 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd lit"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd ghost"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd ghost"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.3: four tabs, one router, one store; payments recorded on tap.</span><span><b>Today</b>Form &rarr; review sheet &rarr; confirm &rarr; success.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.3 built NPay&rsquo;s tabs, router and store. Today the payment gets a review step presented modally. Next lesson: preserving state across navigation.</p>
+    <span class="notes-label">CONNECT</span><p>The new flow.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The milestone</h2>
+    <p class="lead">Review before you pay</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What if the recipient or amount is wrong?</p>
+    <span class="notes-label">CONNECT</span><p>The new flow.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our NPay milestone (section 1)</p>
+  <h2>Form &rarr; review &rarr; confirm &rarr; success</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1117 104" style="max-height:118px" role="img" aria-labelledby="fl">
+        <title id="fl">Payment form, review sheet, confirm, payment success</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="262" height="104" rx="14"/><use href="#i-file" x="117" y="14" width="28" height="28"/><text x="131" y="68" text-anchor="middle">Payment form</text><text class="sm" x="131" y="88" text-anchor="middle">recipient, amount</text></g>
+        <path class="wire" d="M264 52H283M276 45l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="285" y="0" width="262" height="104" rx="14"/><use href="#i-eye" x="402" y="14" width="28" height="28"/><text x="416" y="68" text-anchor="middle">Review sheet</text><text class="sm" x="416" y="88" text-anchor="middle">check the details</text></g>
+        <path class="wire" d="M549 52H568M561 45l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="570" y="0" width="262" height="104" rx="14"/><use href="#i-check" x="687" y="14" width="28" height="28"/><text x="701" y="68" text-anchor="middle">Confirm</text><text class="sm" x="701" y="88" text-anchor="middle">record once</text></g>
+        <path class="wire" d="M834 52H853M846 45l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="855" y="0" width="262" height="104" rx="14"/><use href="#i-layout" x="972" y="14" width="28" height="28"/><text x="986" y="68" text-anchor="middle">Payment Success</text><text class="sm" x="986" y="88" text-anchor="middle">the receipt</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px;gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">The challenge</span><ul style="margin:6px 0 0"><li>Show a review <b>temporarily</b></li><li>Without pushing onto the Payments stack</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Today&rsquo;s APIs</span><ul style="margin:6px 0 0"><li><code>sheet</code>, <code>fullScreenCover</code>, <code>alert</code>, <code>confirmationDialog</code></li><li>Presentation state and dismissal</li></ul></div></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/before.png" alt="3.3: records on tap"></div><p class="shot-cap">3.3: records on tap</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/review.png" alt="3.4: a review sheet"></div><p class="shot-cap">3.4: a review sheet</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Today tapping Send Demo Payment records the transaction immediately and navigates to success. If the user typed the wrong recipient or amount, it is too late. A payments app should let them review first. The flow becomes: payment form, review sheet, confirm, payment success.</p>
+    <span class="notes-label">SAY</span><p>The engineering challenge: present a review screen temporarily, without pushing another destination onto the Payments navigation stack. Click: the tools: sheet, fullScreenCover, alert, confirmationDialog, presentation state, dismissal.</p>
+    <span class="notes-label">SAY</span><p>On the left, 3.3: the button that records at once. Click: today&rsquo;s app: Review Payment opens a native sheet over the form, showing the recipient and amount.</p>
+    <span class="notes-label">CONNECT</span><p>What is a sheet?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Sheets</h2>
+    <p class="lead">Modal, temporary, state-driven</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A focused task over the current interface.</p>
+    <span class="notes-label">CONNECT</span><p>The smallest sheet.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What is a sheet? (section 2)</p>
+  <h2>A Bool presents it; dismissal writes it back</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.7fr) 150px;gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>SheetExperiment.swift</span></div><pre class="cb" style="font-size:12.5px">struct SheetExperiment: View {
+    @State private var showSheet = false
+
+    var body: some View {
+        Button(&quot;Review Payment&quot;) {
+            showSheet = true
+        }
+        .sheet(isPresented: $showSheet) {
+            Text(&quot;Payment Review&quot;)
+                .font(.title)
+                .presentationDetents([.medium, .large])
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">A sheet</span><ul style="margin:6px 0 0"><li><b>Modal</b>: over the current interface</li><li>A focused task, not a step deeper</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">onChange(of: showSheet), simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">tap Review Payment&ensp;&rarr; showSheet: true<br>swipe down&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&rarr; showSheet: false</p></div></div>
+      </div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/sheetexp.png" alt="Medium detent"></div><p class="shot-cap">Medium detent</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A sheet is a modal presentation: it appears over the current interface, typically for a focused task, without navigating permanently deeper into the stack. SwiftUI provides sheet(isPresented:content:). The text&rsquo;s minimal example: a Bool, a button that sets it to true, and a sheet modifier whose content is a Text with presentation detents.</p>
+    <span class="notes-label">SAY</span><p>Click: our run with onChange on the Bool. Tapping Review Payment set it to true and the sheet appeared. Swiping it down set it back to false: SwiftUI updated the binding when the sheet was dismissed. State-driven UI again: the Bool is the truth, in both directions.</p>
+    <span class="notes-label">SAY</span><p>Click: the sheet at its medium height, the first detent, over the button.</p>
+    <span class="notes-label">CONNECT</span><p>What happens between the tap and the sheet?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; How does .sheet() work? (section 3) &middot; conceptual</p>
+  <h2>Six stages, one presentation</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1132 120" style="max-height:140px" role="img" aria-labelledby="sp">
+        <title id="sp">Tap, state changes, SwiftUI sees the binding, content built, presented, dismissed</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="120" rx="14"/><use href="#i-tap" x="72" y="14" width="28" height="28"/><text x="86" y="84" text-anchor="middle">Tap Review</text><text class="sm" x="86" y="104" text-anchor="middle">the button action runs</text></g>
+        <path class="wire" d="M174 60H188M181 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="190" y="0" width="172" height="120" rx="14"/><use href="#i-code" x="262" y="14" width="28" height="28"/><text x="276" y="84" text-anchor="middle">State changes</text><text class="sm" x="276" y="104" text-anchor="middle">showSheet = true</text></g>
+        <path class="wire" d="M364 60H378M371 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="380" y="0" width="172" height="120" rx="14"/><use href="#i-diff" x="452" y="14" width="28" height="28"/><text x="466" y="84" text-anchor="middle">SwiftUI sees it</text><text class="sm" x="466" y="104" text-anchor="middle">the sheet modifier&rsquo;s binding</text></g>
+        <path class="wire" d="M554 60H568M561 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="570" y="0" width="172" height="120" rx="14"/><use href="#i-frame" x="642" y="14" width="28" height="28"/><text x="656" y="84" text-anchor="middle">Content built</text><text class="sm" x="656" y="104" text-anchor="middle">the sheet&rsquo;s view</text></g>
+        <path class="wire" d="M744 60H758M751 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="760" y="0" width="172" height="120" rx="14"/><use href="#i-layers" x="832" y="14" width="28" height="28"/><text x="846" y="84" text-anchor="middle">Presented</text><text class="sm" x="846" y="104" text-anchor="middle">over the current UI</text></g>
+        <path class="wire" d="M934 60H948M941 53l7 7-7 7"/>
+        <g class="nd" data-lit="6"><rect class="sh" x="950" y="0" width="172" height="120" rx="14"/><use href="#i-eye" x="1022" y="14" width="28" height="28"/><text x="1036" y="84" text-anchor="middle">Dismissed later</text><text class="sm" x="1036" y="104" text-anchor="middle">binding back to false</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="card accent"><span class="label">Not a new app</span><ul style="margin:6px 0 0"><li>A presentation <b>inside</b> the running app</li><li>Our run: still <b>1</b> window with the sheet up</li></ul></div>
+      <p class="small muted" style="margin:0">Conceptual presentation flow. SwiftUI&rsquo;s internal presentation-controller implementation is not part of its public contract.</p>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Only stage 1 came with the text; stages 2 to 6 are our conceptual outline. Click: the user taps Review; the button action runs. Click: it changes state, showSheet becomes true. Click: SwiftUI notices the change through the sheet modifier&rsquo;s binding. Click: it builds the sheet&rsquo;s content. Click: it presents it over the current interface. Click: later, a dismissal sets the binding back to false.</p>
+    <span class="notes-label">SAY</span><p>Important distinction: a sheet is not a new iOS process; it is a presentation inside the running app. Our run counted the app&rsquo;s windows with the sheet up: still one. That is what we observed, not a promise; the text&rsquo;s caption applies: the internal presentation machinery is not part of the public contract.</p>
+    <span class="notes-label">CONNECT</span><p>We now have two ways to show another screen.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Sheet versus NavigationStack (section 4)</p>
+  <h2>Deeper, or temporary?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:24px;align-items:start">
+      <table class="tbl"><thead><tr><th>NavigationStack</th><th>Sheet</th></tr></thead><tbody><tr><td>Pushes a navigation destination</td><td>Presents modal content</td></tr><tr><td>Hierarchical navigation</td><td>Focused temporary tasks</td></tr><tr><td>Back navigation</td><td>Dismissal</td></tr><tr><td>Managed by the navigation path</td><td>Managed by presentation state</td></tr><tr><td>History &rarr; Transaction Detail</td><td>Payment &rarr; Review</td></tr></tbody></table>
+      <div class="rule step" data-label="Every screen a sheet? No"><ul style="margin:6px 0 0"><li>Moving <b>deeper</b>: a navigation destination</li><li>A <b>temporary</b>, focused task: a sheet</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two ways to show another screen. A NavigationStack pushes a destination; a sheet presents modal content. Navigation is for hierarchies, sheets for focused temporary tasks. You leave a pushed screen with Back, a sheet by dismissal. Navigation is managed by the path, a sheet by presentation state. History to Transaction Detail is navigation; Payment to Review is a sheet.</p>
+    <span class="notes-label">SAY</span><p>Click: so should every new screen be a sheet? No. Use a navigation destination when the user is moving deeper into a hierarchy; use a sheet when they are doing a temporary, focused interaction and will come back to where they were.</p>
+    <span class="notes-label">CONNECT</span><p>How does a sheet close itself?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Dismissal and detents</h2>
+    <p class="lead">Closing and sizing a sheet</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>An environment action, and the heights a sheet allows.</p>
+    <span class="notes-label">CONNECT</span><p>dismiss.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; How dismissal works (section 5)</p>
+  <h2><code>dismiss()</code> asks; it changes no business state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 140px;gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Dismissing from inside</span></div><pre class="cb" style="font-size:12px">struct ReviewSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(&quot;Review Payment&quot;)
+
+            Button(&quot;Cancel&quot;) {
+                dismiss()
+            }
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">What happens</span><ul style="margin:6px 0 0"><li><code>dismiss</code> comes from the <b>environment</b> (as in 2.6)</li><li>Calling it requests dismissal</li><li>The parent&rsquo;s data is untouched</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">NPay: Edit Details calls dismiss()</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">recipient "ravi@npay", amount "1500.50"</p></div></div>
+      </div>
+      <div class="step"><div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/edit.png" alt="Back on the form"></div><p class="shot-cap">Back on the form</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Inside a sheet, SwiftUI provides an environment action, dismiss. The sheet reads it with @Environment and calls it from Cancel. Calling dismiss requests dismissal of the current presentation; it does not directly modify the parent&rsquo;s business state. We used the same action in 3.1 to pop a pushed screen.</p>
+    <span class="notes-label">SAY</span><p>Connect to Unit 2: environment values propagate to descendants, like fonts in Lesson 2.6. Dismissal is one such contextual capability.</p>
+    <span class="notes-label">SAY</span><p>Click: in NPay, the review sheet&rsquo;s Edit Details calls dismiss. Our run: back on the form, both fields still hold ravi@npay and 1500.50: the draft lives in PaymentsScreen, not in the sheet. Click: the screenshot.</p>
+    <span class="notes-label">CONNECT</span><p>How tall is a sheet?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; presentationDetents: sheet height (section 6)</p>
+  <h2>Medium, large, or both</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 150px;gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Detents on the sheet&rsquo;s content</span></div><pre class="cb" style="font-size:14px">.sheet(isPresented: $showSheet) {
+    ReviewSheet()
+        .presentationDetents([
+            .medium,
+            .large
+        ])
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Detents</span><ul style="margin:6px 0 0"><li>The heights the sheet can rest at</li><li>First one listed: the starting height</li><li>The user drags between them</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Approximate</span><ul style="margin:6px 0 0"><li>Real size depends on device, orientation and presentation</li></ul></div></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/review.png" alt="NPay review: medium"></div><p class="shot-cap">NPay review: medium</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>presentationDetents configures the sizes a sheet supports. Note where it goes: on the sheet&rsquo;s content, not on the button that presents it. With medium and large, the sheet opens at medium, the first listed, and the user can drag it up to large.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s widget showed approximate heights; real dimensions depend on the device, orientation and presentation environment. On the right, NPay&rsquo;s review sheet at medium on an iPhone 17, with the form still visible above it.</p>
+    <span class="notes-label">CONNECT</span><p>Three more presentations.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Covers, alerts, dialogs</h2>
+    <p class="lead">Three more modal tools</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Each fits a different kind of interruption.</p>
+    <span class="notes-label">CONNECT</span><p>Full-screen cover.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; fullScreenCover and alert (sections 7&ndash;8)</p>
+  <h2>The whole screen, or one decision</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 125px minmax(0,1.1fr) 125px;gap:16px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>fullScreenCover</span></div><pre class="cb" style="font-size:11.5px">@State private var showFullScreen = false
+
+.fullScreenCover(isPresented: $showFullScreen) {
+    Text(&quot;Full Screen Payment Flow&quot;)
+}</pre></div>
+        <div class="card accent"><span class="label">Use for</span><ul style="margin:6px 0 0"><li>Immersive flows: onboarding, sign-in</li><li>Not our review: a sheet fits</li></ul></div>
+      </div>
+      <div style="width:125px;max-width:100%;margin:0 auto"><div class="shot" style="height:272px"><img src="img/cover.png" alt="Full screen"></div><p class="shot-cap">Full screen</p></div>
+      <div class="step" style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>alert</span></div><pre class="cb" style="font-size:11px">Button(&quot;Delete Draft&quot;) {
+    showAlert = true
+}
+.alert(&quot;Delete payment draft?&quot;, isPresented: $showAlert) {
+    Button(&quot;Delete&quot;, role: .destructive) {
+        print(&quot;Draft deleted&quot;)
+    }
+    Button(&quot;Cancel&quot;, role: .cancel) {}
+} message: {
+    Text(&quot;This action cannot be undone.&quot;)
+}</pre></div>
+        <div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">tap Delete &rarr; Draft deleted</p></div>
+      </div>
+      <div class="step"><div style="width:125px;max-width:100%;margin:0 auto"><div class="shot" style="height:272px"><img src="img/alert.png" alt="Alert"></div><p class="shot-cap">Alert</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>fullScreenCover presents content over the entire interface, with the same isPresented binding as a sheet. Useful when the presented experience should take the whole screen: onboarding, or a focused authentication flow. Our payment review is better as a sheet, which keeps the context visible. The screenshot: the cover fills the screen; no tab bar, no form.</p>
+    <span class="notes-label">SAY</span><p>Click: alert presents important information or asks for a simple decision. The text&rsquo;s example: Delete payment draft?, a destructive Delete, a Cancel, and a message. Roles matter: the system styles Delete in red and treats Cancel as the cancel action. Our run: tapping Delete printed "Draft deleted". Alerts are for concise, important messages, never complex forms.</p>
+    <span class="notes-label">CONNECT</span><p>A set of related actions: a confirmation dialog.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; confirmationDialog, and which to use (section 9)</p>
+  <h2>Related actions; then the whole menu</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 130px minmax(0,1fr);gap:18px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>confirmationDialog</span></div><pre class="cb" style="font-size:11.5px">Button(&quot;Payment Options&quot;) {
+    showOptions = true
+}
+.confirmationDialog(
+    &quot;Choose an action&quot;,
+    isPresented: $showOptions
+) {
+    Button(&quot;Save Draft&quot;) {
+        print(&quot;Draft saved&quot;)
+    }
+    Button(&quot;Discard&quot;, role: .destructive) {
+        print(&quot;Draft discarded&quot;)
+    }
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">actions: Save Draft, Discard, Cancel<br>tap Save Draft &rarr; Draft saved</p></div></div>
+      </div>
+      <div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/dialog.png" alt="Dialog"></div><p class="shot-cap">Dialog</p></div>
+      <div class="step"><table class="tbl"><thead><tr><th>API</th><th>Best suited for</th></tr></thead><tbody><tr><td><code>.sheet()</code></td><td>Custom temporary workflows</td></tr><tr><td><code>.fullScreenCover()</code></td><td>Immersive modal experiences</td></tr><tr><td><code>.alert()</code></td><td>Important messages or simple confirmations</td></tr><tr><td><code>.confirmationDialog()</code></td><td>Choosing among related actions</td></tr></tbody></table></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>confirmationDialog presents a set of related actions. Same shape: a title, a binding, and buttons. Click: our run listed three actions, Save Draft, Discard and Cancel: we wrote only two; the system added Cancel. Tapping Save Draft printed "Draft saved". On iPhone it appears anchored near the button, as in the screenshot.</p>
+    <span class="notes-label">SAY</span><p>Click: the summary. sheet: custom temporary workflows. fullScreenCover: immersive modal experiences. alert: important messages or simple confirmations. confirmationDialog: choosing among related actions.</p>
+    <span class="notes-label">CONNECT</span><p>Now NPay&rsquo;s review sheet.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>NPay&rsquo;s review sheet</h2>
+    <p class="lead">Validate, review, confirm</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two steps instead of one.</p>
+    <span class="notes-label">CONNECT</span><p>A draft model.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; A review model and sheet(item:) (section 10)</p>
+  <h2>The optional item <b>is</b> the presentation</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentDraft + sheet(item:)</span></div><pre class="cb" style="font-size:13px">struct PaymentDraft: Identifiable {
+    let id = UUID()
+    let recipient: String
+    let amountPaise: Int
+}
+
+@State private var reviewDraft: PaymentDraft?
+
+.sheet(item: $reviewDraft) { draft in
+    PaymentReviewSheet(draft: draft)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Two steps</span><ul style="margin:6px 0 0"><li>1. Validate, then <b>present</b> a review</li><li>2. Confirm, then <b>execute</b> the demo payment</li></ul></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th><code>reviewDraft</code></th><th>Screen</th></tr></thead><tbody><tr><td><code>nil</code></td><td>no sheet</td></tr><tr><td>a draft</td><td>sheet presented, showing <b>that</b> draft</td></tr></tbody></table></div>
+        <div class="step"><div class="card accent"><span class="label">Why item, not a Bool</span><ul style="margin:6px 0 0"><li>One value: whether to show <b>and</b> what to show</li><li>No Bool and optional to keep in sync</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In PaymentsScreen, submitting used to call store.recordDemoPayment directly. Now two steps: validate and present a review; then confirm and execute. The review needs a model: PaymentDraft, a recipient and an amount in paise, Identifiable with its own UUID.</p>
+    <span class="notes-label">SAY</span><p>Identifiable because SwiftUI has an item-based sheet API. Click: the optional draft is the presentation state: nil means no sheet; a draft means the sheet is presented, showing that draft, which the content closure receives.</p>
+    <span class="notes-label">SAY</span><p>Click: why not a Bool plus a separate optional draft? Two pieces of state can disagree: a sheet with no draft, or a draft with no sheet. One optional cannot.</p>
+    <span class="notes-label">CONNECT</span><p>The sheet itself.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Build the PaymentReviewSheet (section 11)</p>
+  <h2>Shows a draft; exposes one action</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.55fr) 150px;gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>Screens/PaymentReviewSheet.swift (text)</span></div><pre class="cb" style="font-size:11.5px">struct PaymentReviewSheet: View {
+    let draft: PaymentDraft
+    let onConfirm: () -&gt; Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text(&quot;Review Payment&quot;)
+                .font(.title.bold())
+            LabeledContent(&quot;Recipient&quot;, value: draft.recipient)
+            LabeledContent(&quot;Amount&quot;,
+                           value: Money.display(draft.amountPaise))
+            Button(&quot;Confirm Demo Payment&quot;) { onConfirm() }
+                .buttonStyle(.borderedProminent)
+            Button(&quot;Edit Details&quot;) { dismiss() }
+                .buttonStyle(.bordered)
+        }
+        .padding()
+        .presentationDetents([.medium, .large])
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Owns</span><ul style="margin:6px 0 0"><li>Nothing but presentation</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Doesn&rsquo;t own</span><ul style="margin:6px 0 0"><li>The balance or history</li><li>The payment operation</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">The parent</span><ul style="margin:6px 0 0"><li>Performs the demo payment</li></ul></div></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/review.png" alt="In the simulator"></div><p class="shot-cap">In the simulator</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentReviewSheet.swift: a title, the recipient and the amount as LabeledContent rows, a prominent Confirm Demo Payment button that calls onConfirm, and Edit Details that dismisses. Detents medium and large on the content.</p>
+    <span class="notes-label">SAY</span><p>The important architectural detail. Click: it owns nothing but presentation. Click: it does not own the balance, the history, or the payment operation; it displays a draft and exposes a confirmation action. Click: the parent remains responsible for the demo operation, the pattern of onSend in 2.12 and onDone in 3.2.</p>
+    <span class="notes-label">CONNECT</span><p>Wire it into PaymentsScreen.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Connect the sheet to PaymentsScreen (section 12)</p>
+  <h2>First version: dismiss and navigate together</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentsScreen (section 12)</span></div><pre class="cb" style="font-size:12px">// PaymentsScreen
+@State private var reviewDraft: PaymentDraft?
+
+// Review Payment, when the form is valid
+reviewDraft = PaymentDraft(recipient: recipient,
+                           amountPaise: amountPaise)
+
+.sheet(item: $reviewDraft) { draft in
+    PaymentReviewSheet(draft: draft) {
+        if let transactionID = store.recordDemoPayment(
+            recipient: draft.recipient,
+            amountPaise: draft.amountPaise) {
+            reviewDraft = nil
+            router.showPaymentSuccess(transactionID)
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">The flow</span><ul style="margin:6px 0 0"><li>Valid form &rarr; <code>reviewDraft</code> set &rarr; sheet</li><li>Confirm &rarr; store records &rarr; ID</li><li><code>reviewDraft = nil</code> and <b>push success</b></li></ul></div>
+        <div class="warn step" data-label="One nuance"><ul style="margin:6px 0 0"><li>Dismissing a sheet and pushing in the <b>same</b> update</li><li>Not guaranteed to transition as you want</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentsScreen gets the reviewDraft state. When the form is valid and the user taps Review Payment, it creates a draft from the recipient and the parsed amount. The sheet modifier passes that draft to PaymentReviewSheet, with a trailing closure for onConfirm: record the payment in the store; with the returned ID, set reviewDraft to nil to dismiss, and ask the router to show success.</p>
+    <span class="notes-label">SAY</span><p>Click: the nuance the text raises. That closure dismisses a sheet and pushes a navigation destination in the same synchronous update. We should not assume that always produces the transition we want. The fix uses the sheet&rsquo;s onDismiss callback, which is Part 6, where we also measure what this version does.</p>
+    <span class="notes-label">CONNECT</span><p>Two kinds of UI state are now in play.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Dismiss, then navigate</h2>
+    <p class="lead">Two state machines, coordinated</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Navigation in the router; presentation in the screen.</p>
+    <span class="notes-label">CONNECT</span><p>Two machines.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Two independent state machines (section 13)</p>
+  <h2>Where the user is; what is presented</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 880 200" style="max-height:220px" role="img" aria-labelledby="two">
+        <title id="two">Navigation state in the router and presentation state in the payment screen</title>
+        <rect class="sh" x="0" y="0" width="420" height="200" rx="16" style="fill:none;stroke-dasharray:6 5"/>
+        <text class="sm" x="16" y="24">Navigation &middot; NPayRouter.paymentsPath</text>
+        <g class="nd"><rect class="sh" x="20" y="44" width="170" height="52" rx="12"/><text x="36" y="67">Payment</text><text class="sm" x="36" y="85">[]</text></g>
+        <path class="wire" d="M192 70H226M219 63l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="230" y="44" width="170" height="52" rx="12"/><text x="246" y="67">Success</text><text class="sm" x="246" y="85">[.paymentSuccess]</text></g>
+        <rect class="sh" x="460" y="0" width="420" height="200" rx="16" style="fill:none;stroke-dasharray:6 5"/>
+        <text class="sm" x="476" y="24">Presentation &middot; PaymentsScreen.reviewDraft</text>
+        <g class="nd"><rect class="sh" x="480" y="44" width="170" height="52" rx="12"/><text x="496" y="67">No sheet</text><text class="sm" x="496" y="85">nil</text></g>
+        <path class="wire" d="M652 70H686M679 63l7 7-7 7"/>
+        <g class="nd lit"><rect class="sh" x="690" y="44" width="170" height="52" rx="12"/><text x="706" y="67">Review sheet</text><text class="sm" x="706" y="85">a draft</text></g>
+        <text class="sm" x="440" y="160" text-anchor="middle">NPayStore: the demo transaction data</text>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:18px">
+      <div class="card accent"><span class="label">Router</span><ul style="margin:6px 0 0"><li>Navigation destinations</li></ul></div>
+      <div class="step"><div class="card accent"><span class="label">PaymentsScreen</span><ul style="margin:6px 0 0"><li>Temporary presentation state</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">Store</span><ul style="margin:6px 0 0"><li>The demo transaction data</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay now has two related but distinct UI mechanisms. Navigation: the router&rsquo;s payments path, empty on the form, one success route after a payment. Presentation: PaymentsScreen&rsquo;s reviewDraft, nil for no sheet, a draft for the review sheet.</p>
+    <span class="notes-label">SAY</span><p>The router manages navigation destinations. Click: the payment screen manages temporary presentation state. Click: the store manages the demo transaction data. Three owners, three jobs; keeping them separate makes the app easier to reason about, and it is why "dismiss, then navigate" is a coordination problem between two machines.</p>
+    <span class="notes-label">CONNECT</span><p>Measure the two orders.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Better: navigate in onDismiss (section 15)</p>
+  <h2>Remember the ID; push when the sheet is gone</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentsScreen (section 15)</span></div><pre class="cb" style="font-size:12px">@State private var reviewDraft: PaymentDraft?
+@State private var pendingSuccessID: UUID?
+
+.sheet(item: $reviewDraft, onDismiss: {
+    guard let id = pendingSuccessID else { return }
+    pendingSuccessID = nil
+    router.showPaymentSuccess(id)
+}) { draft in
+    PaymentReviewSheet(draft: draft) {
+        if let id = store.recordDemoPayment(
+            recipient: draft.recipient,
+            amountPaise: draft.amountPaise) {
+            pendingSuccessID = id
+            reviewDraft = nil
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Section 12: dismiss + push together</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">t=&ensp;&ensp;9 ms&ensp;sheet shown, paymentsPath 1<br>t=567 ms&ensp;sheet gone,&ensp;paymentsPath 1</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Section 15: onDismiss</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">t=&ensp;&ensp;8 ms&ensp;sheet shown, paymentsPath 0<br>t=588 ms&ensp;sheet gone,&ensp;paymentsPath 1</p></div></div>
+        <div class="rule step" data-label="Read it"><ul style="margin:6px 0 0"><li>Same update: the push happened <b>behind</b> the sheet</li><li>onDismiss: the path changed only once the sheet was gone</li><li>Both reached Success here; only one is ordered by design</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The better approach: a pending transaction ID. Confirm records the payment, stores the ID in pendingSuccessID, and sets reviewDraft to nil. The navigation happens in the sheet&rsquo;s onDismiss callback: if there is a pending ID, clear it and ask the router to show success. We no longer request navigation in the same update as the dismissal.</p>
+    <span class="notes-label">SAY</span><p>We measured both, polling every 10 milliseconds after Confirm. Click: the Section 12 version: at 9 ms the sheet is still on screen and the payments path already holds the success route: the push happened behind the sheet. At 567 ms the sheet is gone. Click: the onDismiss version: at 8 ms the sheet is up and the path is still empty; when the sheet is gone, the path holds the success route.</p>
+    <span class="notes-label">SAY</span><p>Click: honestly read: on iOS 26.5 both versions ended on the success screen. The difference is that onDismiss orders the two transitions by design, instead of depending on how this release happens to handle a push behind a sheet.</p>
+    <span class="notes-label">CONNECT</span><p>The coordinated transition, stage by stage.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Coordinated payment transition (section 15) &middot; conceptual</p>
+  <h2>Six stages, in order</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1132 120" style="max-height:140px" role="img" aria-labelledby="ct">
+        <title id="ct">Confirm tapped, store records, ID pending, draft cleared, sheet dismissed, router pushes success</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="120" rx="14"/><use href="#i-tap" x="72" y="14" width="28" height="28"/><text x="86" y="84" text-anchor="middle">Confirm tapped</text><text class="sm" x="86" y="104" text-anchor="middle">the sheet calls onConfirm</text></g>
+        <path class="wire" d="M174 60H188M181 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="190" y="0" width="172" height="120" rx="14"/><use href="#i-db" x="262" y="14" width="28" height="28"/><text x="276" y="84" text-anchor="middle">Store records</text><text class="sm" x="276" y="104" text-anchor="middle">returns an ID</text></g>
+        <path class="wire" d="M364 60H378M371 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="380" y="0" width="172" height="120" rx="14"/><use href="#i-key" x="452" y="14" width="28" height="28"/><text x="466" y="84" text-anchor="middle">ID pending</text><text class="sm" x="466" y="104" text-anchor="middle">pendingSuccessID = id</text></g>
+        <path class="wire" d="M554 60H568M561 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="570" y="0" width="172" height="120" rx="14"/><use href="#i-diff" x="642" y="14" width="28" height="28"/><text x="656" y="84" text-anchor="middle">Draft cleared</text><text class="sm" x="656" y="104" text-anchor="middle">reviewDraft = nil</text></g>
+        <path class="wire" d="M744 60H758M751 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="760" y="0" width="172" height="120" rx="14"/><use href="#i-eye" x="832" y="14" width="28" height="28"/><text x="846" y="84" text-anchor="middle">Sheet dismissed</text><text class="sm" x="846" y="104" text-anchor="middle">onDismiss runs</text></g>
+        <path class="wire" d="M934 60H948M941 53l7 7-7 7"/>
+        <g class="nd" data-lit="6"><rect class="sh" x="950" y="0" width="172" height="120" rx="14"/><use href="#i-layers" x="1022" y="14" width="28" height="28"/><text x="1036" y="84" text-anchor="middle">Router pushes</text><text class="sm" x="1036" y="104" text-anchor="middle">Payment Success</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="warn step" data-label="Not a delay"><ul style="margin:6px 0 0"><li><code>DispatchQueue.main.asyncAfter</code> to wait for an animation: <b>fragile</b></li><li>Coordinate with the presentation lifecycle</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Only stage 1 came with the text; the rest is our conceptual outline of the code we just ran. Click: Confirm is tapped; the sheet calls its confirmation closure. Click: the store validates and records, returning an ID. Click: the screen keeps it as pending. Click: it clears reviewDraft, which requests dismissal. Click: when the sheet has gone, onDismiss runs. Click: and only then does the router push Payment Success.</p>
+    <span class="notes-label">SAY</span><p>Click: the senior-engineer insight from the text: coordinate a UI transition with the relevant presentation lifecycle, not with arbitrary delays like asyncAfter. A fixed delay guesses how long an animation takes; it breaks with a different device, accessibility settings, or the next release.</p>
+    <span class="notes-label">CONNECT</span><p>Now the money: what if Confirm runs twice?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Safety in the sheet</h2>
+    <p class="lead">Once, valid, and honest</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Double taps, stale validation, local state, dismiss-locking.</p>
+    <span class="notes-label">CONNECT</span><p>Double taps.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Why confirmation must be idempotent (section 16)</p>
+  <h2>Two taps, two payments</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Confirm activated twice, back to back (simulator)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">without isProcessing: transactions 3 &rarr; 5, balance ₹21,999.00<br>with isProcessing:&ensp;&ensp;&ensp;transactions 3 &rarr; 4, balance ₹23,499.50</p></div>
+        <div class="step"><div class="cw"><div class="ch"><span>UI protection (section 16)</span></div><pre class="cb" style="font-size:13px">@State private var isProcessing = false
+
+Button(&quot;Confirm Demo Payment&quot;) {
+    guard !isProcessing else { return }
+    isProcessing = true
+    onConfirm()
+}
+.disabled(isProcessing)</pre></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><table class="tbl"><thead><tr><th>Idea</th><th>Means</th></tr></thead><tbody><tr><td>UI protection</td><td>stop repeated taps while processing</td></tr><tr><td>Business idempotency</td><td>one logical request applied <b>once</b></td></tr></tbody></table></div>
+        <div class="warn step" data-label="Not enough"><ul style="margin:6px 0 0"><li>A disabled button protects <b>this</b> view instance</li><li>It is not durable idempotency</li></ul></div>
+        <div class="rule step" data-label="Production"><ul style="margin:6px 0 0"><li>Server-enforced: a stable request ID, authoritative handling</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What if the user taps Confirm twice? We tested it: two activations back to back, before SwiftUI could dismiss the sheet. Without a guard, a confirm button that records the payment ran twice: two transactions, and the balance dropped by ₹3,001, to ₹21,999.00. With the guard, one transaction, ₹23,499.50.</p>
+    <span class="notes-label">SAY</span><p>Click: the guard from the text: an isProcessing state; the action returns early if it is set, sets it, then confirms; and the button is disabled while processing. Our complete code uses it.</p>
+    <span class="notes-label">SAY</span><p>Click: two different ideas. UI protection prevents repeated taps while processing. Business idempotency ensures the same logical payment request cannot be applied more than once, anywhere. Click: a disabled button helps within this view instance, but it is not durable idempotency: a new sheet, a retry after a crash, or a second device are not covered. Click: a real payment API enforces idempotency on the server, with a stable request identifier and authoritative transaction handling. Our demo only models the idea locally.</p>
+    <span class="notes-label">CONNECT</span><p>And if the balance changes while the review is open?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Validate again at confirm time (section 14)</p>
+  <h2>The review was valid; the payment isn&rsquo;t</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.9fr) 150px;gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Experiment</span><ul style="margin:6px 0 0"><li>Review ₹1,500.50 (balance ₹25,000)</li><li>While the sheet is open: balance &rarr; <b>₹1,000</b></li><li>Tap Confirm</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">transactions: 3 (unchanged), paymentsPath: 0<br>alert: Payment not recorded<br>&ensp;The amount is no longer within your available balance.</p></div></div>
+      </div>
+      <div class="step"><div class="card accent"><span class="label">Why it held</span><ul style="margin:6px 0 0"><li><code>recordDemoPayment</code> checks again: <code>amountPaise &lt;= balancePaise</code></li><li><code>nil</code> &rarr; no payment, no navigation</li><li>Our onDismiss shows an alert (authored)</li></ul></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/failure.png" alt="Rejected at confirm"></div><p class="shot-cap">Rejected at confirm</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The experiment the text calls particularly important: change the balance while a review is pending. We opened the review for ₹1,500.50 against ₹25,000, then, with the sheet still up, set the balance to ₹1,000 and tapped Confirm.</p>
+    <span class="notes-label">SAY</span><p>Click: nothing was recorded and nothing was pushed. Click: the reason: the store validates again inside recordDemoPayment; the earlier validation result, from when the form was filled, is not trusted. It returned nil. Our complete code then remembers the failure and, in onDismiss, shows an alert, the same coordination as success. That alert is ours; the text only requires the re-validation.</p>
+    <span class="notes-label">SAY</span><p>Click: the screenshot: the form behind it now says the amount is invalid, because the balance dropped.</p>
+    <span class="notes-label">CONNECT</span><p>What happens to state inside the sheet itself?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Sheet-local @State, and where the draft lives (section 17)</p>
+  <h2>The sheet&rsquo;s state resets; the draft must not</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>Inside the sheet</span></div><pre class="cb" style="font-size:14px">@State private var showDetails = false</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator: present, Show Details, close, present</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">presented:&ensp;&ensp;&ensp;&ensp;&ensp;Details expanded<br>presented again: Details collapsed</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">Why</span><ul style="margin:6px 0 0"><li>State belongs to the sheet&rsquo;s view <b>identity</b></li><li>A new presentation, a new identity: it resets (as 3.1&rsquo;s counter)</li></ul></div></div>
+        <div class="rule step" data-label="The draft"><ul style="margin:6px 0 0"><li>Belongs to the payment <b>flow</b>, not the sheet</li><li>Keep it in PaymentsScreen or another owner (3.5)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Suppose the review sheet had its own @State, showDetails. SwiftUI associates that state with the sheet&rsquo;s view identity. Click: our run: present, expand the details, close, present again: collapsed. The state reset with the new presentation, exactly like the counter on a re-pushed screen in 3.1.</p>
+    <span class="notes-label">SAY</span><p>Click: that is fine for showDetails. Click: it is not fine for the payment draft. The draft belongs to the payment flow: when the user dismisses the review to edit, the recipient and amount must still be there. That is why they live in PaymentsScreen, as the Edit Details run showed, or in another owner whose lifetime covers the editing workflow. Lesson 3.5 goes deeper.</p>
+    <span class="notes-label">CONNECT</span><p>Can we stop the user from swiping the sheet away?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Prevent accidental dismissal (section 18)</p>
+  <h2>Lock the swipe while processing; promise nothing more</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>PaymentReviewSheet (our placement)</span></div><pre class="cb" style="font-size:13.5px">.presentationDetents([.medium, .large])
+.interactiveDismissDisabled(isProcessing)</pre></div>
+        <div class="card accent"><span class="label">What it does</span><ul style="margin:6px 0 0"><li>No swipe-to-dismiss while <code>isProcessing</code></li><li>Where supported</li></ul></div>
+      </div>
+      <div class="warn step" data-label="Not a guarantee"><ul style="margin:6px 0 0"><li>The sheet can still go away: app lifecycle, system behaviour</li><li>Never a security or transaction guarantee</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>For some workflows we want to prevent swipe-to-dismiss. SwiftUI provides interactiveDismissDisabled. The text applies it from the parent with an isProcessing flag; our complete code keeps isProcessing inside the sheet, from Section 16, so it applies the modifier there, on the sheet&rsquo;s content. While processing, the swipe-down does nothing, where supported.</p>
+    <span class="notes-label">SAY</span><p>Click: the nuance: it does not guarantee the presentation can never be dismissed. App lifecycle changes and other system behaviour still exist. Do not use modal presentation state as a security or transaction guarantee; that belongs to the store, and in production to the server.</p>
+    <span class="notes-label">CONNECT</span><p>The complete 3.4 app.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>NPay after Lesson 3.4</h2>
+    <p class="lead">The complete review flow</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One sheet, one confirmation, one transaction.</p>
+    <span class="notes-label">CONNECT</span><p>Architecture.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; How presentation relates to the view hierarchy (section 19)</p>
+  <h2>A modifier describes a conditional presentation</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 520 202" style="max-height:230px" role="img" aria-labelledby="mod">
+        <title id="mod">PaymentsScreen owns reviewDraft; nil means no sheet; a draft presents PaymentReviewSheet</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="520" height="54" rx="12"/><use href="#i-file" x="14" y="14" width="26" height="26"/><text x="52" y="24">PaymentsScreen</text><text class="sm" x="52" y="42">owns input and presentation state</text></g>
+        <path class="wire" d="M260 56V70M253 63l7 7 7-7"/>
+        <g class="nd lit"><rect class="sh" x="0" y="74" width="520" height="54" rx="12"/><use href="#i-code" x="14" y="88" width="26" height="26"/><text x="52" y="98">reviewDraft: PaymentDraft?</text><text class="sm" x="52" y="116">nil &rarr; no sheet &middot; non-nil &rarr; sheet presented</text></g>
+        <path class="wire" d="M260 130V144M253 137l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="148" width="520" height="54" rx="12"/><use href="#i-eye" x="14" y="162" width="26" height="26"/><text x="52" y="172">PaymentReviewSheet</text><text class="sm" x="52" y="190">temporary modal presentation</text></g>
+      </svg>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">The modifier</span><ul style="margin:6px 0 0"><li>Declared on a view: <code>.sheet(item: $reviewDraft)</code></li><li>Non-nil &rarr; SwiftUI presents; nil &rarr; it dismisses</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">A new UIWindow per sheet?</span><ul style="margin:6px 0 0"><li>No such guarantee in the public API</li><li>Implementation is private and may change</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A sheet is declared as a modifier on a view. The modifier describes a conditional presentation relationship: when the bound item becomes non-nil, SwiftUI coordinates presentation; when it becomes nil, SwiftUI coordinates dismissal. In NPay, PaymentsScreen owns its input and the reviewDraft; the review sheet is a temporary presentation of it.</p>
+    <span class="notes-label">SAY</span><p>Click: does sheet always create a new UIWindow? No such guarantee exists in the public SwiftUI API. SwiftUI coordinates presentation through platform infrastructure, and its private implementation may change. Our window count of one is an observation, not a contract.</p>
+    <span class="notes-label">CONNECT</span><p>The complete PaymentsScreen.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; PaymentsScreen, complete (complete code, authored)</p>
+  <h2>Success and failure both wait for dismissal</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Screens/PaymentsScreen.swift (presentation)</span></div><pre class="cb" style="font-size:11px">.sheet(item: $reviewDraft, onDismiss: {
+    if let id = pendingSuccessID {
+        pendingSuccessID = nil
+        recipient = &quot;&quot;
+        amountText = &quot;&quot;
+        router.showPaymentSuccess(id)
+    } else if paymentFailed {
+        paymentFailed = false
+        showFailure = true
+    }
+}) { draft in
+    PaymentReviewSheet(draft: draft) {
+        // the store validates again
+        if let id = store.recordDemoPayment(
+            recipient: draft.recipient,
+            amountPaise: draft.amountPaise) {
+            pendingSuccessID = id
+        } else {
+            paymentFailed = true
+        }
+        reviewDraft = nil
+    }
+}
+.alert(&quot;Payment not recorded&quot;, isPresented: $showFailure) {
+    Button(&quot;OK&quot;, role: .cancel) {}
+} message: {
+    Text(&quot;The amount is no longer within your available balance.&quot;)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">From the text</span><ul style="margin:6px 0 0"><li><code>reviewDraft</code>, <code>pendingSuccessID</code>, <code>onDismiss</code></li><li><code>isProcessing</code> and <code>interactiveDismissDisabled</code> in the sheet</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Ours (authored)</span><ul style="margin:6px 0 0"><li>Clear the form on success</li><li>Failure: a flag, then an alert after dismissal</li><li><code>focusedField = nil</code> before review</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text described a ZIP of the complete code that we did not receive, so we assembled it from the text&rsquo;s sections on top of 3.3; it is in the lesson text file and ran unchanged in the simulator. The presentation part of PaymentsScreen: the sheet with onDismiss, and the confirmation closure.</p>
+    <span class="notes-label">SAY</span><p>From the text: reviewDraft, the pending success ID and navigation in onDismiss; in the sheet, the isProcessing guard and interactiveDismissDisabled. Click: our additions: on success the form is cleared, since the tab stays alive; on failure, a flag set during confirm and an alert shown in onDismiss, so even the error waits for the sheet to go; and the keyboard is dismissed before the review opens.</p>
+    <span class="notes-label">CONNECT</span><p>Run it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; The flow, run (complete code)</p>
+  <h2>₹1,500.50 to ravi@npay, reviewed</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;align-items:start">
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/typed.png" alt="1. Form"></div><p class="shot-cap">1. Form</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/review.png" alt="2. Review"></div><p class="shot-cap">2. Review</p></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/success.png" alt="3. Confirm &rarr; Success"></div><p class="shot-cap">3. Confirm &rarr; Success</p></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/home.png" alt="4. Home: ₹23,499.50"></div><p class="shot-cap">4. Home: ₹23,499.50</p></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/history.png" alt="5. History"></div><p class="shot-cap">5. History</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The flow in the simulator. The Payments form with ravi@npay and 1500.50; the button now says Review Payment.</p>
+    <span class="notes-label">SAY</span><p>Click: the review sheet at medium height. Click: Confirm Demo Payment: the sheet dismisses, and then the router pushes Payment Success, inside the Payments tab. Click: Back to Dashboard: Home shows ₹23,499.50. Click: History has "Sent to ravi@npay", minus ₹1,500.50, on top. One transaction.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s checklist.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Lab verification checklist (complete code)</p>
+  <h2>Eight checks, all run</h2>
+  <div class="body">
+    <table class="tbl compact"><thead><tr><th>Check</th><th>Simulator</th></tr></thead><tbody><tr><td>Open Payments; ravi@npay, ₹1,500.50</td><td>typed</td></tr><tr><td>Review Payment: the native sheet</td><td>Recipient ravi@npay, Amount ₹1,500.50</td></tr><tr><td>Dismiss: the form keeps its input</td><td>after swipe down: "ravi@npay", "1500.50"</td></tr><tr><td>Reopen; confirm</td><td>recorded once</td></tr><tr><td>Automatic navigation to Payment Success</td><td>after the sheet is gone</td></tr><tr><td>Home: balance ₹23,499.50</td><td>₹23,499.50</td></tr><tr><td>History: the new transaction</td><td>Sent to ravi@npay, -₹1,500.50</td></tr><tr><td>Invalid amounts, insufficient balance</td><td>0, 12.345, 30000: Review disabled</td></tr></tbody></table>
+    <p class="small muted" style="margin:6px 0 0">Plus the Section 14 experiments: swipe down, Edit Details, re-review, confirm, balance changed while reviewing (Part 7).</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s eight-item lab checklist, all run. Typed ravi@npay and 1500.50. Review Payment showed the native sheet with both values. A swipe down dismissed it and the form kept its input. Reopened and confirmed: recorded once. Navigation to Payment Success happened after the sheet was gone. Home shows ₹23,499.50; History shows the new transaction. And 0, 12.345 and ₹30,000, above the balance, all keep Review Payment disabled.</p>
+    <span class="notes-label">SAY</span><p>The Section 14 experiment table is covered too: swipe down, Edit Details, changing the amount and reopening, confirming, and the balance changing while the review was pending.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.4 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Presentation is state</b><br><span class="muted" style="font-size:19px">a Bool or an optional item; dismissal writes it back</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p style="font-size:23px"><b>Dismiss, then navigate</b><br><span class="muted" style="font-size:19px">pending ID + onDismiss; never a fixed delay</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p style="font-size:23px"><b>Confirm once, validate again</b><br><span class="muted" style="font-size:19px">guard the button; the store re-checks; servers enforce</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A sheet, cover, alert or dialog is driven by state: a Bool or an optional item, which SwiftUI writes back when the presentation is dismissed; choose sheets for temporary tasks and navigation for going deeper. Coordinate transitions with the presentation lifecycle: keep the result pending and navigate in onDismiss, never after a guessed delay. And protect the money: guard Confirm against double taps, validate again in the store at confirm time, and remember that real idempotency is enforced by the server.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why use onDismiss before navigating to success?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why use the sheet&rsquo;s <code>onDismiss</code> before navigating to success?</p><ol class="q-opts"><li>To persist the payment</li><li>To coordinate presentation and navigation transitions</li><li>To create a new process</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The path changed only once the sheet was gone.</p>
+          <p class="q-trap"><b>Common trap:</b> Navigating in the same update as the dismissal.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. The path changed only once the sheet was gone.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does disabling Confirm guarantee idempotency?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does disabling the Confirm button guarantee financial idempotency?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It protects one view instance; idempotency is enforced by the server.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating a UI guard as a business rule.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It protects one view instance; idempotency is enforced by the server.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Where should a draft live to survive dismissal?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Where should an editable payment draft live if it must survive sheet dismissal?</p><ol class="q-opts"><li>Only inside the sheet</li><li>In a state owner outside the temporary sheet</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">After Edit Details, PaymentsScreen still held ravi@npay and 1500.50.</p>
+          <p class="q-trap"><b>Common trap:</b> Putting the draft in the sheet&rsquo;s @State.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. After Edit Details, PaymentsScreen still held ravi@npay and 1500.50.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does sheet(item:) use to decide to present?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>sheet(item:)</code> use to decide whether to present?</p><ol class="q-opts"><li>A navigation path</li><li>A network response only</li><li>An optional Identifiable item</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">nil: no sheet; a value: the sheet, showing that value.</p>
+          <p class="q-trap"><b>Common trap:</b> Keeping a Bool and an optional in sync.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. nil: no sheet; a value: the sheet, showing that value.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does interactiveDismissDisabled guarantee the sheet stays?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>interactiveDismissDisabled</code> guarantee that the app can never dismiss the sheet?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It blocks the swipe; lifecycle and system behaviour still apply.</p>
+          <p class="q-trap"><b>Common trap:</b> Using presentation as a guarantee.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. It blocks the swipe; lifecycle and system behaviour still apply.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should payment processing live in PaymentReviewSheet?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should payment processing live inside <code>PaymentReviewSheet</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The sheet shows a draft and calls <code>onConfirm</code>; the store records.</p>
+          <p class="q-trap"><b>Common trap:</b> Letting a temporary view own the money.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. The sheet shows a draft and calls <code>onConfirm</code>; the store records.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Confirm fires twice with no guard?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">A Confirm button without <code>isProcessing</code> records ₹1,500.50 and sets <code>reviewDraft = nil</code>. It is activated twice before the sheet closes. How many transactions?</p><ol class="q-opts"><li>One: the sheet closed</li><li>Two</li><li>None</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Our run: 3 &rarr; 5 transactions, ₹21,999.00.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming dismissal is instant.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Our run: 3 &rarr; 5 transactions, ₹21,999.00.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Balance drops while the review is open?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">The review shows ₹1,500.50; while it is open the balance drops to ₹1,000. The user confirms. What happens?</p><ol class="q-opts"><li>₹1,500.50 is recorded</li><li>Nothing is recorded; the user is told</li><li>The app crashes</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The store re-validated: nil, no navigation, an alert.</p>
+          <p class="q-trap"><b>Common trap:</b> Trusting the earlier validation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The store re-validated: nil, no navigation, an alert.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.3: who navigates after a payment?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 3.3: after a payment is recorded, which object pushes Payment Success?</p><ol class="q-opts"><li><code>NPayStore</code></li><li><code>NPayRouter</code></li><li><code>PaymentReviewSheet</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The store records; the router decides where the user goes.</p>
+          <p class="q-trap"><b>Common trap:</b> Letting the store navigate.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.3.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. The store records; the router decides where the user goes.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.4 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.5</td><td><b>State preservation across navigation</b></td><td>payment drafts across tabs, sheets and pushes</td></tr><tr><td class="mono">Unit 5</td><td><b>HTTP, REST &amp; idempotency</b></td><td>server-enforced idempotency with request IDs</td></tr><tr><td class="mono">Unit 4</td><td><b>Application architecture</b></td><td>presentation state in view models; testable flows</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.5 preserves payment drafts when switching tabs, dismissing sheets or navigating, and shows how to avoid accidental resets. Unit 5 returns to idempotency where it really lives, in HTTP APIs with stable request identifiers. Unit 4 moves presentation and flow state into view models you can test.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.4 &middot; Lab</p>
+  <h2>Review before paying</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Add the review sheet to the 3.3 project; verify, then break it.</p><ol class="lab"><li>Add PaymentDraft and PaymentReviewSheet.</li><li>Present with <code>sheet(item:)</code>; navigate in <code>onDismiss</code>.</li><li>Run the 8-item checklist with ₹1,500.50.</li><li>Remove the <code>isProcessing</code> guard; tap Confirm fast.</li><li>Lower the balance while reviewing; confirm.</li><li>Try an alert and a confirmationDialog.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your completed checklist</li><li>Your double-tap result, with and without the guard</li><li>One sentence: UI protection vs idempotency</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: the sheet shows ravi@npay and ₹1,500.50; swipe down keeps the form; Confirm leads to Payment Success after the sheet closes; Home ₹23,499.50; History has the transaction; without the guard a fast double confirm can record twice; a lowered balance makes the store reject the payment.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.4 complete</p>
+    <h2>Sheets, Alerts &amp;<br>Modal Presentation</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.5 &mdash; State Preservation Across Navigation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now drive sheets, covers, alerts and dialogs from state, choose between presentation and navigation, review a payment with sheet(item:), navigate after dismissal with onDismiss, guard Confirm against double taps, re-validate at confirm time, and explain what sheet-local state and dismiss-locking really guarantee.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.5: state preservation across navigation. We keep payment drafts alive across tab switches, sheet dismissals and navigation changes.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

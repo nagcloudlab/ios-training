@@ -1,5 +1,5 @@
 #!/bin/sh
-# Regenerate Lessons 0.2–0.10, 1.1–1.10 and 2.1–2.12 from their generators (Lesson 0.1 is hand-edited HTML).
+# Regenerate Lessons 0.2–0.10, 1.1–1.10, 2.1–2.12 and 3.1–3.10 from their generators (Lesson 0.1 is hand-edited HTML).
 # Run from the repo root:  sh tools/build.sh
 # Then check:  python3 tools/structure.py decks/*/index.html
 set -e
@@ -33,3 +33,25 @@ $PY tools/gen2_9.py decks/unit-2/lesson-2.9/index.html
 $PY tools/gen2_10.py decks/unit-2/lesson-2.10/index.html
 $PY tools/gen2_11.py decks/unit-2/lesson-2.11/index.html
 $PY tools/gen2_12.py decks/unit-2/lesson-2.12/index.html
+$PY tools/gen3_1.py decks/unit-3/lesson-3.1/index.html
+$PY tools/gen3_2.py decks/unit-3/lesson-3.2/index.html
+$PY tools/gen3_3.py decks/unit-3/lesson-3.3/index.html
+$PY tools/gen3_4.py decks/unit-3/lesson-3.4/index.html
+$PY tools/gen3_5.py decks/unit-3/lesson-3.5/index.html
+$PY tools/gen3_6.py decks/unit-3/lesson-3.6/index.html
+$PY tools/gen3_7.py decks/unit-3/lesson-3.7/index.html
+$PY tools/gen3_8.py decks/unit-3/lesson-3.8/index.html
+$PY tools/gen3_9.py decks/unit-3/lesson-3.9/index.html
+$PY tools/gen3_10.py decks/unit-3/lesson-3.10/index.html
+$PY tools/gen3_11.py decks/unit-3/lesson-3.11/index.html
+$PY tools/gen3_12.py decks/unit-3/lesson-3.12/index.html
+$PY tools/gen4_1.py decks/unit-4/lesson-4.1/index.html
+$PY tools/gen4_2.py decks/unit-4/lesson-4.2/index.html
+$PY tools/gen4_3.py decks/unit-4/lesson-4.3/index.html
+$PY tools/gen4_4.py decks/unit-4/lesson-4.4/index.html
+$PY tools/gen4_5.py decks/unit-4/lesson-4.5/index.html
+$PY tools/gen4_6.py decks/unit-4/lesson-4.6/index.html
+$PY tools/gen4_7.py decks/unit-4/lesson-4.7/index.html
+$PY tools/gen4_8.py decks/unit-4/lesson-4.8/index.html
+$PY tools/gen4_9.py decks/unit-4/lesson-4.9/index.html
+$PY tools/gen4_10.py decks/unit-4/lesson-4.10/index.html

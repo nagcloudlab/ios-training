@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.12 — NPay Final Integration &amp; Architecture</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.12 — NPay Final Integration &amp; Architecture">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.12</p>
+    <h1 style="font-size:54px;line-height:1.05">NPay Final Integration<br>&amp; Architecture</h1>
+    <p class="lead" style="max-width:760px">Eleven lessons, one running app. <b>Who owns what</b>, and what happens when a payment goes through.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This is the final lesson of Unit 3. Over eleven lessons we learned SwiftUI concepts one at a time. Today we answer the bigger question: how do they all work together inside one running iOS application? We trace one payment through the whole app, review who owns each piece of state, run the full integration checklist on the real app, and name what should move into MVVM in Unit 4.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.12 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Map every Unit 3 concept to an NPay feature</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Draw NPay&rsquo;s architecture: three owners, four tabs</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-send"/></svg></span><p>Trace a payment from keystroke to dashboard</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p>Place each piece of state with the narrowest owner</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Verify the integrated app against a checklist</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></span><p>Name the limitations Unit 4 addresses</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.12 &middot; Where we are</p>
+  <h2>Today: the whole of Unit 3, working together</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.12 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd lit"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.11: performance, lazy loading, measuring.</span><span><b>Today</b>Integration and architecture review.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.11 made History efficient with large data. Today nothing new is added; everything is connected. The app we run is the complete NPay we have built through Unit 3, with two small accessibility fixes the checklist demanded.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The finished NPay</h2>
+    <p class="lead">Eleven lessons in one app</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The milestone and the feature inventory.</p>
+    <span class="notes-label">CONNECT</span><p>The app.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our final NPay milestone (section 1)</p>
+  <h2>One app, four tabs, real navigation</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:170px 170px minmax(0,1fr);gap:20px;align-items:start">
+      <div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/home0.png" alt="Home: ₹25,000.00"></div><p class="shot-cap">Home: ₹25,000.00</p></div>
+      <div class="step"><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/review.png" alt="Payments: review sheet"></div><p class="shot-cap">Payments: review sheet</p></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What&rsquo;s on screen</span><ul style="margin:6px 0 0"><li>Balance card and quick actions</li><li>Recent transactions</li><li>Home, Payments, History, Profile</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Under the surface</span><ul style="margin:6px 0 0"><li>Native navigation and sheets</li><li>Money as integer paise</li><li>Shared state with separate owners</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The final Unit 3 milestone. The text shows an interactive prototype; this is the real app: the NPay we have built lesson by lesson, running in the simulator. Available balance ₹25,000.00, the demo account badge, Send, Request and History quick actions, recent transactions, and four tabs.</p>
+    <span class="notes-label">SAY</span><p>Click: the Payments tab with its review sheet. Click: under the surface: native SwiftUI navigation and sheets, money held as integer paise, and shared state with separate owners, which is today&rsquo;s main subject.</p>
+    <span class="notes-label">CONNECT</span><p>Which lesson built which part?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Complete Unit 3 feature inventory (section 2)</p>
+  <h2>Every lesson left something in the app</h2>
+  <div class="body">
+    <table class="tbl compact"><thead><tr><th>Lesson</th><th>Concept</th><th>Integrated NPay feature</th></tr></thead><tbody><tr><td>3.1</td><td>NavigationStack</td><td>Screen navigation</td></tr><tr><td>3.2</td><td>Typed routes</td><td>Programmatic payment-success navigation</td></tr><tr><td>3.3</td><td>TabView</td><td>Four top-level tabs</td></tr><tr><td>3.4</td><td>Sheets and alerts</td><td>Payment review</td></tr><tr><td>3.5</td><td>State preservation</td><td>Payment drafts survive tab changes</td></tr><tr><td>3.6</td><td>Animations</td><td>Balance and success feedback</td></tr><tr><td>3.7</td><td>Reusable components</td><td>NPay design system</td></tr><tr><td>3.8</td><td>Adaptive layout</td><td>Responsive quick actions</td></tr><tr><td>3.9</td><td>Environment</td><td>Appearance preferences</td></tr><tr><td>3.10</td><td>Accessibility &amp; localization</td><td>Accessible controls, translated resources</td></tr><tr><td>3.11</td><td>Performance</td><td>Lazy transaction history and search</td></tr><tr><td>3.12</td><td>Integration</td><td>Complete multi-screen NPay</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The inventory: 3.1 NavigationStack gave screen navigation; 3.2 typed routes gave programmatic navigation to payment success; 3.3 TabView the four tabs; 3.4 sheets and alerts the payment review; 3.5 state preservation kept drafts across tab changes; 3.6 animations the balance and success feedback; 3.7 the design system; 3.8 responsive quick actions; 3.9 appearance preferences through the environment; 3.10 accessible controls and translated resources; 3.11 lazy history and search; and today, 3.12, the complete multi-screen app.</p>
+    <span class="notes-label">CONNECT</span><p>How is it all wired together?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>The final architecture</h2>
+    <p class="lead">Three owners, four tabs</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Navigation, data and preferences live apart.</p>
+    <span class="notes-label">CONNECT</span><p>The diagram.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; The final architecture (section 3)</p>
+  <h2>Navigation, data and preferences: separate owners</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 760 340" style="max-height:350px" role="img" aria-labelledby="arch">
+        <title id="arch">NPayApp, NPayRootView, NPayRouter, NPayStore, NPayPreferences, TabView, Home, Payments, History, Profile</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="260" y="0" width="240" height="50" rx="12"/><use href="#i-app" x="274" y="12" width="26" height="26"/><text x="312" y="22">NPayApp</text><text class="sm" x="312" y="40">@main &middot; WindowGroup</text></g>
+        <path class="wire" d="M380 51V70M373 63l7 7 7-7"/>
+        <g class="nd" data-lit="1"><rect class="sh" x="220" y="72" width="320" height="50" rx="12"/><use href="#i-layers" x="234" y="84" width="26" height="26"/><text x="272" y="94">NPayRootView</text><text class="sm" x="272" y="112">composition root</text></g>
+        <path class="wire" d="M380 123L120 142M113 135l7 7 7-7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="0" y="144" width="240" height="54" rx="12"/><use href="#i-decision" x="14" y="158" width="26" height="26"/><text x="52" y="168">NPayRouter</text><text class="sm" x="52" y="186">tabs + paths</text></g>
+        <path class="wire" d="M120 199L380 216M373 209l7 7 7-7"/>
+        <path class="wire" d="M380 123L380 142M373 135l7 7 7-7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="260" y="144" width="240" height="54" rx="12"/><use href="#i-db" x="274" y="158" width="26" height="26"/><text x="312" y="168">NPayStore</text><text class="sm" x="312" y="186">balance, transactions, draft</text></g>
+        <path class="wire" d="M380 199L380 216M373 209l7 7 7-7"/>
+        <path class="wire" d="M380 123L640 142M633 135l7 7 7-7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="520" y="144" width="240" height="54" rx="12"/><use href="#i-gear" x="534" y="158" width="26" height="26"/><text x="572" y="168">NPayPreferences</text><text class="sm" x="572" y="186">appearance</text></g>
+        <path class="wire" d="M640 199L380 216M373 209l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="220" y="218" width="320" height="50" rx="12"/><use href="#i-grid" x="234" y="230" width="26" height="26"/><text x="272" y="240">TabView</text><text class="sm" x="272" y="258">four navigation hierarchies</text></g>
+        <path class="wire" d="M380 269L90 288M83 281l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="290" width="180" height="50" rx="12"/><text x="16" y="312">Home</text><text class="sm" x="16" y="330">dashboard</text></g>
+        <path class="wire" d="M380 269L285 288M278 281l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="195" y="290" width="180" height="50" rx="12"/><text x="211" y="312">Payments</text><text class="sm" x="211" y="330">form, review, success</text></g>
+        <path class="wire" d="M380 269L480 288M473 281l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="390" y="290" width="180" height="50" rx="12"/><text x="406" y="312">History</text><text class="sm" x="406" y="330">search, details</text></g>
+        <path class="wire" d="M380 269L675 288M668 281l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="585" y="290" width="180" height="50" rx="12"/><text x="601" y="312">Profile</text><text class="sm" x="601" y="330">settings, appearance</text></g>
+      </svg>
+    </div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="cw"><div class="ch"><span>NPayRootView</span></div><pre class="cb" style="font-size:11px">@State private var router = NPayRouter()
+@State private var store = NPayStore()
+@State private var preferences = NPayPreferences()</pre></div></div>
+        <div class="rule step" data-label="Key decision"><ul style="margin:6px 0 0"><li>Each kind of state has its own owner</li><li>Prepares the Unit 4 MVVM refactor</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The final architecture. Click: NPayApp, the @main entry with its WindowGroup, creates NPayRootView, the application&rsquo;s composition root. Click: the root owns three observable objects: NPayRouter, the selected tab and every tab&rsquo;s path; NPayStore, the balance, transactions and payment draft; NPayPreferences, appearance and configuration.</p>
+    <span class="notes-label">SAY</span><p>Click: they feed a TabView with four independent navigation hierarchies: Home with the dashboard and balance; Payments with the form, review and success; History with search and details; Profile with settings and appearance.</p>
+    <span class="notes-label">SAY</span><p>Click: in code it is three @State properties in NPayRootView. Click: the text&rsquo;s most important point: navigation, application data and appearance preferences have separate owners. That separation is what Unit 4&rsquo;s MVVM refactoring builds on.</p>
+    <span class="notes-label">CONNECT</span><p>Each part has a responsibility, and limits.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; One responsibility each (section 4, part 1)</p>
+  <h2>What each component must never do</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Component</th><th>Does</th><th>Never</th></tr></thead><tbody><tr><td>NPayRouter</td><td>where the user is</td><td>never deducts money</td></tr><tr><td>PaymentReviewSheet</td><td>shows a snapshot, asks to confirm</td><td>never owns the balance</td></tr><tr><td>BalanceCard</td><td>displays a balance</td><td>never processes a payment</td></tr><tr><td>NPayStore</td><td>applies the demo payment</td><td>never decides navigation</td></tr></tbody></table>
+    <p class="small muted" style="margin:6px 0 0">First three rows from the text; the NPayStore row is ours, from the same code.</p>
+    <div class="gap"></div>
+    <div class="step"><div class="card accent"><span class="label">Why it matters</span><ul style="margin:6px 0 0"><li>A bug has one place to live</li><li>Each piece can change, and later be tested, alone</li></ul></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s engineering insight from the first part of Section 4: the router should never deduct money; the review sheet should never own the account balance; the balance card should never process a payment. We add the mirror image from the code: the store applies the payment but never decides where the user goes; the Payments screen asks the router for that.</p>
+    <span class="notes-label">SAY</span><p>Click: why it matters: when a bug appears, there is one place it can live, and each piece can change, and in Unit 9 be tested, on its own.</p>
+    <span class="notes-label">CONNECT</span><p>Let&rsquo;s watch them cooperate on one payment.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>One payment, end to end</h2>
+    <p class="lead">₹1,500.50 to ravi@npay</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>From keystroke to dashboard.</p>
+    <span class="notes-label">CONNECT</span><p>The ten steps.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Trace a complete payment (section 4)</p>
+  <h2>Ten steps through the owners</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1100 310" style="max-height:330px" role="img" aria-labelledby="trace">
+        <title id="trace">Ten steps from text input to the updated dashboard</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="540" height="54" rx="12"/><text x="16" y="24">1. Text input &middot; NPayStore</text><text class="sm" x="16" y="42">TextField writes the draft (@Bindable)</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="64" width="540" height="54" rx="12"/><text x="16" y="88">2. Validation &middot; PaymentsScreen</text><text class="sm" x="16" y="106">isValid enables Review Payment</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="128" width="540" height="54" rx="12"/><text x="16" y="152">3. Review &middot; PaymentsScreen</text><text class="sm" x="16" y="170">PaymentReview snapshot; sheet shown</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="192" width="540" height="54" rx="12"/><text x="16" y="216">4. Confirm &middot; PaymentReviewSheet</text><text class="sm" x="16" y="234">sheet calls onConfirm</text></g>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="256" width="540" height="54" rx="12"/><text x="16" y="280">5. Re-validate &middot; NPayStore</text><text class="sm" x="16" y="298">amount still within balance?</text></g>
+        <g class="nd" data-lit="6"><rect class="sh" x="560" y="0" width="540" height="54" rx="12"/><text x="576" y="24">6. Record &middot; NPayStore</text><text class="sm" x="576" y="42">balance &minus;150,050; transaction inserted</text></g>
+        <g class="nd" data-lit="7"><rect class="sh" x="560" y="64" width="540" height="54" rx="12"/><text x="576" y="88">7. Clean up &middot; NPayStore + screen</text><text class="sm" x="576" y="106">draft cleared; sheet dismissed</text></g>
+        <g class="nd" data-lit="8"><rect class="sh" x="560" y="128" width="540" height="54" rx="12"/><text x="576" y="152">8. Navigate &middot; NPayRouter</text><text class="sm" x="576" y="170">onDismiss &rarr; showPaymentSuccess</text></g>
+        <g class="nd" data-lit="9"><rect class="sh" x="560" y="192" width="540" height="54" rx="12"/><text x="576" y="216">9. Success &middot; NPayRouter</text><text class="sm" x="576" y="234">success screen on paymentsPath</text></g>
+        <g class="nd" data-lit="10+"><rect class="sh" x="560" y="256" width="540" height="54" rx="12"/><text x="576" y="280">10. Update &middot; SwiftUI</text><text class="sm" x="576" y="298">Observation re-runs Home and History</text></g>
+      </svg>
+    </div>
+    <p class="small muted" style="margin:6px 0 0">Step 1 is the text&rsquo;s; steps 2&ndash;10 are ours, read from NPay&rsquo;s code (only the first step of the text&rsquo;s stepper was shared).</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user sends ₹1,500.50 to ravi@npay. Click: step 1, from the text: the TextField updates the shared PaymentDraft through @Bindable: the draft lives in the store.</p>
+    <span class="notes-label">SAY</span><p>The text&rsquo;s stepper had ten steps but only the first was shared; the rest are read from our code. Click: validation: the Payments screen&rsquo;s isValid enables Review Payment. Click: Review takes an immutable PaymentReview snapshot and presents the sheet: presentation state, owned by the screen. Click: Confirm calls the sheet&rsquo;s onConfirm closure.</p>
+    <span class="notes-label">SAY</span><p>Click: the store validates again, against the balance as it is now. Click: it deducts 150,050 paise and inserts the transaction. Click: the draft is cleared and the sheet dismissed. Click: the sheet&rsquo;s onDismiss asks the router to show payment success. Click: the router appends the success route to the Payments path. Click: Observation re-runs the views that read the balance and transactions: Home and History.</p>
+    <span class="notes-label">CONNECT</span><p>Here is that payment, printed from the running app.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; The trace, printed (section 4)</p>
+  <h2>What each owner held, step by step</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px;gap:18px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Owners after each step (simulator)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">typed:&ensp;&ensp;&ensp;draft ("ravi@npay", "1500.50") &middot; balance 2,500,000<br>review:&ensp;&ensp;sheet presented &middot; store unchanged<br>confirm: balance <b>2,349,950</b> &middot; transactions 3 &rarr; 4<br>&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;draft ("", "") &middot; sheet gone<br>&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;paymentsPath [.paymentSuccess]<br>done:&ensp;&ensp;&ensp;&ensp;tab .home &middot; paymentsPath []</p></div>
+        <div class="step"><div class="card accent"><span class="label">Notice</span><ul style="margin:6px 0 0"><li>Only the store&rsquo;s numbers changed money</li><li>Only the router&rsquo;s path changed the screen</li></ul></div></div>
+      </div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/success.png" alt="Payment success"></div><p class="shot-cap">Payment success</p></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/home1.png" alt="Home: ₹23,499.50"></div><p class="shot-cap">Home: ₹23,499.50</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We drove the real app through accessibility and printed what each owner held after each step, through a debug-only hook that hands the three owners to the test driver; the hook is not part of NPay. Typing wrote the draft in the store; the balance was still 2,500,000 paise. Review presented the sheet and changed nothing in the store.</p>
+    <span class="notes-label">SAY</span><p>Confirm: balance 2,349,950 paise, transactions from three to four, the draft emptied, the sheet gone, and the Payments path holding the success route. Done: Home selected and the path empty.</p>
+    <span class="notes-label">SAY</span><p>Click: notice the division of labour: only the store changed money; only the router changed which screen is showing. Click: the success screen. Click: Home, showing ₹23,499.50 with the new transaction on top.</p>
+    <span class="notes-label">CONNECT</span><p>The flow touched three different kinds of state.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Three kinds of state (section 4)</p>
+  <h2>Different state, different owners</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>State</th><th>Owner</th><th>Example</th></tr></thead><tbody><tr><td>Business / demo state</td><td>NPayStore</td><td>Balance, transactions</td></tr><tr><td>Navigation state</td><td>NPayRouter</td><td>Selected tab, route paths</td></tr><tr><td>Presentation state</td><td>PaymentsScreen</td><td>Review sheet visibility</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px">
+      <div class="step"><div class="card accent"><span class="label">In the trace</span><ul style="margin:6px 0 0"><li>Money moved in the store</li><li>Screens moved in the router</li><li>The sheet came and went in the screen</li></ul></div></div>
+      <div class="rule step" data-label="Separate"><ul style="margin:6px 0 0"><li>Less coupling</li><li>Easier debugging</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s distinction: three kinds of state in one flow. Business, here demo, state, the balance and transactions, owned by NPayStore. Navigation state, the selected tab and route paths, owned by NPayRouter. Presentation state, whether the review sheet is visible, owned by the Payments screen.</p>
+    <span class="notes-label">SAY</span><p>Click: that is exactly what the trace showed. Click: keeping them separate reduces coupling and makes debugging easier: a wrong balance is a store question, a wrong screen a router question.</p>
+    <span class="notes-label">CONNECT</span><p>What does SwiftUI do between a change and the pixels?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>The SwiftUI runtime</h2>
+    <p class="lead">From state to pixels</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Change the state; SwiftUI does the rest.</p>
+    <span class="notes-label">CONNECT</span><p>The pipeline.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; What the SwiftUI runtime does (section 5) &middot; conceptual</p>
+  <h2>We change state; SwiftUI updates the interface</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 120" style="max-height:126px" role="img" aria-labelledby="rt">
+        <title id="rt">Application event, state mutation, dependency invalidation, view evaluation, reconciliation and layout, rendering and presentation</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="120" rx="14"/><use href="#i-tap" x="72" y="14" width="28" height="28"/><text x="86" y="84" text-anchor="middle">Event</text><text class="sm" x="86" y="104" text-anchor="middle">tap, input, data</text></g>
+        <path class="wire" d="M173 60H186M179 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="188" y="0" width="172" height="120" rx="14"/><use href="#i-db" x="260" y="14" width="28" height="28"/><text x="274" y="84" text-anchor="middle">State mutation</text><text class="sm" x="274" y="104" text-anchor="middle">@State, Binding, model</text></g>
+        <path class="wire" d="M361 60H374M367 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="376" y="0" width="172" height="120" rx="14"/><use href="#i-link" x="448" y="14" width="28" height="28"/><text x="462" y="84" text-anchor="middle">Invalidation</text><text class="sm" x="462" y="104" text-anchor="middle">which descriptions?</text></g>
+        <path class="wire" d="M549 60H562M555 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="564" y="0" width="172" height="120" rx="14"/><use href="#i-code" x="636" y="14" width="28" height="28"/><text x="650" y="84" text-anchor="middle">View evaluation</text><text class="sm" x="650" y="104" text-anchor="middle">relevant bodies</text></g>
+        <path class="wire" d="M737 60H750M743 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="752" y="0" width="172" height="120" rx="14"/><use href="#i-frame" x="824" y="14" width="28" height="28"/><text x="838" y="84" text-anchor="middle">Reconcile + layout</text><text class="sm" x="838" y="104" text-anchor="middle">identity, geometry</text></g>
+        <path class="wire" d="M925 60H938M931 53l7 7-7 7"/>
+        <g class="nd" data-lit="6+"><rect class="sh" x="940" y="0" width="172" height="120" rx="14"/><use href="#i-phone" x="1012" y="14" width="28" height="28"/><text x="1026" y="84" text-anchor="middle">Render + present</text><text class="sm" x="1026" y="104" text-anchor="middle">the platform</text></g>
+      </svg>
+    </div>
+    <p class="small muted" style="margin:6px 0 0">SwiftUI&rsquo;s exact reconciliation and rendering are not publicly specified.</p>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px">
+      <div class="step"><div class="card accent"><span class="label">No refreshBalanceCard()</span><ul style="margin:6px 0 0"><li><code>balancePaise -= amountPaise</code></li><li>Home showed ₹23,499.50 on its own</li></ul></div></div>
+      <div class="rule step" data-label="Principle"><ul style="margin:6px 0 0"><li>Change the state</li><li>Views describe the UI for that state</li><li>SwiftUI coordinates the update</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Connecting Unit 0 to everything since. Click through: an application event, a tap, text input, navigation or a data change; a state mutation, in @State, a Binding or an observable model; dependency invalidation, SwiftUI working out which descriptions may need updating; view evaluation of the relevant bodies; reconciliation and layout, identity, structure and geometry; rendering and presentation by the platform. This is conceptual: the exact implementation is not publicly specified.</p>
+    <span class="notes-label">SAY</span><p>Click: the key principle in our trace: the store subtracted the amount, one line, and Home showed ₹23,499.50. Nobody called a method like refreshBalanceCard. Click: we change the state; the view descriptions say how the interface looks for that state; SwiftUI coordinates the updates.</p>
+    <span class="notes-label">CONNECT</span><p>So where should each piece of state live?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>State ownership</h2>
+    <p class="lead">The narrowest owner that works</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The most important Unit 3 concept.</p>
+    <span class="notes-label">CONNECT</span><p>The table.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; State ownership (section 6)</p>
+  <h2>Where each value belongs</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.5fr) minmax(0,.5fr);gap:18px;align-items:start">
+      <div><table class="tbl compact"><thead><tr><th>Property</th><th>Owner</th><th>Reason</th></tr></thead><tbody><tr><td><code>balancePaise</code></td><td>NPayStore</td><td>Shared application data</td></tr><tr><td><code>transactions</code></td><td>NPayStore</td><td>Shared transaction collection</td></tr><tr><td><code>paymentDraft</code></td><td>NPayStore</td><td>Must survive tab switches</td></tr><tr><td><code>selectedTab</code></td><td>NPayRouter</td><td>Top-level navigation</td></tr><tr><td><code>paymentsPath</code></td><td>NPayRouter</td><td>Payment navigation hierarchy</td></tr><tr><td><code>reviewDraft</code>*</td><td>PaymentsScreen</td><td>Temporary modal presentation</td></tr><tr><td><code>focusedField</code></td><td>PaymentsScreen</td><td>Local keyboard focus</td></tr><tr><td><code>showSuccessAnimation</code>*</td><td>PaymentSuccessScreen</td><td>Temporary visual state</td></tr><tr><td><code>appearance</code></td><td>NPayPreferences</td><td>Shared UI preference</td></tr></tbody></table>
+        <p class="small muted" style="margin:4px 0 0">* In our code: <code>review</code> and <code>showContent</code>.</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Why not all in NPayStore?</span><ul style="margin:6px 0 0"><li>Focus needn&rsquo;t be global</li><li>A balance mustn&rsquo;t be copied into four tabs</li></ul></div></div>
+        <div class="rule step" data-label="Rule"><ul style="margin:6px 0 0"><li>Narrowest owner that supports the value&rsquo;s lifetime and sharing</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s ownership table. The balance, the transactions and the payment draft belong to NPayStore: shared data, and the draft must survive tab switches, Lesson 3.5. The selected tab and Payments path belong to NPayRouter. The review value and the focused field belong to the Payments screen: temporary presentation and local focus. The success animation flag belongs to the success screen. Appearance belongs to NPayPreferences. Two names differ in our code: the text&rsquo;s reviewDraft is our review, and showSuccessAnimation is our showContent.</p>
+    <span class="notes-label">SAY</span><p>Click: why not put everything in NPayStore? A focus indicator does not need to be global; and a balance should not be duplicated independently in four tabs, which Lesson 3.1 showed going wrong with a second @State owner. Click: the rule: state is owned at the narrowest level that supports its intended lifetime and sharing. This is a foundational architectural skill.</p>
+    <span class="notes-label">CONNECT</span><p>Now verify the whole app.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Final integration test</h2>
+    <p class="lead">Twelve checks on the real app</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>₹25,000.00 &minus; ₹1,500.50.</p>
+    <span class="notes-label">CONNECT</span><p>The arithmetic.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Simulate a complete transaction (section 7)</p>
+  <h2>₹25,000.00 &minus; ₹1,500.50 = ₹23,499.50</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.62fr) minmax(0,1.38fr);gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Integer paise</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:15px;line-height:1.55">&ensp;2,500,000<br>&minus;&ensp;&ensp;150,050<br>= 2,349,950</p></div>
+        <div class="step"><div class="card accent"><span class="label">Measured</span><ul style="margin:6px 0 0"><li>Store: 2,349,950</li><li>Screen: ₹23,499.50</li></ul></div></div>
+      </div>
+      <div class="step"><table class="tbl compact"><thead><tr><th>#</th><th>Unit 3 integration check</th><th>Run in the simulator</th></tr></thead><tbody><tr><td>1</td><td>Dashboard initially shows ₹25,000.00</td><td>&#10003;</td></tr><tr><td>2</td><td>Payments accepts a valid recipient and amount</td><td>&#10003; Review enabled</td></tr><tr><td>3</td><td>Review sheet shows the exact payment</td><td>&#10003; ravi@npay, ₹1,500.50</td></tr><tr><td>4</td><td>Cancelling review preserves the draft</td><td>&#10003; both fields kept</td></tr><tr><td>5</td><td>Confirming records exactly one transaction</td><td>&#10003; 2 activations &rarr; 1</td></tr><tr><td>6</td><td>Success screen after sheet dismissal</td><td>&#10003; sheet gone first</td></tr><tr><td>7</td><td>Dashboard shows ₹23,499.50</td><td>&#10003;</td></tr><tr><td>8</td><td>History contains the new transaction</td><td>&#10003; at the top</td></tr><tr><td>9</td><td>Draft cleared after success</td><td>&#10003; both fields empty</td></tr><tr><td>10</td><td>Appearance applies across tabs</td><td>&#10003; dark in all four</td></tr><tr><td>11</td><td>VoiceOver identifies important controls</td><td>&#10003; after our fix</td></tr><tr><td>12</td><td>History responsive with a larger dataset</td><td>&#10003; 50,003 records</td></tr></tbody></table></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Starting balance ₹25,000.00; the payment, ₹1,500.50; expected, ₹23,499.50. In integer paise: 2,500,000 minus 150,050 is 2,349,950. Click: the store held exactly that, and the balance card showed ₹23,499.50.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s twelve-item checklist, run on the real app by a script. Every item passes. Some details: item 4, Edit Details closed the sheet and both fields still held ravi@npay and 1500.50. Item 5, we activated Confirm twice in a row, like a double tap, and exactly one transaction was recorded, three to four, the guard from Lesson 3.4. Item 6, when "Payment Recorded" appeared, the sheet was already gone. Item 10, Dark chosen in Profile, and all four tabs reported a dark interface.</p>
+    <span class="notes-label">SAY</span><p>Item 11 passes only after a fix; item 12 has its own evidence. Next two slides.</p>
+    <span class="notes-label">CONNECT</span><p>Item 11.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Item 11: VoiceOver can identify important controls (section 7)</p>
+  <h2>The check failed until we fixed it</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">NPay as of 3.11</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">identifiers: npay.recipientField, npay.amountField, npay.sendButton<br>fields with an <b>empty label</b>: both</p></div>
+        <div class="step"><div class="cw"><div class="ch"><span>Lesson 3.12 fixes (ours)</span></div><pre class="cb" style="font-size:12px">TextField(&quot;Recipient ID&quot;,
+          text: $store.paymentDraft.recipient)
+    .accessibilityIdentifier(
+        NPayAccessibilityID.recipientField)
+    .accessibilityLabel(&quot;Recipient&quot;)
+
+Image(systemName: &quot;checkmark.circle.fill&quot;)
+    .accessibilityHidden(true)</pre></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">After the fix</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">fields with an empty label: none<br>success: &ldquo;Payment Recorded&rdquo; | &ldquo;Your demo payment was successful.&rdquo;<br>(no &ldquo;Selected&rdquo; checkmark)</p></div></div>
+        <div class="rule step" data-label="Lesson"><ul style="margin:6px 0 0"><li>A checklist is only useful if it can fail</li><li>Identifiers serve tests; labels serve people</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Item 11 is the interesting one. Run on NPay as it stood after Lesson 3.11, it failed: all the identifiers were present, but both payment text fields had an empty accessibility label, the problem Lesson 3.10 measured and left open.</p>
+    <span class="notes-label">SAY</span><p>Click: our fix, flagged as ours: a label on each field, "Recipient" and "Amount in rupees", and the success checkmark hidden from accessibility, because VoiceOver read it as "Selected" and the text beside it already says the payment was recorded.</p>
+    <span class="notes-label">SAY</span><p>Click: after the fix: no unlabelled fields, and the success screen reads its text without the misleading checkmark. Click: a checklist is only useful if it can fail; this one did. And identifiers serve UI tests, labels serve people.</p>
+    <span class="notes-label">CONNECT</span><p>Item 12 and appearance.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Items 10 and 12: appearance and a large History (section 7)</p>
+  <h2>Dark everywhere; 50,003 records</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:150px 150px minmax(0,1fr);gap:18px;align-items:start">
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/dark.png" alt="Dark, set in Profile"></div><p class="shot-cap">Dark, set in Profile</p></div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/history1.png" alt="History after the payment"></div><p class="shot-cap">History after the payment</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Item 10</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">Home dark, Payments dark, History dark, Profile dark</p></div>
+        <div class="step"><div class="card accent"><span class="label">Item 12: 50,000 more records (simulator)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">store: 50,003 transactions (+5 MB)<br>History: 8 rows exposed (lazy List)<br>search &ldquo;49999&rdquo;: Demo Transaction 49999<br>display frames, 1 s after typing: 60</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Responsive, not benchmarked</span><ul style="margin:6px 0 0"><li>Counts, not timings: see 3.11</li><li>Instruments on a device for real numbers</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Item 10: Dark chosen once on the Profile tab&rsquo;s Appearance screen; every tab reported a dark interface, because NPayPreferences is applied at the root with preferredColorScheme, Lesson 3.9. Beside it, History after the payment, with "Sent to ravi@npay" on top.</p>
+    <span class="notes-label">SAY</span><p>Click: item 12: we added fifty thousand demo transactions to the store from Lesson 3.11. History, a List, exposed eight rows: the visible region. Searching 49999 found the one match, and the display delivered sixty frames in the second after typing.</p>
+    <span class="notes-label">SAY</span><p>Click: that is a responsiveness check by counts, in the simulator, not a benchmark; Lesson 3.11 covers measuring properly with Instruments on a device.</p>
+    <span class="notes-label">CONNECT</span><p>It works. What would we still improve?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Limitations and Unit 4</h2>
+    <p class="lead">A working prototype, not the final design</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What remains, and why that&rsquo;s fine.</p>
+    <span class="notes-label">CONNECT</span><p>The list.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Architecture limitations (sections 5 and 8)</p>
+  <h2>What still needs improvement</h2>
+  <div class="body">
+    <table class="tbl compact"><thead><tr><th>Current implementation</th><th>Future improvement</th><th>Unit</th></tr></thead><tbody><tr><td>NPayStore contains payment rules</td><td>Use cases and domain services</td><td>4</td></tr><tr><td>Screens access the shared store</td><td>Feature ViewModels</td><td>4</td></tr><tr><td>UI coordinates some operations</td><td>MVVM and dependency injection</td><td>4</td></tr><tr><td>Demo transactions in memory</td><td>Repositories and persistence</td><td>5&ndash;6</td></tr><tr><td>Local payment simulation</td><td>Backend API; real authentication</td><td>5, 7</td></tr><tr><td>Simple error handling</td><td>Typed errors, loading states</td><td>4&ndash;5</td></tr><tr><td>Manual testing</td><td>Automated unit, integration and UI tests</td><td>9</td></tr><tr><td>One application module</td><td>Feature modularization</td><td>12</td></tr></tbody></table>
+    <p class="small muted" style="margin:6px 0 0">Merged from the text&rsquo;s two limitation tables; the Unit column is ours, from the curriculum.</p>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Not a rewrite"><ul style="margin:6px 0 0"><li>Intentional: Unit 3 taught composition; these motivate Unit 4</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text lists the limitations twice, in Part 1 and Part 2; this is the merged list. NPayStore combines responsibilities and holds the payment rules: Unit 4 brings use cases and feature ViewModels. Screens reach the shared store directly and the UI coordinates some operations: MVVM and dependency injection. Transactions live in memory: repositories and persistence, Units 5 and 6. The payment is a local simulation with no real authentication: the backend API and security units. Error handling is simple: typed errors and loading states. Testing is manual: Unit 9. And it is one module: modularization comes in the final unit. The Unit column is our mapping to the curriculum.</p>
+    <span class="notes-label">SAY</span><p>Click: the text is clear that this is intentional. Unit 3 taught SwiftUI application composition; these are not reasons to rewrite everything immediately, they are the motivation for Unit 4, architecture and testability.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.12 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Three owners, four tabs</b><br><span class="muted" style="font-size:19px">router, store, preferences; navigation apart from data</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p style="font-size:23px"><b>Narrowest owner that works</b><br><span class="muted" style="font-size:19px">store for shared data, screen for presentation, view for visuals</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p style="font-size:23px"><b>Verified, end to end</b><br><span class="muted" style="font-size:19px">₹23,499.50, one transaction, all 12 checks</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember from Unit 3. NPay&rsquo;s architecture is three owners at the root, router, store and preferences, feeding four independent navigation hierarchies. Each value lives with the narrowest owner that supports its lifetime and sharing: shared data in the store, navigation in the router, presentation in the screen, a visual flag in its view. And the whole app is verified: one payment of ₹1,500.50 took the balance to ₹23,499.50, recorded exactly one transaction, and passed all twelve integration checks once we fixed the field labels.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Who should own NPay&#x27;s shared account balance?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Who should own NPay&rsquo;s shared account balance?</p><ol class="q-opts"><li>Each tab independently</li><li>The review sheet</li><li>One shared application state owner</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">NPayStore: every tab reads the same balance.</p>
+          <p class="q-trap"><b>Common trap:</b> Copying shared data into each screen.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. NPayStore: every tab reads the same balance.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is the purpose of NPayRouter?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the purpose of NPayRouter?</p><ol class="q-opts"><li>Payment calculations</li><li>Navigation state</li><li>Currency formatting</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Selected tab and paths; it never touches money.</p>
+          <p class="q-trap"><b>Common trap:</b> Letting navigation code do business work.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Selected tab and paths; it never touches money.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why preserve PaymentDraft outside the review sheet?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why preserve PaymentDraft outside the review sheet?</p><ol class="q-opts"><li>To survive review dismissal</li><li>To create a new process</li><li>To avoid using Swift</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Edit Details closed the sheet; both fields were kept.</p>
+          <p class="q-trap"><b>Common trap:</b> Storing input inside a modal.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. Edit Details closed the sheet; both fields were kept.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does LazyVStack automatically fetch transactions from an API?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>LazyVStack</code> automatically fetch transactions from an API?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It creates views lazily; fetching is Units 5&ndash;6.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing lazy views with lazy data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. It creates views lazily; fetching is Units 5&ndash;6.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why use stable transaction IDs?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why use stable transaction IDs?</p><ol class="q-opts"><li>To increase frame rate automatically</li><li>To preserve logical identity</li><li>To create a new navigation stack</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Identity is the transaction, not the render pass.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking any unique value will do.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Identity is the transaction, not the render pass.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is the role of @Environment?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the role of <code>@Environment</code>?</p><ol class="q-opts"><li>Read contextual values from the view hierarchy</li><li>Persist data to disk</li><li>Create threads</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">NPayPreferences reached all four tabs that way.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating it as storage.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. NPayPreferences reached all four tabs that way.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should the success animation determine whether the transaction succeeded?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should the payment success animation determine whether the transaction succeeded?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The store decides; the screen only shows the result.</p>
+          <p class="q-trap"><b>Common trap:</b> Letting presentation decide business outcomes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. The store decides; the screen only shows the result.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Confirm activated twice: how many transactions?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-send"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">The review sheet&rsquo;s Confirm button is activated twice in a row. How many transactions does NPay record?</p><ol class="q-opts"><li>0</li><li>1</li><li>2</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The isProcessing guard (3.4) and the store&rsquo;s check: 3 &rarr; 4.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming a button runs once per tap only.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick C.</p>
+    <span class="notes-label">SAY</span><p>B. The isProcessing guard (3.4) and the store&rsquo;s check: 3 &rarr; 4.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is the main purpose of Unit 4?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the main purpose of Unit 4?</p><ol class="q-opts"><li>Replace SwiftUI with UIKit</li><li>Remove all protocols</li><li>Introduce maintainable application architecture</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">MVVM, use cases, DI: the limitations list.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting a rewrite.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. MVVM, use cases, DI: the limitations list.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.11: does a sort inside body run on every evaluation?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 3.11: if <code>body</code> sorts the transactions, does the sort run every time the body is evaluated?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">4 keystrokes, 4 sorts of 50,000 records.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming SwiftUI caches body work.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.11.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. 4 keystrokes, 4 sorts of 50,000 records.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.12 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">Unit 4</td><td><b>MVVM &amp; application architecture</b></td><td>feature ViewModels, payment use case, DI</td></tr><tr><td class="mono">Units 5&ndash;6</td><td><b>Networking; persistence</b></td><td>repositories replace in-memory transactions</td></tr><tr><td class="mono">Unit 7</td><td><b>Security &amp; authentication</b></td><td>a real, authenticated payment flow</td></tr><tr><td class="mono">Unit 9</td><td><b>Testing</b></td><td>today&rsquo;s checklist as automated tests</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 4 refactors this exact app into MVVM: feature ViewModels, a dedicated payment use case, dependency injection. Units 5 and 6 replace in-memory transactions with API and persistence repositories. Unit 7 makes payments authenticated. Unit 9 turns today&rsquo;s twelve manual checks into automated tests, using the identifiers from 3.10.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.12 &middot; Lab</p>
+  <h2>Unit 3 checkpoint</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Run, trace and review your own NPay.</p><ol class="lab"><li>Build your complete NPay through Lesson 3.12.</li><li>Send ₹1,500.50 to ravi@npay; expect ₹23,499.50.</li><li>Run all 12 integration checks.</li><li>Fill in the state ownership table from your code.</li><li>Fix anything that fails, like the field labels.</li><li>List three things to move into ViewModels.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your 12-check results</li><li>Your ownership table with reasons</li><li>Three Unit 4 refactoring candidates</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: 2,349,950 paise, one transaction even on a double activation, the draft kept on Edit Details and cleared on success, dark in every tab, and labels on both payment fields once fixed.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.12 complete</p>
+    <h2>NPay Final Integration<br>&amp; Architecture</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Unit 4 &mdash; MVVM &amp; Application Architecture</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain how NPay&rsquo;s owners, tabs and screens fit together, trace a payment end to end, place state with the narrowest owner, and verify an app against an integration checklist. Unit 3, Advanced SwiftUI and Navigation, is complete.</p>
+    <span class="notes-label">SAY</span><p>Next, Unit 4: MVVM and application architecture, starting from this exact app.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.3 — TabView</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.3 — TabView">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.3</p>
+    <h1 style="font-size:54px;line-height:1.05">TabView: Building<br>NPay&rsquo;s Main Navigation</h1>
+    <p class="lead" style="max-width:760px">Four sections, <b>Home, Payments, History, Profile</b>, each with its own navigation stack, all sharing <b>one</b> store.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.2 drove one NavigationStack from a typed path. Real payment apps have several top-level sections the user switches between all day. Today NPay gets a TabView with four tabs, a router that keeps one path per tab, and a shared store for the balance and transactions. We built the complete app from the text&rsquo;s pieces and measured how tabs live, keep their state and update.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.3 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg></span><p>What <code>TabView</code> does, and how it differs from <code>NavigationStack</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Drive the selected tab with <code>@State</code> and <code>.tag()</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Give each tab its <b>own</b> navigation path</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>What switching tabs does to view state, measured</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p>Share one <code>NPayStore</code> across tabs; Observation updates readers</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Keep <b>where</b> (router) apart from <b>what</b> (store)</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.3 &middot; Where we are</p>
+  <h2>Today: four sections, one app</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.3 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd lit"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd ghost"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd ghost"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.2: typed routes and a path; the app navigates after a payment.</span><span><b>Today</b>A TabView of four stacks, one router, one store.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.2 gave us state-driven navigation inside one stack. Today NPay gets its main navigation: tabs, each with a stack, coordinated by a router and sharing a store. Next lesson: sheets, alerts and modal presentation.</p>
+    <span class="notes-label">CONNECT</span><p>The requirement.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The requirement</h2>
+    <p class="lead">Sections, not just screens</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Users switch between major sections all the time.</p>
+    <span class="notes-label">CONNECT</span><p>Before and after.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The engineering requirement (section 1)</p>
+  <h2>From one stack to four sections</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 130px 130px 130px 130px 130px;gap:14px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Today</span><ul style="margin:6px 0 0"><li>Dashboard &rarr; Send Money, History</li><li>One <b>navigation stack</b></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Wanted</span><ul style="margin:6px 0 0"><li><b>Home, Payments, History, Profile</b></li><li>Always one tap away</li><li>Top-level <b>sections</b>, not pushed screens</li></ul></div></div>
+      </div>
+      <div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/before.png" alt="3.2: one stack"></div><p class="shot-cap">3.2: one stack</p></div>
+      <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/home.png" alt="Home"></div><p class="shot-cap">Home</p></div></div>
+      <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/payments.png" alt="Payments"></div><p class="shot-cap">Payments</p></div></div>
+      <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/history.png" alt="History"></div><p class="shot-cap">History</p></div></div>
+      <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/profile.png" alt="Profile"></div><p class="shot-cap">Profile</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Today NPay navigates from the dashboard to Send Money and History with one navigation stack. That was 3.2, on the left.</p>
+    <span class="notes-label">SAY</span><p>Click: in a real payments app, users switch between major sections constantly: check the balance, pay, look at history, change a setting. We want persistent navigation between Home, Payments, History and Profile. These are top-level sections of the app, not screens pushed onto one stack.</p>
+    <span class="notes-label">SAY</span><p>Click by click: the four tabs of today&rsquo;s complete app, running in the simulator: Home, Payments, History, Profile. The tab bar stays at the bottom of every one.</p>
+    <span class="notes-label">CONNECT</span><p>What is a TabView?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>TabView</h2>
+    <p class="lead">Selectable sections</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A container that shows one of several children.</p>
+    <span class="notes-label">CONNECT</span><p>The smallest example.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What exactly is TabView? (section 2)</p>
+  <h2>Two children, one tab bar</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px;gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>TabExperiment.swift</span></div><pre class="cb" style="font-size:12.5px">struct TabExperiment: View {
+    var body: some View {
+        TabView {
+            Text(&quot;Home Screen&quot;)
+                .tabItem { Label(&quot;Home&quot;, systemImage: &quot;house&quot;) }
+
+            Text(&quot;History Screen&quot;)
+                .tabItem { Label(&quot;History&quot;, systemImage: &quot;clock&quot;) }
+        }
+    }
+}</pre></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>API</th><th>Responsibility</th></tr></thead><tbody><tr><td><code>TabView</code></td><td>hosts selectable tab content</td></tr><tr><td><code>.tabItem</code></td><td>provides the tab&rsquo;s label and icon</td></tr><tr><td><code>Label</code></td><td>combines text and a symbol</td></tr><tr><td>Selected tab</td><td>decides which content is active</td></tr></tbody></table></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/tabexp.png" alt="Launch: Home"></div><p class="shot-cap">Launch: Home</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/tabexphistory.png" alt="History selected"></div><p class="shot-cap">History selected</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>TabView is a generic SwiftUI container that presents several selectable child views. The text&rsquo;s first experiment: two Texts, each with a tabItem that supplies a Label, a title and an SF Symbol. Run it and you get a tab bar with Home and History.</p>
+    <span class="notes-label">SAY</span><p>Click: the APIs. TabView hosts the selectable content. tabItem provides each tab&rsquo;s label and icon. Label combines text and a symbol, as in 3.1. And the selected tab decides which content is active.</p>
+    <span class="notes-label">SAY</span><p>On the right, the experiment running on iOS 26.5: the tab bar floats at the bottom in the current system style. Click: History selected. TabView supports several presentation styles; on iPhone the conventional one is this tab bar.</p>
+    <span class="notes-label">CONNECT</span><p>How is that different from NavigationStack?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; TabView versus NavigationStack (section 3)</p>
+  <h2>Across, or deeper?</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 840 206" style="max-height:230px" role="img" aria-labelledby="tvn">
+        <title id="tvn">NavigationStack moves deeper; TabView switches between sections</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="250" height="46" rx="12"/><text x="16" y="29">Dashboard</text></g>
+        <path class="wire" d="M125 48V60M118 53l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="64" width="250" height="46" rx="12"/><text x="16" y="93">Payment</text></g>
+        <path class="wire" d="M125 112V124M118 117l7 7 7-7"/>
+        <g class="nd lit"><rect class="sh" x="0" y="128" width="250" height="46" rx="12"/><text x="16" y="157">Confirmation</text></g>
+        <text class="sm" x="125" y="200" text-anchor="middle">NavigationStack: deeper in one hierarchy</text>
+        <g class="nd"><rect class="sh" x="330" y="64" width="118" height="46" rx="12"/><text x="346" y="93">Home</text></g>
+        <g class="nd"><rect class="sh" x="460" y="64" width="118" height="46" rx="12"/><text x="476" y="93">Payments</text></g>
+        <g class="nd lit"><rect class="sh" x="590" y="64" width="118" height="46" rx="12"/><text x="606" y="93">History</text></g>
+        <g class="nd"><rect class="sh" x="720" y="64" width="118" height="46" rx="12"/><text x="736" y="93">Profile</text></g>
+        <path class="wire faint" d="M330 140H838"/>
+        <text class="sm" x="584" y="200" text-anchor="middle">TabView: across major sections</text>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="rule step" data-label="TabView answers"><ul style="margin:6px 0 0"><li><b>Which</b> major section is active?</li></ul></div>
+      <div class="rule step" data-label="NavigationStack answers"><ul style="margin:6px 0 0"><li><b>How deep</b> have we gone in a section?</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The most important architectural distinction of the lesson. On the left, a NavigationStack: Dashboard, then Payment, then Confirmation. It moves deeper within one navigation hierarchy. On the right, a TabView: Home, Payments, History, Profile, side by side. It switches between major application sections.</p>
+    <span class="notes-label">SAY</span><p>Click: TabView answers which major section is active. Click: NavigationStack answers how deep we have navigated within a section. They solve different problems, and real apps usually use them together: a stack inside each tab, as we build today.</p>
+    <span class="notes-label">CONNECT</span><p>Let&rsquo;s make the selected tab explicit state.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Selection is state</h2>
+    <p class="lead">An enum, a binding, a tag</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Same model as the path: change the value, the UI follows.</p>
+    <span class="notes-label">CONNECT</span><p>NPayTab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Control the selected tab with @State (section 4)</p>
+  <h2>The tag is the tab&rsquo;s selection value</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Tab selection</span></div><pre class="cb" style="font-size:12.5px">enum NPayTab: Hashable {
+    case home, payments, history, profile
+}
+
+@State private var selectedTab: NPayTab = .home
+
+TabView(selection: $selectedTab) {
+    Text(&quot;Home&quot;)
+        .tabItem { Label(&quot;Home&quot;, systemImage: &quot;house&quot;) }
+        .tag(NPayTab.home)
+
+    Text(&quot;History&quot;)
+        .tabItem { Label(&quot;History&quot;, systemImage: &quot;clock&quot;) }
+        .tag(NPayTab.history)
+    // Payments and Profile the same way
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label"><code>.tag()</code></span><ul style="margin:6px 0 0"><li>Identifies a tab&rsquo;s <b>selection value</b></li><li>User selects a tab &rarr; SwiftUI writes <code>selectedTab</code></li><li>Code writes <code>selectedTab</code> &rarr; the tab switches</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">onChange(of: selectedTab), simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">select History&ensp;&rarr; selectedTab: home &rarr; history<br>select Home&ensp;&ensp;&ensp;&rarr; selectedTab: history &rarr; home</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Make selection explicit. An enum, NPayTab, with a case per section, Hashable like our routes. A @State selectedTab starting at .home. And TabView with selection: $selectedTab, a binding again. Each child gets a tag with its NPayTab value.</p>
+    <span class="notes-label">SAY</span><p>The tag identifies a tab&rsquo;s selection value. When the user selects a tab, SwiftUI updates the bound selectedTab; when code changes selectedTab, SwiftUI switches the active tab. The state-driven model again, as with the path in 3.2.</p>
+    <span class="notes-label">SAY</span><p>Click: our run of the text&rsquo;s four-tab example with onChange printing the selection: selecting History wrote home to history; selecting Home wrote it back. The binding works in both directions.</p>
+    <span class="notes-label">CONNECT</span><p>What happens between the tap and the switch?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Tab selection pipeline (section 5) &middot; conceptual</p>
+  <h2>Five stages, one tap</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 120" style="max-height:140px" role="img" aria-labelledby="pipe">
+        <title id="pipe">User taps History, tab control, binding written, SwiftUI updates, History shown</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="208" height="120" rx="14"/><use href="#i-tap" x="90" y="14" width="28" height="28"/><text x="104" y="84" text-anchor="middle">User taps History</text><text class="sm" x="104" y="104" text-anchor="middle">iOS delivers the touch</text></g>
+        <path class="wire" d="M210 60H226M219 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="228" y="0" width="208" height="120" rx="14"/><use href="#i-grid" x="318" y="14" width="28" height="28"/><text x="332" y="84" text-anchor="middle">Tab control</text><text class="sm" x="332" y="104" text-anchor="middle">reports the chosen tab</text></g>
+        <path class="wire" d="M438 60H454M447 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="456" y="0" width="208" height="120" rx="14"/><use href="#i-code" x="546" y="14" width="28" height="28"/><text x="560" y="84" text-anchor="middle">Binding written</text><text class="sm" x="560" y="104" text-anchor="middle">selectedTab = .history</text></g>
+        <path class="wire" d="M666 60H682M675 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="684" y="0" width="208" height="120" rx="14"/><use href="#i-diff" x="774" y="14" width="28" height="28"/><text x="788" y="84" text-anchor="middle">SwiftUI updates</text><text class="sm" x="788" y="104" text-anchor="middle">views that read selection</text></g>
+        <path class="wire" d="M894 60H910M903 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="912" y="0" width="208" height="120" rx="14"/><use href="#i-eye" x="1002" y="14" width="28" height="28"/><text x="1016" y="84" text-anchor="middle">History shown</text><text class="sm" x="1016" y="104" text-anchor="middle">its content becomes active</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <p class="small muted" style="margin:0">Conceptual SwiftUI selection flow; the internal tab-controller implementation is not guaranteed.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Only stage 1 came with the text; stages 2 to 5 are our conceptual outline. Click: the user taps History; iOS delivers the interaction to the tab control. Click: the tab control reports which tab was chosen. Click: SwiftUI writes the new value into the bound selectedTab. Click: views that read the selection update. Click: the History tab&rsquo;s content becomes the active one.</p>
+    <span class="notes-label">SAY</span><p>As the text says, this is a conceptual flow; the internal tab-controller implementation is not guaranteed.</p>
+    <span class="notes-label">CONNECT</span><p>If the binding can be written by a tap, it can be written by code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Programmatically switch tabs (section 6)</p>
+  <h2>Switch a section, or push a screen?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>On the Home tab</span></div><pre class="cb" style="font-size:15px">Button(&quot;View All Transactions&quot;) {
+    selectedTab = .history
+}</pre></div>
+        <div class="gap"></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">[activate "View All Transactions"]<br>selectedTab: home &rarr; history</p></div></div></div>
+      <div class="step"><table class="tbl"><thead><tr><th>Code</th><th>Means</th></tr></thead><tbody><tr><td><code>selectedTab = .history</code></td><td>switch to the History <b>section</b></td></tr><tr><td><code>path.append(.history)</code></td><td>push a History <b>screen</b> on this stack</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="rule" data-label="Choose one"><ul style="margin:6px 0 0"><li>One consistent navigation meaning per action</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Suppose the dashboard has a View All Transactions button. Its action sets selectedTab to .history. Click: our run: activating the button changed the selection from home to history. It switched the active tab without pushing any navigation destination.</p>
+    <span class="notes-label">SAY</span><p>Click: the distinction. Setting selectedTab switches major sections. path.append(.history), from 3.2, pushes a History screen onto the current stack: a different place, a different Back behaviour. For each action, NPay should pick one meaning and use it consistently.</p>
+    <span class="notes-label">CONNECT</span><p>If tabs are sections, where do their stacks go?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>A stack per tab</h2>
+    <p class="lead">Independent navigation paths</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Each section remembers how deep it is.</p>
+    <span class="notes-label">CONNECT</span><p>The recommended structure.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Should each tab have its own NavigationStack? (section 7)</p>
+  <h2>Often yes: one hierarchy per section</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 845 222" style="max-height:250px" role="img" aria-labelledby="arch4">
+        <title id="arch4">TabView with four tabs, each holding a NavigationStack with its own deeper screen</title>
+        <g class="nd lit"><rect class="sh" x="250" y="0" width="360" height="52" rx="12"/><use href="#i-grid" x="264" y="13" width="26" height="26"/><text x="302" y="23">TabView</text><text class="sm" x="302" y="41">selected tab state</text></g>
+        <path class="wire" d="M430 54V70H100V96M93 89l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="100" width="200" height="56" rx="12"/><text x="16" y="125">Home</text><text class="sm" x="16" y="143">NavigationStack</text></g>
+        <path class="wire dash" d="M100 158V174M93 167l7 7 7-7"/>
+        <g class="nd ghost"><rect class="sh" x="0" y="178" width="200" height="44" rx="12"/><text x="16" y="206">Account Details</text></g>
+        <path class="wire" d="M430 54V70H315V96M308 89l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="215" y="100" width="200" height="56" rx="12"/><text x="231" y="125">Payments</text><text class="sm" x="231" y="143">NavigationStack</text></g>
+        <path class="wire dash" d="M315 158V174M308 167l7 7 7-7"/>
+        <g class="nd ghost"><rect class="sh" x="215" y="178" width="200" height="44" rx="12"/><text x="231" y="206">Payment Success</text></g>
+        <path class="wire" d="M430 54V70H530V96M523 89l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="430" y="100" width="200" height="56" rx="12"/><text x="446" y="125">History</text><text class="sm" x="446" y="143">NavigationStack</text></g>
+        <path class="wire dash" d="M530 158V174M523 167l7 7 7-7"/>
+        <g class="nd ghost"><rect class="sh" x="430" y="178" width="200" height="44" rx="12"/><text x="446" y="206">Transaction Details</text></g>
+        <path class="wire" d="M430 54V70H745V96M738 89l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="645" y="100" width="200" height="56" rx="12"/><text x="661" y="125">Profile</text><text class="sm" x="661" y="143">NavigationStack</text></g>
+        <path class="wire dash" d="M745 158V174M738 167l7 7 7-7"/>
+        <g class="nd ghost"><rect class="sh" x="645" y="178" width="200" height="44" rx="12"/><text x="661" y="206">Settings</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">Why</span><ul style="margin:6px 0 0"><li>Each section manages its <b>own</b> hierarchy</li><li>Deeper flows stay in their tab</li></ul></div>
+      <div class="step"><div class="card accent"><span class="label">Every app? No</span><ul style="margin:6px 0 0"><li>Structure follows the intended experience</li><li>Useful when tabs have deeper flows</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>For a larger app, each tab often gets its own NavigationStack. The TabView holds the selected-tab state; each section manages its own navigation hierarchy: Home to Account Details, Payments to Payment Confirmation, History to Transaction Details, Profile to Settings.</p>
+    <span class="notes-label">SAY</span><p>Click: does every app need four stacks? No. The right structure depends on the navigation experience you intend. But independent stacks are a useful design when each tab has its own deeper flow, which NPay will.</p>
+    <span class="notes-label">CONNECT</span><p>Our 3.2 router had one path. Now?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; TabView and NPayRouter together (section 12)</p>
+  <h2>One router: a selection and four paths</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>App/NPayRouter.swift (condensed)</span></div><pre class="cb" style="font-size:11.5px">enum NPayRoute: Hashable {
+    case accountDetails, settings
+    case paymentSuccess(UUID), transactionDetails(UUID)
+}
+
+@MainActor @Observable
+final class NPayRouter {
+    var selectedTab: NPayTab = .home
+    var homePath: [NPayRoute] = []
+    var paymentsPath: [NPayRoute] = []
+    var historyPath: [NPayRoute] = []
+    var profilePath: [NPayRoute] = []
+
+    func select(_ tab: NPayTab) { selectedTab = tab }
+
+    func showPaymentSuccess(_ id: UUID) {
+        selectedTab = .payments
+        paymentsPath.append(.paymentSuccess(id))
+    }
+
+    func returnHome() {
+        paymentsPath.removeAll()
+        selectedTab = .home
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Why separate paths</span><ul style="margin:6px 0 0"><li>Home &rarr; Account Details; History &rarr; a transaction</li><li>Back on Home: still on Account Details</li><li>One shared path makes that hard</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label"><code>@MainActor</code></span><ul style="margin:6px 0 0"><li>Navigation state drives UI: mutate it on the main actor</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label"><code>@Observable</code></span><ul style="margin:6px 0 0"><li>SwiftUI tracks the properties it reads</li><li>In depth: Unit 4</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The 3.2 router had one path. Now NPay has four tabs. Picture the journey: Home to Account Details; switch to History and open a transaction; switch back to Home. Ideally Home is still on Account Details, independently of History. One shared path for every tab makes that hard to manage.</p>
+    <span class="notes-label">SAY</span><p>The better design: the router holds the selected tab and one path per tab. The route enum changes too: account details, payment success and transaction details carrying a UUID, and settings. Two coordinating methods: showPaymentSuccess selects the Payments tab and pushes the success route; returnHome clears the payments path and selects Home.</p>
+    <span class="notes-label">SAY</span><p>Click: why @MainActor? Navigation state affects the user interface, so main-actor isolation keeps its mutations in the UI execution context, as in Lesson 1.9. Click: why @Observable? The Observation framework lets SwiftUI track which properties a view reads and respond when they change. The text studies it in depth in Unit 4; for now, this router is a reference-type object that owns navigation state.</p>
+    <span class="notes-label">CONNECT</span><p>Bind it to the TabView, and measure the journey.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Connect the router to TabView (section 13)</p>
+  <h2>Four bindings into one object</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 140px;gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>App/NPayRootView.swift (excerpt)</span></div><pre class="cb" style="font-size:11.5px">@State private var router = NPayRouter()
+
+var body: some View {
+    @Bindable var router = router
+
+    TabView(selection: $router.selectedTab) {
+        NavigationStack(path: $router.homePath) {
+            HomeScreen(store: store, router: router)
+        }
+        .tabItem { Label(&quot;Home&quot;, systemImage: &quot;house&quot;) }
+        .tag(NPayTab.home)
+
+        NavigationStack(path: $router.historyPath) {
+            HistoryScreen(transactions: store.transactions)
+        }
+        .tabItem { Label(&quot;History&quot;, systemImage: &quot;clock&quot;) }
+        .tag(NPayTab.history)
+        // Payments, Profile: the same shape
+    }
+}</pre></div>
+      <div class="step"><div class="card accent"><span class="label">The journey, router state printed</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">Home: Account Details<br>&ensp;homePath: [accountDetails]<br>History tab, open Coffee Shop<br>&ensp;selectedTab: history<br>&ensp;historyPath: [transactionDetails(3341DC68…)]<br>Home tab again<br>&ensp;selectedTab: home<br>&ensp;on screen: Account Details</p></div></div>
+      <div class="step"><div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/keep.png" alt="Home kept its place"></div><p class="shot-cap">Home kept its place</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The root view owns the router with @State and uses @Bindable inside body to get bindings: $router.selectedTab for the TabView, and $router.homePath, paymentsPath, historyPath, profilePath for the four stacks. In the text&rsquo;s scaffold the screens are placeholders; our complete code passes the store and router, as we will see.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s journey, run on the complete app with the router&rsquo;s state printed. Home to Account Details: homePath is [accountDetails]. Switch to History, open Coffee Shop: selectedTab history, historyPath holds transactionDetails with that row&rsquo;s ID. Switch back to Home.</p>
+    <span class="notes-label">SAY</span><p>Click: Home is still on Account Details. Each tab kept its own position, because each stack is bound to its own path.</p>
+    <span class="notes-label">CONNECT</span><p>And state that is not navigation: does a tab switch destroy it?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Does switching destroy state?</h2>
+    <p class="lead">Measure it, then design it</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What happens to a tab&rsquo;s views and @State?</p>
+    <span class="notes-label">CONNECT</span><p>The experiment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Does tab switching destroy state? (section 8)</p>
+  <h2>Built on first visit, kept after</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Experiment (authored)</span><ul style="margin:6px 0 0"><li>Four tabs; each prints <code>body</code>, <code>onAppear</code>, <code>onDisappear</code></li><li>Each keeps a <code>@State</code> timestamp from when it was made</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">launch:&ensp;Home.body, Home.onAppear (state from 01:35)<br>History:&ensp;History.body, History.onAppear (01:35)<br>&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;Home.onDisappear<br>Home:&ensp;&ensp;&ensp;Home.onAppear (01:35), History.onDisappear<br>History:&ensp;History.onAppear (01:35), Home.onDisappear</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">What we saw (iOS 26.5)</span><ul style="margin:6px 0 0"><li>Payments, Profile never built: never selected</li><li>A tab&rsquo;s view is built on <b>first</b> selection</li><li>Switching: appear / disappear; <code>@State</code> <b>kept</b></li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Payments draft, complete app</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">typed: ravi@npay, 1500.50<br>History tab, then Payments again<br>amount field: "1500.50", recipient: "ravi@npay"</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s subtle question: the user starts a payment, switches to History, returns to Payments. Should the amount still be there? It depends on state ownership and view identity. So we measured. Our own experiment: four tabs, each printing when its body runs and when it appears or disappears, each holding a @State timestamp from when it was created.</p>
+    <span class="notes-label">SAY</span><p>Click: at launch only Home was built. Selecting History built it then. Switching back and forth only fired onAppear and onDisappear, and both kept their original state, minute 01:35. Click: so on this iOS version, a tab is built on first selection and kept afterwards; Payments and Profile were never built because nobody selected them.</p>
+    <span class="notes-label">SAY</span><p>Click: the real form. In the complete app we typed ravi@npay and 1500.50 on Payments, switched to History and back: both fields still held their text.</p>
+    <span class="notes-label">CONNECT</span><p>So can we rely on it?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Design the draft&rsquo;s lifetime (section 8)</p>
+  <h2>Kept here; promised nowhere</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div class="warn" data-label="Don&rsquo;t rely on it"><ul style="margin:6px 0 0"><li>SwiftUI <b>can</b> preserve tab state</li><li>Our run is behaviour, not a documented guarantee</li><li>Not for <b>critical</b> drafts</li></ul></div>
+      <div class="rule step" data-label="Instead"><ul style="margin:6px 0 0"><li>Put the draft in a <b>deliberate owner</b></li><li>Its lifetime must span the tab changes</li><li>How: Lesson 3.5</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Our run kept the draft, and SwiftUI can preserve tab-associated state. But that is how this version behaved in this structure, not a documented promise, and it depends on view identity: restructure the root, and it may change. Do not rely on undocumented view-construction details for a critical payment draft.</p>
+    <span class="notes-label">SAY</span><p>Click: if a payment draft must survive tab changes, place its state in a deliberate owner whose lifetime spans those changes. Lesson 3.5 does exactly that.</p>
+    <span class="notes-label">CONNECT</span><p>The balance and transactions are shared across tabs. Who owns them now?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Shared state: NPayStore</h2>
+    <p class="lead">One owner for every tab</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Balance and transactions move out of ContentView.</p>
+    <span class="notes-label">CONNECT</span><p>The store.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Where should balance and transactions live? (section 14)</p>
+  <h2>Not in a tab: in a shared store</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Store/NPayStore.swift</span></div><pre class="cb" style="font-size:12px">@MainActor
+@Observable
+final class NPayStore {
+    var balancePaise = 2_500_000
+    var transactions: [Transaction] = []
+
+    func recordDemoPayment(recipient: String,
+                           amountPaise: Int) -&gt; UUID? {
+        let trimmed = recipient.trimmingCharacters(
+            in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, amountPaise &gt; 0,
+              amountPaise &lt;= balancePaise else { return nil }
+        let id = UUID()
+        balancePaise -= amountPaise
+        transactions.insert(
+            Transaction(id: id, title: &quot;Sent to \(trimmed)&quot;,
+                        amountPaise: -amountPaise, date: .now),
+            at: 0)
+        return id
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">What changed</span><ul style="margin:6px 0 0"><li>Before: <code>ContentView</code> owned the data</li><li>Now: <b>NPayStore</b> owns it; the root owns one store</li><li>3.2&rsquo;s <code>sendDemoPayment</code>, moved in</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Never</span><ul style="margin:6px 0 0"><li>A separate balance per tab (3.1&rsquo;s two owners)</li></ul></div></div>
+        <div class="warn step" data-label="Still a demo"><ul style="margin:6px 0 0"><li>In memory: not persisted, authenticated or server-backed</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The crucial design question. ContentView owned the balance and the transactions; now Home, Payments and History all need them. We must not create a separate balance per tab: Lesson 3.1 showed what two owners do. So Unit 3 introduces a shared application state object, NPayStore: main-actor, observable, holding the balance and transactions, with recordDemoPayment, which is 3.2&rsquo;s sendDemoPayment moved into the store: validate, subtract, insert, return the ID.</p>
+    <span class="notes-label">SAY</span><p>The root view owns one instance and passes it to the tabs. This prepares us for MVVM and dependency injection in Unit 4. Click: never one balance per tab. Click: and an honest note: this is still local, in-memory demo state. Not persisted, not authenticated, not backed by a payment server.</p>
+    <span class="notes-label">CONNECT</span><p>Connect the store to the tabs.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Connect shared state to the root view (section 15)</p>
+  <h2>One store instance, passed to three tabs</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayRootView (excerpt)</span></div><pre class="cb" style="font-size:12.5px">@State private var router = NPayRouter()
+@State private var store = NPayStore()
+
+// inside the TabView
+NavigationStack(path: $router.homePath) {
+    HomeScreen(store: store, router: router)
+}
+NavigationStack(path: $router.paymentsPath) {
+    PaymentsScreen(store: store, router: router)
+}
+NavigationStack(path: $router.historyPath) {
+    HistoryScreen(transactions: store.transactions)
+}
+NavigationStack(path: $router.profilePath) {
+    ProfileScreen()
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Passed down</span><ul style="margin:6px 0 0"><li>Home, Payments: the <b>store</b> itself</li><li>History: <code>store.transactions</code>, a value</li><li>Profile: nothing yet</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Our change (authored)</span><ul style="margin:6px 0 0"><li>Home also gets the <b>router</b>: its buttons switch tabs</li><li><code>.tabItem</code> and <code>.tag</code> as before</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The root view now owns two objects: the router and the store, both with @State. The same store instance goes to Home and Payments; History receives the transactions array as a value, as in 3.1; Profile needs nothing yet. When the balance changes, every view that reads it can update.</p>
+    <span class="notes-label">SAY</span><p>Click: one change of ours: the text passes only the store to Home, but Home&rsquo;s Send Money and History buttons switch tabs, so our complete code passes the router too. Each stack keeps its tabItem and tag as in Section 13.</p>
+    <span class="notes-label">CONNECT</span><p>How does SwiftUI know which tabs to update?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; How SwiftUI tracks changes across tabs (section 16)</p>
+  <h2>Only the readers re-evaluate</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Experiment (authored)</span><ul style="margin:6px 0 0"><li>One observable store, three tabs</li><li>BalanceTab reads <code>balancePaise</code>; ListTab reads <code>transactions</code>; NameTab reads <code>profileName</code></li><li>A payment changes balance and transactions</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator: bodies after the payment</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">ListTab.body (reads transactions)<br>BalanceTab.body (reads balancePaise)<br><i>NameTab: not re-evaluated</i></p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="step"><div class="card accent"><span class="label">So</span><ul style="margin:6px 0 0"><li>Observation tracks which properties each body <b>read</b></li><li>ListTab updated though it was off screen</li><li>Not &ldquo;redraw every tab on any change&rdquo;</li></ul></div></div>
+        <div class="rule step" data-label="Remember"><ul style="margin:6px 0 0"><li>Exact evaluation and rendering stay framework-managed</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s flow: PaymentsScreen submits a payment; NPayStore validates and updates the balance and transactions; Observation tracks relevant reads and changes; HomeScreen shows the new balance and HistoryScreen the new transactions. We tested the "relevant" part: three tabs on one observable store, each reading a different property, and a payment that changes two of them.</p>
+    <span class="notes-label">SAY</span><p>Click: after the payment, ListTab and BalanceTab re-evaluated their bodies; NameTab did not, because it read only profileName. ListTab updated even though it was not the visible tab: it had been built, and it read transactions.</p>
+    <span class="notes-label">SAY</span><p>Click: so Observation does not redraw every tab whenever any property changes; it tracks dependencies. Click: but, as the text says, the precise evaluation and rendering behaviour remains framework-managed. Do not build logic on body counts.</p>
+    <span class="notes-label">CONNECT</span><p>Two objects now: what goes where?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Navigation state versus business state (section 17)</p>
+  <h2>Where the user goes; what the app knows</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <table class="tbl"><thead><tr><th>NPayRouter</th><th>NPayStore</th></tr></thead><tbody><tr><td>Selected tab</td><td>Available balance</td></tr><tr><td>Home navigation path</td><td>Transactions</td></tr><tr><td>Payments navigation path</td><td>Demo payment validation</td></tr><tr><td>History navigation path</td><td>Payment recording</td></tr><tr><td>Profile navigation path</td><td>Application data</td></tr></tbody></table>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="rule step" data-label="Router"><ul style="margin:6px 0 0"><li>Decides <b>where</b> the user goes</li></ul></div>
+        <div class="rule step" data-label="Store"><ul style="margin:6px 0 0"><li>Manages <b>what</b> the application knows</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Neither</span><ul style="margin:6px 0 0"><li>takes over the other&rsquo;s job</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two separate objects. NPayRouter: the selected tab and the four navigation paths. NPayStore: the balance, the transactions, payment validation and recording: the application&rsquo;s data.</p>
+    <span class="notes-label">SAY</span><p>Click: the router decides where the user goes. Click: the store manages what the application knows. Click: neither should take over the other&rsquo;s responsibilities. The payment screen asks the store to record a payment and the router to show success; the store never navigates, and the router never touches money. The routing Q&amp;A in 3.2 drew the same boundary.</p>
+    <span class="notes-label">CONNECT</span><p>Now the complete app.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>NPay after Lesson 3.3</h2>
+    <p class="lead">The complete four-tab app</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Files, screens and a verified run.</p>
+    <span class="notes-label">CONNECT</span><p>The architecture.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Architecture checkpoint (sections 10, 18; complete code)</p>
+  <h2>From ContentView to a root, a router and a store</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:24px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 845 218" style="max-height:230px" role="img" aria-labelledby="ar3">
+        <title id="ar3">NPayApp, NPayRootView owning router and store, four tabs</title>
+        <g class="nd"><rect class="sh" x="160" y="0" width="520" height="54" rx="12"/><use href="#i-app" x="174" y="14" width="26" height="26"/><text x="212" y="24">NPayApp</text><text class="sm" x="212" y="42">WindowGroup { NPayRootView() }</text></g>
+        <g class="nd lit"><rect class="sh" x="160" y="70" width="520" height="54" rx="12"/><use href="#i-layers" x="174" y="84" width="26" height="26"/><text x="212" y="94">NPayRootView</text><text class="sm" x="212" y="112">owns NPayRouter + NPayStore</text></g>
+        <path class="wire" d="M420 56V66M413 59l7 7 7-7"/>
+        <path class="wire" d="M420 126V140H100V158M93 151l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="162" width="200" height="56" rx="12"/><text x="16" y="187">Home</text><text class="sm" x="16" y="205">balance, dashboard</text></g>
+        <path class="wire" d="M420 126V140H315V158M308 151l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="215" y="162" width="200" height="56" rx="12"/><text x="231" y="187">Payments</text><text class="sm" x="231" y="205">form, confirmation</text></g>
+        <path class="wire" d="M420 126V140H530V158M523 151l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="430" y="162" width="200" height="56" rx="12"/><text x="446" y="187">History</text><text class="sm" x="446" y="205">transactions</text></g>
+        <path class="wire" d="M420 126V140H745V158M738 151l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="645" y="162" width="200" height="56" rx="12"/><text x="661" y="187">Profile</text><text class="sm" x="661" y="205">user settings</text></g>
+      </svg>
+    </div>
+      <div class="step"><div class="cw"><div class="ch"><span>Project (authored from the text&rsquo;s structure)</span></div><pre class="cb" style="font-size:11.5px">NPay/
+├── NPayApp.swift
+├── App/
+│   ├── NPayRootView.swift
+│   └── NPayRouter.swift       NPayTab, NPayRoute, router
+├── Models/        Money, Transaction
+├── Store/
+│   └── NPayStore.swift
+├── Components/    BalanceCard, TransactionRow
+└── Screens/
+    ├── HomeScreen.swift            + AccountDetailsScreen
+    ├── PaymentsScreen.swift
+    ├── PaymentSuccessScreen.swift
+    ├── HistoryScreen.swift
+    ├── TransactionDetailScreen.swift
+    └── ProfileScreen.swift         + SettingsScreen</pre></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The architecture after 3.3. NPayApp&rsquo;s WindowGroup now launches NPayRootView instead of ContentView, the text&rsquo;s Section 10. The root view owns the router and the store. Under it, four tabs: Home with the balance and dashboard, Payments with the form and confirmation, History with the transactions, Profile with user settings.</p>
+    <span class="notes-label">SAY</span><p>Click: the project. The text listed this structure with a complete-code ZIP that we did not receive, so we wrote the files from the text&rsquo;s sections and the 3.2 code; it is all in the lesson text file and ran unchanged in the simulator. Two small extra screens live beside their tabs: AccountDetailsScreen in HomeScreen.swift, SettingsScreen in ProfileScreen.swift. The balance editor from Unit 2 is not in the structure, so it is gone.</p>
+    <span class="notes-label">CONNECT</span><p>One mapping from route to screen.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Resolving routes (complete code, authored)</p>
+  <h2>Every stack, one <code>destination</code> function</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>App/NPayRootView.swift</span></div><pre class="cb" style="font-size:11.5px">// NPayRootView: each tab&#x27;s root registers the same mapping
+HomeScreen(store: store, router: router)
+    .navigationDestination(for: NPayRoute.self,
+                           destination: destination)
+
+@ViewBuilder
+private func destination(_ route: NPayRoute) -&gt; some View {
+    switch route {
+    case .accountDetails:
+        AccountDetailsScreen(balancePaise: store.balancePaise)
+    case .paymentSuccess(let id):
+        PaymentSuccessScreen(transactionID: id,
+                             onDone: { router.returnHome() })
+    case .transactionDetails(let id):
+        if let transaction = store.transactions.first(where: { $0.id == id }) {
+            TransactionDetailScreen(transaction: transaction)
+        } else {
+            ContentUnavailableView(&quot;Transaction not found&quot;,
+                                   systemImage: &quot;questionmark.circle&quot;)
+        }
+    case .settings:
+        SettingsScreen()
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card accent"><span class="label">Why one function</span><ul style="margin:6px 0 0"><li>Any tab can show any route</li><li>Registered on each stack&rsquo;s root</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">IDs resolved by the owner</span><ul style="margin:6px 0 0"><li><code>.transactionDetails(id)</code> &rarr; the store finds it</li><li>Missing ID: a <code>ContentUnavailableView</code></li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>With four stacks, each one needs navigationDestination for NPayRoute. Rather than four copies of the switch, our complete code has one destination function in the root view, passed to each stack&rsquo;s root. Account details shows the balance; payment success gets its ID and an onDone that calls router.returnHome(); settings shows SettingsScreen.</p>
+    <span class="notes-label">SAY</span><p>Click: transaction details is 3.2&rsquo;s "carry an ID" idea paying off: the route holds only the UUID, and the store, the owner of the data, looks the transaction up. If the ID is not found, ContentUnavailableView shows a standard empty state instead of crashing.</p>
+    <span class="notes-label">CONNECT</span><p>Run the payment across tabs.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Payments tab: record, then route (complete code)</p>
+  <h2>The store records; the router navigates</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 125px 125px 125px;gap:14px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Screens/PaymentsScreen.swift (button)</span></div><pre class="cb" style="font-size:12px">Button(&quot;Send Demo Payment&quot;) {
+    guard let amount = parsedAmount else { return }
+    if let id = store.recordDemoPayment(
+        recipient: recipient, amountPaise: amount) {
+        focusedField = nil
+        recipient = &quot;&quot;
+        amountText = &quot;&quot;
+        router.showPaymentSuccess(id)
+    }
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Router state, simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">paymentsPath: [paymentSuccess(CB81C78F…)]<br>Back to Dashboard &rarr; selectedTab: home, paymentsPath: []</p></div></div>
+      </div>
+      <div style="width:125px;max-width:100%;margin:0 auto"><div class="shot" style="height:272px"><img src="img/typed.png" alt="Payments tab"></div><p class="shot-cap">Payments tab</p></div>
+      <div class="step"><div style="width:125px;max-width:100%;margin:0 auto"><div class="shot" style="height:272px"><img src="img/success.png" alt="Success, same tab"></div><p class="shot-cap">Success, same tab</p></div></div>
+      <div class="step"><div style="width:125px;max-width:100%;margin:0 auto"><div class="shot" style="height:272px"><img src="img/homeafter.png" alt="Home: ₹23,499.50"></div><p class="shot-cap">Home: ₹23,499.50</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentsScreen is 3.2&rsquo;s PaymentScreen turned into a tab: it reads the balance from the store and has two collaborators. The button asks the store to record the payment and, with the returned ID, clears the form, a choice of ours because the tab stays alive, and asks the router to show success.</p>
+    <span class="notes-label">SAY</span><p>On the right, ₹1,500.50 to ravi@npay on the Payments tab. Click: the router printed paymentsPath with the success route; the success screen appears inside the Payments tab, tab bar still visible. Click: Back to Dashboard calls returnHome: the payments path empties and Home is selected, showing ₹23,499.50 with "Sent to ravi@npay" on top.</p>
+    <span class="notes-label">SAY</span><p>One detail from our trace: returnHome clears only the payments path. When Home was left on Account Details, Back to Dashboard landed on Account Details, now showing ₹23,499.50. If "dashboard" must mean Home&rsquo;s root, returnHome should clear homePath too. A design decision for you.</p>
+    <span class="notes-label">CONNECT</span><p>History and the transaction details.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; History &rarr; transaction details (complete code)</p>
+  <h2>A value link appends to the History path</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 140px 140px;gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cw"><div class="ch"><span>Screens/HistoryScreen.swift</span></div><pre class="cb" style="font-size:12px">struct HistoryScreen: View {
+    let transactions: [Transaction]
+
+    var body: some View {
+        List(transactions) { transaction in
+            NavigationLink(value: NPayRoute.transactionDetails(transaction.id)) {
+                TransactionRow(transaction: transaction)
+            }
+        }
+        .navigationTitle(&quot;History&quot;)
+    }
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label"><code>NavigationLink(value:)</code></span><ul style="margin:6px 0 0"><li>A link that carries a <b>route</b>, not a view</li><li>Tapping appends it to the enclosing stack&rsquo;s path</li></ul></div></div>
+      </div>
+      <div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/history.png" alt="History tab"></div><p class="shot-cap">History tab</p></div>
+      <div class="step"><div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/detail.png" alt="Transaction"></div><p class="shot-cap">Transaction</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>History needs to push transaction details, but HistoryScreen gets only the transactions, not the router. A value-based NavigationLink fits: NavigationLink(value:) carries a route instead of a destination view. When tapped, it appends that value to the path of the stack it is in: here historyPath. The 3.1 destination closure is replaced by the route, resolved by our destination function. This form of link is ours, not the text&rsquo;s.</p>
+    <span class="notes-label">SAY</span><p>On the right, History after the payment: "Sent to ravi@npay" on top, each row with a disclosure chevron. Click: the detail for that row: title, amount, date and ID, looked up in the store by ID.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s five checks.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Verify these five behaviors (complete code)</p>
+  <h2>Five checks, all run</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 140px 140px;gap:20px;align-items:start">
+      <div><table class="tbl"><thead><tr><th>Check</th><th>Simulator</th></tr></thead><tbody><tr><td>1. Switch Home, Payments, History, Profile</td><td>all four, tab bar always visible</td></tr><tr><td>2. Send a demo payment of ₹1,500.50</td><td>Payment Recorded, in the Payments tab</td></tr><tr><td>3. Updated balance</td><td>₹23,499.50 on Home</td></tr><tr><td>4. History &rarr; select the transaction</td><td>Sent to ravi@npay, -₹1,500.50</td></tr><tr><td>5. Back to Home: shared state kept</td><td>₹23,499.50, Sent to ravi@npay on top</td></tr></tbody></table>
+        <p class="small muted" style="margin:6px 0 0">The text&rsquo;s ZIP was not shared; this is the authored complete code in the lesson text file.</p></div>
+      <div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/profile.png" alt="Profile"></div><p class="shot-cap">Profile</p></div>
+      <div class="step"><div style="width:140px;max-width:100%;margin:0 auto"><div class="shot" style="height:304px"><img src="img/settings.png" alt="Profile &rarr; Settings"></div><p class="shot-cap">Profile &rarr; Settings</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The five behaviours the text asks you to verify, all run against the complete code. All four tabs switch with the tab bar always visible. A payment of ₹1,500.50 records and shows Payment Recorded inside the Payments tab. Home shows ₹23,499.50. In History, selecting the new transaction shows its details. And back on Home the shared state is intact.</p>
+    <span class="notes-label">SAY</span><p>On the right, the Profile tab: the demo user and a Settings row. Click: Settings, pushed on the Profile stack. Its toggle is local view state; nothing is saved.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s completion checklist.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Lesson 3.3 completion checklist (section 19)</p>
+  <h2>Eight items, and where we covered them</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Checklist item</th><th>Covered in</th></tr></thead><tbody><tr><td>TabView versus NavigationStack</td><td>Part 2</td></tr><tr><td>selectedTab and <code>.tag()</code></td><td>Part 3</td></tr><tr><td>The NPayTab enum</td><td>Part 3</td></tr><tr><td>Independent navigation paths</td><td>Part 4</td></tr><tr><td>NPayRouter&rsquo;s responsibility</td><td>Parts 4, 6</td></tr><tr><td>Shared NPayStore ownership</td><td>Part 6</td></tr><tr><td>Business state stays out of the router</td><td>Part 6</td></tr><tr><td>The root architecture</td><td>Part 7</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s checklist: TabView versus NavigationStack; selectedTab and tag; the NPayTab enum; independent navigation paths; the router&rsquo;s responsibility; shared store ownership; why business state does not belong in the router; and the root architecture. If any item feels shaky, the right column says where to look again.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.3 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg></span><p style="font-size:23px"><b>Tabs switch, stacks deepen</b><br><span class="muted" style="font-size:19px">TabView: which section; NavigationStack: how deep</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>One path per tab</b><br><span class="muted" style="font-size:19px">a router: selection + four paths</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p style="font-size:23px"><b>One store, observed</b><br><span class="muted" style="font-size:19px">readers update; router and store stay separate</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. TabView answers which major section is active and NavigationStack answers how deep we are within it; selection is state, written by taps or by code. Each tab gets its own navigation path in one router, so every section keeps its place. And shared data lives in one observable store that the root owns: Observation updates the views that read what changed, and the router decides where while the store decides what.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is TabView primarily responsible for?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is <code>TabView</code> primarily responsible for?</p><ol class="q-opts"><li>Pushing a route onto a navigation stack</li><li>Switching major application sections</li><li>Performing network requests</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Tabs switch sections; stacks push screens.</p>
+          <p class="q-trap"><b>Common trap:</b> Mixing up tabs and stacks.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Tabs switch sections; stacks push screens.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does .tag(NPayTab.history) provide?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>.tag(NPayTab.history)</code> provide?</p><ol class="q-opts"><li>A database ID</li><li>A thread identifier</li><li>A tab selection value</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">SwiftUI writes it into <code>selectedTab</code> when the tab is chosen.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking tags are data IDs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. SwiftUI writes it into <code>selectedTab</code> when the tab is chosen.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does selectedTab = .history push a route?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does changing <code>selectedTab</code> to <code>.history</code> necessarily push a NavigationStack route?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It switched sections; no path changed.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating every move as a push.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It switched sections; no path changed.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can each tab contain its own NavigationStack?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can each tab contain its own <code>NavigationStack</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">NPay has four, bound to four paths.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting one stack for the app.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. NPay has four, bound to four paths.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should a payment draft&#x27;s lifetime be designed?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should payment draft state lifetime be designed explicitly?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Our run kept it, but that isn&rsquo;t a guarantee; give it an owner (3.5).</p>
+          <p class="q-trap"><b>Common trap:</b> Relying on observed behaviour.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. Our run kept it, but that isn&rsquo;t a guarantee; give it an owner (3.5).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Home → Account Details, History, back to Home?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">On Home you open Account Details, switch to History, open a transaction, then select Home again. What does Home show?</p><ol class="q-opts"><li>Its root dashboard</li><li>Account Details</li><li>The transaction</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Home&rsquo;s own path still held <code>[accountDetails]</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking a tab switch resets the stack.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Home&rsquo;s own path still held <code>[accountDetails]</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="After a payment, which tab body did not re-run?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">Three tabs read <code>balancePaise</code>, <code>transactions</code> and <code>profileName</code>. A payment changes the first two. Which body was <b>not</b> re-evaluated?</p><ol class="q-opts"><li>The balance tab</li><li>The transactions tab</li><li>The profile-name tab</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Observation re-ran only the readers of changed properties.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming every tab redraws.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B (off screen).</p>
+    <span class="notes-label">SAY</span><p>C. Observation re-ran only the readers of changed properties.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Where does payment validation belong?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Where does demo payment validation belong?</p><ol class="q-opts"><li><code>NPayRouter</code></li><li><code>NPayStore</code></li><li><code>TabView</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The store manages what the app knows; the router only where the user goes.</p>
+          <p class="q-trap"><b>Common trap:</b> Letting the router do business logic.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. The store manages what the app knows; the router only where the user goes.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.2: why does a route carry an ID?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 3.2: why does <code>.transactionDetails(UUID)</code> carry an ID instead of the Transaction?</p><ol class="q-opts"><li>IDs are faster to draw</li><li>The owner resolves the data; the route only identifies it</li><li>Transactions can&rsquo;t be Hashable</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Our destination looks the ID up in the store.</p>
+          <p class="q-trap"><b>Common trap:</b> Copying whole objects into routes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.2.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Our destination looks the ID up in the store.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.3 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.4</td><td><b>Sheets, alerts &amp; modal presentation</b></td><td>a payment review flow over the current hierarchy</td></tr><tr><td class="mono">3.5</td><td><b>Draft state across navigation</b></td><td>a deliberate owner for the payment draft</td></tr><tr><td class="mono">Unit 4</td><td><b>Observation in depth, MVVM, DI</b></td><td>the store and router as injected dependencies</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.4 builds a payment review flow with sheets and alerts, temporary screens presented over the current navigation hierarchy. Lesson 3.5 gives the payment draft a deliberate owner. Unit 4 studies Observation in depth and turns the store and router into properly injected dependencies.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.3 &middot; Lab</p>
+  <h2>NPay goes four-tab</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Build the complete 3.3 project; verify, then measure.</p><ol class="lab"><li>Add NPayTab, NPayRoute, NPayRouter, NPayStore.</li><li>Create NPayRootView; launch it from NPayApp.</li><li>Run the five checks with ₹1,500.50.</li><li>Home → Account Details, History, back: where?</li><li>Print body/onAppear per tab; switch tabs.</li><li>Decide: should returnHome clear homePath?</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your five-check results</li><li>Your tab lifetime log</li><li>Your returnHome decision, with a reason</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: four tabs; ₹1,500.50 records on Payments and Back to Dashboard shows ₹23,499.50 on Home; History shows the transaction details; Home keeps Account Details across tab switches; each tab is built on first selection and keeps its state; returnHome clears only the payments path, so Home can stay on Account Details.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.3 complete</p>
+    <h2>TabView: Building<br>NPay&rsquo;s Main Navigation</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.4 &mdash; Sheets, Alerts &amp; Modal Presentation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain how TabView differs from NavigationStack, drive the selected tab with state and tags, give each tab its own path in a router, describe what tab switching did to view state and why drafts need a deliberate owner, share one observable store across tabs, and keep navigation state apart from business state.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.4: sheets, alerts and modal presentation. We build NPay&rsquo;s payment review flow over the current navigation hierarchy.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

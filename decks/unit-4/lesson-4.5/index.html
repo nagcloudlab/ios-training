@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4.5 — Repository Pattern &amp; Data Access</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 04 · Lesson 4.5 — Repository Pattern &amp; Data Access">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 04 &middot; Lesson 4.5</p>
+    <h1 style="font-size:54px;line-height:1.05">Repository Pattern &amp;<br>Data Access</h1>
+    <p class="lead" style="max-width:760px">In memory today, a database and an API tomorrow: <b>one contract</b> for NPay&rsquo;s account data.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.4 put PaymentService between the ViewModel and the store. Today we separate data access itself: how can NPay switch between in-memory data, local storage and a backend API without rewriting business logic or screens? We define an account repository, implement it as a Swift actor, connect it to a payment service and a dashboard, and then test the claims: concurrent payments, a non-atomic workflow, stale snapshots, duplicate requests.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.5 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p>Explain what a repository abstracts, and what it doesn&rsquo;t</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></span><p>Design an atomic repository operation</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Use an actor to protect in-memory account state</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Map storage errors to payment errors</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Share one repository across ViewModels and refresh deliberately</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Tell concurrency safety from atomicity and idempotency</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.5 &middot; Where we are</p>
+  <h2>Today: a boundary for data access</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 04 &middot; Application Architecture &amp; MVVM</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 04 progress: lesson 4.5 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">4.1</text><text x="12" y="50" style="font-size:14px">Architecture</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">4.2</text><text x="126.667" y="50" style="font-size:14px">MVVM</text><text x="126.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">4.3</text><text x="241.333" y="50" style="font-size:14px">Observation</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">4.4</text><text x="356" y="50" style="font-size:14px">Dependency</text><text x="356" y="68" style="font-size:14px">injection</text></g>
+        <g class="nd lit"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">4.5</text><text x="470.667" y="50" style="font-size:14px">Repository</text><text x="470.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">4.6</text><text x="585.333" y="50" style="font-size:14px">Use cases</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">4.7</text><text x="700" y="50" style="font-size:14px">UI state</text><text x="700" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">4.8</text><text x="814.667" y="50" style="font-size:14px">Modules</text><text x="814.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">4.9</text><text x="929.333" y="50" style="font-size:14px">Testing</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">4.10</text><text x="1044" y="50" style="font-size:14px">Integration</text><text x="1044" y="68" style="font-size:14px">lab</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>4.4: PaymentService, injected; a mock behind the same screen.</span><span><b>Today</b>Repositories: contract, actor, caching, consistency.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last time the ViewModel stopped knowing how payments happen. Today the payment service stops knowing where account data lives. The text came as Part 1 and Part 2; Section 13 continues across the break.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The problem</h2>
+    <p class="lead">Who should know where data lives?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Not the ViewModel, not the payment workflow.</p>
+    <span class="notes-label">CONNECT</span><p>Today&rsquo;s chain.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The problem with our current design (section 1)</p>
+  <h2>Data access has no boundary of its own</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:22px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 520 252" style="max-height:270px" role="img" aria-labelledby="chain">
+        <title id="chain">PaymentsScreen, PaymentViewModel, DemoPaymentService, NPayStore</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="520" height="54" rx="12"/><use href="#i-phone" x="14" y="14" width="26" height="26"/><text x="52" y="24">PaymentsScreen</text><text class="sm" x="52" y="42">displays payment UI</text></g>
+        <path class="wire" d="M260 55V64M253 57l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="66" width="520" height="54" rx="12"/><use href="#i-layers" x="14" y="80" width="26" height="26"/><text x="52" y="90">PaymentViewModel</text><text class="sm" x="52" y="108">coordinates submission</text></g>
+        <path class="wire" d="M260 121V130M253 123l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="132" width="520" height="54" rx="12"/><use href="#i-check" x="14" y="146" width="26" height="26"/><text x="52" y="156">DemoPaymentService</text><text class="sm" x="52" y="174">simulated payment</text></g>
+        <path class="wire" d="M260 187V196M253 189l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="198" width="520" height="54" rx="12"/><use href="#i-db" x="14" y="212" width="26" height="26"/><text x="52" y="222">NPayStore</text><text class="sm" x="52" y="240">balance and transactions</text></g>
+      </svg>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Coming</span><ul style="margin:6px 0 0"><li>A REST API for transactions</li><li>A SwiftData cache</li><li>Cached records when offline</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Should the ViewModel know SwiftData vs server?</span><ul style="margin:6px 0 0"><li>No</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Should the payment service build SQL or URLSession requests?</span><ul style="margin:6px 0 0"><li>Ideally, no</li></ul></div></div>
+        <div class="rule step" data-label="Need"><ul style="margin:6px 0 0"><li>A boundary that abstracts data access</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay today: the screen displays the UI, the ViewModel coordinates submission, DemoPaymentService handles the simulated payment, and NPayStore holds the balance and transactions. For a local simulation that works. Now imagine NPay must fetch transactions from a REST API, cache recent ones in SwiftData, and show cached records when offline.</p>
+    <span class="notes-label">SAY</span><p>Click: should PaymentViewModel know whether data came from SwiftData or a server? No. Click: should PaymentService contain SQL queries or URLSession request-building code? Ideally, no. Click: we need a boundary that abstracts data access: a repository.</p>
+    <span class="notes-label">CONNECT</span><p>What exactly is one?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; What exactly is a repository? (section 2)</p>
+  <h2>An application-facing interface to domain data</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>The caller&rsquo;s view</span></div><pre class="cb" style="font-size:14px">let balance = try await
+    repository.fetchBalance()</pre></div>
+        <div class="card accent"><span class="label">Hidden from the caller</span><ul style="margin:6px 0 0"><li>A dictionary in memory</li><li>A local database</li><li>A remote API</li></ul></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Repository</th><th>Service / use case</th></tr></thead><tbody><tr><td>Retrieves and stores domain data</td><td>Coordinates application behaviour</td></tr><tr><td>Abstracts data sources</td><td>Enforces business workflows</td></tr><tr><td><code>fetchBalance()</code></td><td><code>sendPayment()</code></td></tr><tr><td><code>fetchTransactions()</code></td><td>Validate and execute a transfer</td></tr><tr><td><code>saveTransaction()</code></td><td>Decide when to save, what to return</td></tr></tbody></table></div>
+        <div class="rule step" data-label="Convention"><ul style="margin:6px 0 0"><li>Architectural, not enforced by Swift</li><li>Some repository calls are atomic domain operations</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A repository provides an application-facing interface for accessing and modifying domain data, and hides how the data is stored or retrieved. The caller writes try await repository.fetchBalance() and does not know whether that is an in-memory dictionary, a local database or a remote API.</p>
+    <span class="notes-label">SAY</span><p>Click: repository versus service. The repository retrieves and stores domain data and abstracts data sources: fetchBalance, fetchTransactions, saveTransaction. A service or use case coordinates behaviour and enforces workflows: sendPayment, validate and execute a transfer, decide when to save and what to return.</p>
+    <span class="notes-label">SAY</span><p>Click: the distinction is architectural, not enforced by Swift, and in some apps a repository operation is itself a meaningful atomic domain operation, as ours will be.</p>
+    <span class="notes-label">CONNECT</span><p>Where it fits in NPay.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>The contract</h2>
+    <p class="lead">Models and one atomic operation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>AccountRepository.</p>
+    <span class="notes-label">CONNECT</span><p>The target.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Target architecture and domain models (sections 3&ndash;4)</p>
+  <h2>One repository owns the demo account</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 560 300" style="max-height:300px" role="img" aria-labelledby="tgt">
+        <title id="tgt">PaymentsScreen, PaymentViewModel, PaymentService, AccountRepository, implementation</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="560" height="52" rx="12"/><use href="#i-phone" x="14" y="13" width="26" height="26"/><text x="52" y="23">PaymentsScreen</text><text class="sm" x="52" y="41">interaction, presentation</text></g>
+        <path class="wire" d="M280 53V60M273 53l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="62" width="560" height="52" rx="12"/><use href="#i-layers" x="14" y="75" width="26" height="26"/><text x="52" y="85">PaymentViewModel</text><text class="sm" x="52" y="103">screen state, actions</text></g>
+        <path class="wire" d="M280 115V122M273 115l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="124" width="560" height="52" rx="12"/><use href="#i-check" x="14" y="137" width="26" height="26"/><text x="52" y="147">PaymentService</text><text class="sm" x="52" y="165">payment workflow</text></g>
+        <path class="wire" d="M280 177V184M273 177l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="186" width="560" height="52" rx="12"/><use href="#i-key" x="14" y="199" width="26" height="26"/><text x="52" y="209">AccountRepository</text><text class="sm" x="52" y="227">account data contract</text></g>
+        <path class="wire" d="M280 239V246M273 239l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="248" width="560" height="52" rx="12"/><use href="#i-db" x="14" y="261" width="26" height="26"/><text x="52" y="271">Repository implementation</text><text class="sm" x="52" y="289">in memory today; persistent or remote later</text></g>
+      </svg>
+    </div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="cw"><div class="ch"><span>PaymentRecord.swift</span></div><pre class="cb" style="font-size:12px">struct PaymentRecord: Identifiable, Sendable {
+    let id: UUID
+    let recipient: String
+    let amountPaise: Int
+    let createdAt: Date
+}
+
+struct AccountSnapshot: Sendable {
+    let balancePaise: Int
+    let transactions: [PaymentRecord]
+}</pre></div></div>
+        <div class="step"><div class="card accent"><span class="label">Why these</span><ul style="margin:6px 0 0"><li><code>PaymentRecord</code>: avoids Unit 3&rsquo;s <code>Transaction</code></li><li><code>Sendable</code>: safe across isolation (Unit 8)</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The target: the screen, the ViewModel, the PaymentService workflow, then, click, the AccountRepository contract, and an implementation that is in memory today and persistent or remote later. One repository will own the demo balance and history, taking over NPayStore&rsquo;s storage job incrementally; we do not delete the existing app code today.</p>
+    <span class="notes-label">SAY</span><p>Click: two domain models. PaymentRecord: an ID, recipient, amount in paise and a creation date; named so it does not clash with Unit 3&rsquo;s Transaction. AccountSnapshot: the balance and the transactions at one moment.</p>
+    <span class="notes-label">SAY</span><p>Click: both are Sendable: their value-type properties can safely cross concurrency isolation boundaries, which matters because the repository will be an actor. Unit 8 goes deeper.</p>
+    <span class="notes-label">CONNECT</span><p>The contract.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; The repository contract (section 5)</p>
+  <h2>Two methods; the payment is one call</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>AccountRepository.swift</span></div><pre class="cb" style="font-size:12.5px">enum AccountRepositoryError: Error {
+    case invalidRecipient
+    case invalidAmount
+    case insufficientBalance
+}
+
+protocol AccountRepository: Sendable {
+    func fetchSnapshot() async throws -&gt; AccountSnapshot
+
+    func recordPayment(
+        recipient: String,
+        amountPaise: Int
+    ) async throws -&gt; PaymentRecord
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">fetchSnapshot()</span><ul style="margin:6px 0 0"><li>The current account state</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">recordPayment(recipient:amountPaise:)</span><ul style="margin:6px 0 0"><li>Records the payment <i>and</i> updates the balance</li></ul></div></div>
+        <div class="rule step" data-label="Intentional"><ul style="margin:6px 0 0"><li>No separate saveTransaction() and updateBalance()</li><li>Payment and balance stay consistent</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The contract: an error enum with three cases, invalid recipient, invalid amount, insufficient balance; and AccountRepository, a Sendable protocol with two async throwing methods.</p>
+    <span class="notes-label">SAY</span><p>fetchSnapshot returns the current account state. Click: recordPayment records a local demo transaction and updates the balance in the same call.</p>
+    <span class="notes-label">SAY</span><p>Click: notice what is missing: no separate saveTransaction and updateBalance. That is intentional: a payment and its balance update must stay consistent, so the repository offers one atomic operation over its in-memory state. Part 6 shows what goes wrong otherwise.</p>
+    <span class="notes-label">CONNECT</span><p>Implement it.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>An actor-backed repository</h2>
+    <p class="lead">In memory, isolated, testable</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>InMemoryAccountRepository.</p>
+    <span class="notes-label">CONNECT</span><p>The actor.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; An in-memory repository (section 6)</p>
+  <h2>An actor: one operation at a time on its state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>InMemoryAccountRepository.swift (condensed)</span></div><pre class="cb" style="font-size:10px;line-height:1.4">actor InMemoryAccountRepository: AccountRepository {
+    private var balancePaise: Int
+    private var transactions: [PaymentRecord] = []
+
+    init(initialBalancePaise: Int = 2_500_000) {
+        self.balancePaise = initialBalancePaise
+    }
+
+    func fetchSnapshot() async throws -&gt; AccountSnapshot {
+        AccountSnapshot(balancePaise: balancePaise, transactions: transactions)
+    }
+
+    func recordPayment(recipient: String, amountPaise: Int)
+        async throws -&gt; PaymentRecord {
+        let trimmed = recipient.trimmingCharacters(
+            in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw AccountRepositoryError.invalidRecipient }
+        guard amountPaise &gt; 0 else { throw AccountRepositoryError.invalidAmount }
+        guard amountPaise &lt;= balancePaise else {
+            throw AccountRepositoryError.insufficientBalance }
+
+        let payment = PaymentRecord(id: UUID(), recipient: trimmed,
+            amountPaise: amountPaise, createdAt: .now)
+        balancePaise -= amountPaise
+        transactions.insert(payment, at: 0)
+        return payment
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">recordPayment</span><ul style="margin:6px 0 0"><li>Check recipient, amount, balance</li><li>Create the record</li><li>Deduct, insert, return</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Why an actor?</span><ul style="margin:6px 0 0"><li>Protects mutable state from unsynchronized access</li><li>Called with await from outside</li></ul></div></div>
+        <div class="rule step" data-label="Key detail"><ul style="margin:6px 0 0"><li>No await inside check-and-update</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Our first repository is a Swift actor. It holds the balance, default ₹25,000, and the transactions, both private. fetchSnapshot returns them together. recordPayment trims the recipient and throws invalidRecipient if it is empty, invalidAmount if the amount is not positive, insufficientBalance if it exceeds the balance; otherwise it creates the record, deducts, inserts it first, and returns it.</p>
+    <span class="notes-label">SAY</span><p>Click: why an actor? It protects its mutable state from unsynchronized concurrent access; outside callers reach its methods asynchronously, with await.</p>
+    <span class="notes-label">SAY</span><p>Click: the detail that makes it work: there is no await inside the check-and-update sequence. Actor isolation then lets that sequence run without another actor-isolated operation interleaving. Imagine two payments arriving almost together: let&rsquo;s test that.</p>
+    <span class="notes-label">CONNECT</span><p>Two payments at once.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Actor isolation, measured (section 7)</p>
+  <h2>Concurrent payments can&rsquo;t overdraw</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Mac run, the text&rsquo;s code (Swift 6)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">two ₹1,500 payments at once, ₹2,000 balance:<br>&ensp;a@npay: recorded<br>&ensp;rejected: insufficientBalance<br>&ensp;balance 50000, transactions 1<br><br>1,000 concurrent ₹1 payments, ₹500 balance (ours):<br>&ensp;recorded 500, rejected 500; balance 0</p></div>
+        <p class="small muted" style="margin:0">Which request wins isn&rsquo;t guaranteed; that one wins is.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Why</span><ul style="margin:6px 0 0"><li>Each recordPayment runs to completion</li><li>The second sees ₹500, and is rejected</li></ul></div></div>
+        <div class="warn step" data-label="Limit"><ul style="margin:6px 0 0"><li>Data-race safety, not workflow atomicity</li><li>An await between read and write breaks it (Part 6)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s scenario: ₹2,000, two ₹1,500 payments at the same moment. We ran it: one recorded, the other rejected with insufficientBalance; balance ₹500, one transaction. Which request wins depends on scheduling, as the text notes; that exactly one wins does not.</p>
+    <span class="notes-label">SAY</span><p>Then a heavier version of ours: a thousand concurrent ₹1 payments against ₹500. Exactly five hundred recorded, five hundred rejected, balance zero. No lost updates.</p>
+    <span class="notes-label">SAY</span><p>Click: why: each recordPayment runs its non-suspending check-and-update to completion before the next one touches the balance. Click: but the text&rsquo;s insight: actors prevent data races on isolated state; they do not make a multi-step workflow atomic if it suspends between reading and writing. Part 6 measures that, and Unit 8 studies reentrancy.</p>
+    <span class="notes-label">CONNECT</span><p>Test it without SwiftUI.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Test the repository without SwiftUI (sections 8, 19)</p>
+  <h2>Deterministic, no app</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Section 8: runRepositoryLab()</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">Before: 2500000<br>Payment ID: 870B57C9-0ECC-4DE2-95EF-964FFA8A7050<br>After: 2349950<br>Transactions: 1</p></div>
+        <div class="step"><div class="card accent"><span class="label">Section 19 (Debug: asserts active)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">Repository test passed<br>Correctly rejected</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">testRepositoryPayment</span><ul style="margin:6px 0 0"><li>₹2,000 &minus; ₹500 = ₹1,500</li><li>One transaction</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">testInsufficientBalance</span><ul style="margin:6px 0 0"><li>₹500 from ₹100: rejected</li><li>Balance still ₹100; no transactions</li></ul></div></div>
+        <div class="rule step" data-label="Lesson 4.9"><ul style="margin:6px 0 0"><li>These become a real test suite</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 8&rsquo;s experiment, run: before 2,500,000 paise; a generated payment ID; after 2,349,950; one transaction. Exactly the text&rsquo;s expected output. A working domain-data repository, independent of SwiftUI.</p>
+    <span class="notes-label">SAY</span><p>Click: Section 19&rsquo;s two tests, in a Debug build where assert is active: "Repository test passed" and "Correctly rejected". Click: the first starts at ₹2,000, pays ₹500 and checks ₹1,500 and one transaction. Click: the second starts at ₹100, tries ₹500, expects insufficientBalance, and confirms nothing changed: a rejected payment must not modify account state.</p>
+    <span class="notes-label">SAY</span><p>Click: Lesson 4.9 turns these into proper automated tests.</p>
+    <span class="notes-label">CONNECT</span><p>Connect it to the payment service.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Service on a repository</h2>
+    <p class="lead">RepositoryPaymentService and typed errors</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Errors gain meaning on the way up.</p>
+    <span class="notes-label">CONNECT</span><p>The service.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Connect the repository to a payment service (sections 9, 15)</p>
+  <h2>Depend on the contract; translate its errors</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>RepositoryPaymentService (section 15&rsquo;s version)</span></div><pre class="cb" style="font-size:10.5px">@MainActor
+final class RepositoryPaymentService: PaymentService {
+    private let repository: any AccountRepository
+
+    init(repository: any AccountRepository) {
+        self.repository = repository
+    }
+
+    func send(_ request: PaymentRequest) async throws
+        -&gt; PaymentReceipt {
+        do {
+            let payment = try await repository.recordPayment(
+                recipient: request.recipient,
+                amountPaise: request.amountPaise)
+            return PaymentReceipt(transactionID: payment.id,
+                recipient: payment.recipient,
+                amountPaise: payment.amountPaise)
+        } catch AccountRepositoryError.invalidRecipient {
+            throw PaymentError.invalidRecipient
+        } catch AccountRepositoryError.invalidAmount {
+            throw PaymentError.invalidAmount
+        } catch AccountRepositoryError.insufficientBalance {
+            throw PaymentError.insufficientBalance
+        } catch {
+            throw PaymentError.unknown
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What changed</span><ul style="margin:6px 0 0"><li>Before: DemoPaymentService &rarr; NPayStore</li><li>Now: RepositoryPaymentService &rarr; AccountRepository</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Error mapping</span><ul style="margin:6px 0 0"><li>Storage errors &rarr; <code>PaymentError</code></li><li>Better than nil for every failure</li></ul></div></div>
+        <div class="warn step" data-label="One declaration"><ul style="margin:6px 0 0"><li>Section 15&rsquo;s version replaces section 9&rsquo;s</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 9 adds a PaymentService implementation built on the repository: it records the payment and turns the PaymentRecord into a PaymentReceipt. Section 15 improves it, and that is the version on the slide: each AccountRepositoryError is caught and rethrown as a PaymentError, with anything else becoming unknown.</p>
+    <span class="notes-label">SAY</span><p>Before, DemoPaymentService depended on the concrete NPayStore; now RepositoryPaymentService depends on the AccountRepository abstraction. Click: why map errors? The payment feature should not expose internal storage or networking errors directly to the UI; the service translates repository failures into payment-domain failures. Three distinct cases are better than a nil that could mean anything.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s warning: section 15&rsquo;s version replaces section 9&rsquo;s; keep only one declaration in a target, or it will not compile.</p>
+    <span class="notes-label">CONNECT</span><p>The whole chain, and an error travelling up it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; The call chain and error propagation (sections 10, 16)</p>
+  <h2>Errors should mean more as they rise</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:22px;align-items:start">
+      <div><div class="diagram">
+      <svg class="art" viewBox="0 0 500 290" style="max-height:300px" role="img" aria-labelledby="seq">
+        <title id="seq">Screen, ViewModel, RepositoryPaymentService, AccountRepository, InMemoryAccountRepository</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="500" height="50" rx="12"/><use href="#i-phone" x="14" y="12" width="26" height="26"/><text x="52" y="22">PaymentsScreen</text><text class="sm" x="52" y="40">user confirms</text></g>
+        <path class="wire" d="M250 51V58M243 51l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="60" width="500" height="50" rx="12"/><use href="#i-layers" x="14" y="72" width="26" height="26"/><text x="52" y="82">PaymentViewModel</text><text class="sm" x="52" y="100">service.send(request)</text></g>
+        <path class="wire" d="M250 111V118M243 111l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="120" width="500" height="50" rx="12"/><use href="#i-check" x="14" y="132" width="26" height="26"/><text x="52" y="142">RepositoryPaymentService</text><text class="sm" x="52" y="160">coordinates the operation</text></g>
+        <path class="wire" d="M250 171V178M243 171l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="180" width="500" height="50" rx="12"/><use href="#i-key" x="14" y="192" width="26" height="26"/><text x="52" y="202">AccountRepository</text><text class="sm" x="52" y="220">abstract contract</text></g>
+        <path class="wire" d="M250 231V238M243 231l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="240" width="500" height="50" rx="12"/><use href="#i-db" x="14" y="252" width="26" height="26"/><text x="52" y="262">InMemoryAccountRepository</text><text class="sm" x="52" y="280">validates, updates atomically</text></g>
+      </svg>
+    </div>
+        <p class="small muted" style="margin:6px 0 0">A receipt goes back up; the router navigates afterwards, not the repository.</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Mac run, the text&rsquo;s code: ₹30,000 against ₹25,000</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11px;line-height:1.55">repository:&ensp;AccountRepositoryError.insufficientBalance<br>service:&ensp;&ensp;&ensp;&ensp;PaymentError.<b>insufficientBalance</b><br>&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;(blank recipient &rarr; PaymentError.invalidRecipient)<br>ViewModel (4.4): &ldquo;Payment could not be completed.&rdquo;</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Noticed</span><ul style="margin:6px 0 0"><li>The ViewModel still collapses every error into one message</li><li>Specific messages: Lesson 4.7</li></ul></div></div>
+        <div class="rule step" data-label="But"><ul style="margin:6px 0 0"><li>Keep debugging detail: log it, don&rsquo;t show it</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The full chain for one payment: the screen&rsquo;s confirm, the ViewModel calling service.send, RepositoryPaymentService coordinating, the AccountRepository contract, and the in-memory actor that validates and updates atomically. A PaymentReceipt comes back to the ViewModel; the router navigates after a successful result, never the repository itself.</p>
+    <span class="notes-label">SAY</span><p>Click: an insufficient-balance error travelling up, measured: thirty thousand rupees against twenty-five. The repository threw AccountRepositoryError.insufficientBalance; the service rethrew PaymentError.insufficientBalance; a blank recipient became PaymentError.invalidRecipient. Then Lesson 4.4&rsquo;s ViewModel turned it into "Payment could not be completed."</p>
+    <span class="notes-label">SAY</span><p>Click: so the information reached the ViewModel and stopped there: it still collapses every failure into one message. The text says the ViewModel can convert each failure into an appropriate message; Lesson 4.7&rsquo;s UI state modelling does exactly that. Click: and do not throw away what debugging needs: log infrastructure details separately, without showing sensitive implementation details to users.</p>
+    <span class="notes-label">CONNECT</span><p>How does the dashboard see the new balance?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>One repository, two ViewModels</h2>
+    <p class="lead">Snapshots and explicit refresh</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The dashboard reads; payments write.</p>
+    <span class="notes-label">CONNECT</span><p>The dashboard.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Dashboard and dependencies (sections 11, 17)</p>
+  <h2>A presentation snapshot of authoritative data</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>DashboardViewModel</span></div><pre class="cb" style="font-size:10.5px">@MainActor
+@Observable
+final class DashboardViewModel {
+    private let repository: any AccountRepository
+
+    var balancePaise = 0
+    var transactions: [PaymentRecord] = []
+
+    init(repository: any AccountRepository) {
+        self.repository = repository
+    }
+
+    func refresh() async throws {
+        let snapshot = try await repository.fetchSnapshot()
+        balancePaise = snapshot.balancePaise
+        transactions = snapshot.transactions
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="cw"><div class="ch"><span>NPayDependencies: one repository</span></div><pre class="cb" style="font-size:10.5px">@MainActor
+final class NPayDependencies {
+    let repository: any AccountRepository
+    let paymentService: any PaymentService
+
+    init() {
+        let repository = InMemoryAccountRepository()
+        self.repository = repository
+        self.paymentService = RepositoryPaymentService(
+            repository: repository)
+    }
+
+    func makeDashboardViewModel() -&gt; DashboardViewModel {
+        DashboardViewModel(repository: repository)
+    }
+
+    func makePaymentViewModel() -&gt; PaymentViewModel {
+        PaymentViewModel(service: paymentService)
+    }
+}</pre></div></div>
+        <div class="step"><div class="card accent"><span class="label">Mac run, the text&rsquo;s code</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11px;line-height:1.55">a new DashboardViewModel, before refresh: <b>0</b><br>on its own InMemoryAccountRepository(): 2500000, never our payments</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The repository owns the balance; the dashboard has to display it. We must not create a second, competing balance. DashboardViewModel holds presentation state derived from repository data, balancePaise and transactions, and refresh copies them from a fresh snapshot. The repository stays authoritative.</p>
+    <span class="notes-label">SAY</span><p>Click: NPayDependencies, a small container, creates one repository and connects both features to it: the dashboard ViewModel reads it directly; the payment ViewModel submits through a RepositoryPaymentService on the same repository.</p>
+    <span class="notes-label">SAY</span><p>Click: two things we measured. A new DashboardViewModel shows zero until its first refresh: its stored default. And a dashboard given its own InMemoryAccountRepository shows ₹25,000 forever, never seeing our payments: one repository instance is the whole point.</p>
+    <span class="notes-label">CONNECT</span><p>But one repository doesn&rsquo;t refresh anything by itself.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Refresh the dashboard (section 18)</p>
+  <h2>A snapshot doesn&rsquo;t update itself</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.9fr);gap:18px;align-items:start">
+      <div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/norefresh.png" alt="Paid, no refresh"></div><p class="shot-cap">Paid, no refresh</p></div>
+      <div class="step"><div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/refresh.png" alt="Paid, then refresh()"></div><p class="shot-cap">Paid, then refresh()</p></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Simulator lab (ours)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">no refresh: shows ₹25,000.00, 0<br>repository: 2,349,950, 1<br>refresh: ₹23,499.50, 1</p></div>
+        <div class="step"><div class="cw"><div class="ch"><span>Section 18</span></div><pre class="cb" style="font-size:10.5px">let receipt = await paymentViewModel.submit()
+
+if receipt != nil {
+    try? await dashboardViewModel.refresh()
+}</pre></div></div>
+        <div class="warn step" data-label="Separate outcomes"><ul style="margin:6px 0 0"><li>A failed refresh &ne; a failed payment</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A small simulator lab of ours: a dashboard snapshot and a pay button, both from one NPayDependencies. Left: we paid ₹1,500.50 without refreshing. The dashboard still says ₹25,000.00 and zero payments, while the repository holds 2,349,950 paise and one payment. Same repository, stale snapshot.</p>
+    <span class="notes-label">SAY</span><p>Click: with Section 18&rsquo;s explicit refresh after a successful payment: ₹23,499.50 and one payment. Click: the code: if submit returned a receipt, try await refresh. Explicit refresh demonstrates the coordination; observable streams or a shared coordinator come later.</p>
+    <span class="notes-label">SAY</span><p>Click: but the try? silently ignores a refresh failure. A payment can succeed while the refresh that follows fails: keep the successful payment result and handle the refresh failure separately. Never read a failed UI refresh as proof the payment failed; with networking that becomes critical.</p>
+    <span class="notes-label">CONNECT</span><p>Where real data will come from.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Data sources and caching</h2>
+    <p class="lead">Behind the repository</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Local and remote; which first.</p>
+    <span class="notes-label">CONNECT</span><p>Data sources.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Repository vs data source; caching (sections 12&ndash;13)</p>
+  <h2>The repository chooses where data comes from</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 700 226" style="max-height:230px" role="img" aria-labelledby="ds">
+        <title id="ds">AccountRepository, DefaultAccountRepository, local and remote data sources</title>
+        <g class="nd"><rect class="sh" x="130" y="0" width="440" height="54" rx="12"/><use href="#i-key" x="144" y="14" width="26" height="26"/><text x="182" y="24">AccountRepository</text><text class="sm" x="182" y="42">application-facing contract</text></g>
+        <path class="wire" d="M350 55V78M343 71l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="130" y="80" width="440" height="54" rx="12"/><use href="#i-gear" x="144" y="94" width="26" height="26"/><text x="182" y="104">DefaultAccountRepository</text><text class="sm" x="182" y="122">data access and caching policy</text></g>
+        <path class="wire" d="M280 135L170 168M163 161l7 7 7-7"/>
+        <path class="wire" d="M420 135L530 168M523 161l7 7 7-7"/>
+        <g class="nd ghost"><rect class="sh" x="0" y="170" width="340" height="54" rx="12"/><use href="#i-folder" x="14" y="184" width="26" height="26"/><text x="52" y="194">LocalDataSource</text><text class="sm" x="52" y="212">SwiftData / cache &middot; Unit 6</text></g>
+        <g class="nd ghost"><rect class="sh" x="360" y="170" width="340" height="54" rx="12"/><use href="#i-cloud" x="374" y="184" width="26" height="26"/><text x="412" y="194">RemoteDataSource</text><text class="sm" x="412" y="212">REST API &middot; Unit 5</text></g>
+      </svg>
+    </div>
+        <div class="step"><div class="card accent"><span class="label">Cache-first</span><ul style="margin:6px 0 0"><li>Show cached history fast</li><li>Fetch updates; reconcile; show again</li></ul></div></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Data or operation</th><th>Approach</th></tr></thead><tbody><tr><td>Transaction history</td><td>Cached display, background refresh</td></tr><tr><td>Profile preferences</td><td>Local persistence, synchronized</td></tr><tr><td>Available balance</td><td>Server-authoritative; label any cached value</td></tr><tr><td>Payment execution</td><td>Server-authoritative, never an offline cache write</td></tr><tr><td>Payment status</td><td>Reconcile with the authoritative status</td></tr></tbody></table></div>
+        <div class="warn step" data-label="Critical"><ul style="margin:6px 0 0"><li>A cached balance never authorizes a transfer</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A repository is an application-facing abstraction; a data source is a concrete mechanism. Click: in NPay&rsquo;s future, a DefaultAccountRepository coordinates data access and caching policy over a local data source, SwiftData or a cache, Unit 6, and a remote one, a REST API, Unit 5. Greyed out: not built today; the abstraction prepares for them.</p>
+    <span class="notes-label">SAY</span><p>Click: cache-first versus network-first. With ten thousand transactions, should History always wait for the backend? Cache-first reads the local copy and shows it quickly, then fetches authoritative updates, reconciles the cache and shows the refreshed history. It improves perceived responsiveness, but cached financial data must be clearly distinguished from current data.</p>
+    <span class="notes-label">SAY</span><p>Click: so it depends on the operation: history, cached with background refresh; preferences, local with sync; the available balance, server-authoritative, with any cached value clearly labelled; payment execution, server-authoritative, never an offline cache mutation; payment status, reconciled against the authoritative record. Click: the critical principle: a real payment app must not treat a locally cached balance as authorization to transfer money. Our in-memory repository is only a simulation.</p>
+    <span class="notes-label">CONNECT</span><p>Consistency.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Consistency and idempotency</h2>
+    <p class="lead">Atomic, and only once</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two problems actors don&rsquo;t solve alone.</p>
+    <span class="notes-label">CONNECT</span><p>The unsafe design.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Repository consistency (section 14)</p>
+  <h2>Read, then later write: the balance can move</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 14: an unsafe design</span></div><pre class="cb" style="font-size:12.5px">let balance = try await repository.fetchBalance()
+
+guard balance &gt;= amount else {
+    throw PaymentError.insufficientBalance
+}
+
+try await repository.saveTransaction(payment)
+try await repository.updateBalance(balance - amount)</pre></div>
+        <div class="card accent"><span class="label">Two problems</span><ul style="margin:6px 0 0"><li>The balance can change between read and update</li><li>Save can succeed while update fails</li></ul></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Mac run, the text&rsquo;s code (a 20 ms await stands in for I/O)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">two ₹1,500 payments at once, ₹2,000 balance<br>split read / save / update, on an actor (ours):<br>&ensp;both <b>accepted</b>: 2 transactions, ₹3,000<br>&ensp;balance ₹500 (each wrote 2,000 &minus; 1,500)<br><br>recordPayment (one call): 1 accepted, 1 rejected</p></div></div>
+        <div class="rule step" data-label="Ours"><ul style="margin:6px 0 0"><li>Validate and mutate in one actor call</li><li>No suspension inside</li></ul></div>
+        <div class="warn step" data-label="Not production"><ul style="margin:6px 0 0"><li>No durable transactions, no cross-device consistency</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The unsafe design: fetch the balance, check it, then save the transaction and update the balance in two more calls. Two problems: the balance can change between reading and updating; and saving might succeed while the balance update fails, leaving inconsistent records.</p>
+    <span class="notes-label">SAY</span><p>Click: we built exactly that shape, on an actor, so every individual call is data-race safe, with a short await between reading and writing standing in for any I/O. Two ₹1,500 payments at once from ₹2,000: both accepted. Two transactions totalling ₹3,000, and the balance ₹500, because both computed 2,000 minus 1,500 from the same stale read. The single recordPayment call: one accepted, one rejected. Actor isolation was never the problem; the suspension in the middle of the workflow was.</p>
+    <span class="notes-label">SAY</span><p>Click: so our repository validates and mutates in one actor call with no suspension inside: check the request, check the balance, create, deduct, insert, return. Click: production-ready? No: that protects one actor instance&rsquo;s memory. Durable database transactions, cross-device consistency and server-enforced authorization must come from the backend and persistence architecture.</p>
+    <span class="notes-label">CONNECT</span><p>One more trap: the same request twice.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Duplicate payment requests (section 20)</p>
+  <h2>Concurrency safety &ne; idempotency</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Mac run, the text&rsquo;s code: the same request, twice, one after the other</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">transactions 2, balance 2,199,900<br>(₹1,500.50 taken twice)</p></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>Concurrency safety</th><th>Idempotency</th></tr></thead><tbody><tr><td>Safe concurrent access to state</td><td>The same logical request applied once</td></tr><tr><td>The actor provides it</td><td>Needs a request identifier</td></tr></tbody></table></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Where it&rsquo;s enforced</span><ul style="margin:6px 0 0"><li>The backend, with request IDs and authoritative records</li><li>Later: use cases (4.6) and networking (Unit 5)</li></ul></div></div>
+        <div class="rule step" data-label="Remember"><ul style="margin:6px 0 0"><li>The UI guards (isProcessing, isSubmitting) don&rsquo;t reach the server</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Suppose the same logical payment is submitted twice, one after the other. The actor executes both safely, and we measured it: two transactions, balance 2,199,900: ₹1,500.50 taken twice. Safely, and wrongly.</p>
+    <span class="notes-label">SAY</span><p>Click: concurrency safety and idempotency are different. Actor isolation prevents unsafe concurrent access to its state. Idempotency prevents the same logical request from being applied more than once, and it needs an identifier for the request.</p>
+    <span class="notes-label">SAY</span><p>Click: in a real payment system the backend enforces idempotency with request identifiers and authoritative transaction records; we revisit it with use cases and networking. Click: and the guards we already have, the sheet&rsquo;s isProcessing and the ViewModel&rsquo;s isSubmitting, only stop a double tap in this process; they never reach the server.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.5 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p style="font-size:23px"><b>A repository hides where data lives</b><br><span class="muted" style="font-size:19px">one contract: fetchSnapshot, recordPayment</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p style="font-size:23px"><b>One atomic actor call</b><br><span class="muted" style="font-size:19px">1 of 2 accepted; the split workflow took ₹3,000 from ₹2,000</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Share it; refresh deliberately</b><br><span class="muted" style="font-size:19px">one repository, two ViewModels, explicit refresh</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A repository is the application&rsquo;s contract for domain data; it hides whether data comes from memory, a database or an API, and the service above it translates its errors into payment errors. Payment and balance must change together: our actor does it in one non-suspending call, so concurrent payments cannot overdraw, while the split read-save-update workflow accepted ₹3,000 from ₹2,000. And share one repository across ViewModels, but refresh their snapshots deliberately: a snapshot never updates itself, and a failed refresh is not a failed payment.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does a repository primarily abstract?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does a repository primarily abstract?</p><ol class="q-opts"><li>SwiftUI colours</li><li>Data access and persistence details</li><li>Navigation animations</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Memory, database or API: the caller can&rsquo;t tell.</p>
+          <p class="q-trap"><b>Common trap:</b> Putting business workflows in the repository.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Memory, database or API: the caller can&rsquo;t tell.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does LazyVStack automatically provide database pagination?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>LazyVStack</code> automatically provide database pagination?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Lazy views, not lazy data (3.11).</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing layout with data loading.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.11.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. Lazy views, not lazy data (3.11).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why expose recordPayment as one operation?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why expose <code>recordPayment</code> as one operation?</p><ol class="q-opts"><li>To create more ViewModels</li><li>To avoid using protocols</li><li>To keep balance and transaction consistent</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Split calls took ₹3,000 from ₹2,000.</p>
+          <p class="q-trap"><b>Common trap:</b> Exposing save and update separately.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. Split calls took ₹3,000 from ₹2,000.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does actor isolation automatically provide durable database transactions?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does actor isolation automatically provide durable database transactions?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It protects one instance&rsquo;s memory, nothing on disk.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating an actor like a database.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It protects one instance&rsquo;s memory, nothing on disk.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should DashboardViewModel and PaymentViewModel use independent repositories?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should DashboardViewModel and PaymentViewModel use independent account repositories?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">A separate one showed ₹25,000 forever.</p>
+          <p class="q-trap"><b>Common trap:</b> Two sources of truth.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. A separate one showed ₹25,000 forever.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does a successful payment guarantee the dashboard refresh will succeed?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does a successful payment guarantee that a subsequent dashboard refresh will succeed?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Separate operations; handle each outcome.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading a failed refresh as a failed payment.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Separate operations; handle each outcome.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does actor isolation automatically prevent duplicate logical payments?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does actor isolation automatically prevent duplicate logical payment requests?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The same request twice: two transactions.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing safety with idempotency.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. The same request twice: two transactions.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Split read/save/update, two ₹1,500 at once from ₹2,000?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">The section 14 workflow (read balance, await, save, update) runs twice at once: ₹1,500 each from ₹2,000, on an actor. Result?</p><ol class="q-opts"><li>One accepted, one rejected</li><li>Both accepted; balance ₹500</li><li>A compile error</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Both read 2,000 before either wrote.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming actor methods make workflows atomic.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Both read 2,000 before either wrote.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Pay ₹1,500.50 without refresh: the dashboard shows?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">One repository; the payment ViewModel pays ₹1,500.50; the dashboard ViewModel isn&rsquo;t refreshed. It shows&hellip;</p><ol class="q-opts"><li>₹23,499.50</li><li>₹25,000.00</li><li>₹0</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A snapshot; the repository holds 2,349,950.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting snapshots to update themselves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. A snapshot; the repository holds 2,349,950.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 4.4: which keyword marks an existential?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 4.4: in <code>private let repository: ___ AccountRepository</code>, which keyword makes existential use explicit?</p><ol class="q-opts"><li>some</li><li>any</li><li>actor</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why"><code>any AccountRepository</code>: any conforming value.</p>
+          <p class="q-trap"><b>Common trap:</b> Mixing up some and any.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 4.4.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. <code>any AccountRepository</code>: any conforming value.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.5 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">4.6</td><td><b>Domain models &amp; use cases</b></td><td>SendPaymentUseCase over the repository</td></tr><tr><td class="mono">4.7</td><td><b>UI state modeling</b></td><td>PaymentError becomes specific messages</td></tr><tr><td class="mono">Units 5&ndash;6</td><td><b>Networking; persistence</b></td><td>remote and local data sources behind the repository</td></tr><tr><td class="mono">Unit 8</td><td><b>Concurrency</b></td><td>actor reentrancy, beyond today&rsquo;s split workflow</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.6 adds a SendPaymentUseCase between the ViewModel and the repository, the natural home for rules like idempotency. 4.7 turns PaymentError into specific, accessible messages. Units 5 and 6 add the remote and local data sources, and Unit 8 studies actor reentrancy.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.5 &middot; Lab</p>
+  <h2>An account repository</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Contract, actor, service, dashboard.</p><ol class="lab"><li>Add PaymentRecord, AccountSnapshot, AccountRepository.</li><li>Write InMemoryAccountRepository as an actor.</li><li>Run section 8&rsquo;s lab and section 19&rsquo;s tests.</li><li>Add RepositoryPaymentService with error mapping.</li><li>Share one repository via NPayDependencies.</li><li>Pay, then refresh the dashboard; compare.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your repository files</li><li>Console output of the labs</li><li>One sentence: why one recordPayment call</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: 2,500,000 → 2,349,950; both tests pass; concurrent payments never overdraw; the dashboard is stale until refresh(); the same request twice is recorded twice.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 4.5 complete</p>
+    <h2>Repository Pattern &amp;<br>Data Access</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 4.6 &mdash; Domain Models &amp; Use Cases</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now hide data access behind a repository contract, keep payment and balance consistent in one actor call, translate storage errors into payment errors, share a repository across ViewModels, and tell concurrency safety from atomicity and idempotency.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 4.6: domain models and use cases, starting with SendPaymentUseCase.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

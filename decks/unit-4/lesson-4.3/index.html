@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4.3 — Swift Observation Framework Internals</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 04 · Lesson 4.3 — Swift Observation Framework Internals">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 04 &middot; Lesson 4.3</p>
+    <h1 style="font-size:54px;line-height:1.05">Swift Observation<br>Framework Internals</h1>
+    <p class="lead" style="max-width:760px">How does SwiftUI know <b>which property changed</b>, which view read it, and what to update?</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In Lesson 4.2 we marked PaymentViewModel @Observable and SwiftUI simply responded when the user typed. Today we open that up: what the macro generates, how property reads become dependencies, how that differs from ObservableObject, and what Observation does not do: persistence, thread safety or performance tuning. Same approach as always: predict, write Swift, run it, inspect the internals, apply to NPay. Every claim today comes with a run.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.3 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Read what @Observable expands to</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Explain dependency tracking by property reads</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Contrast @Observable with ObservableObject</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span><p>Use @State, @Bindable and @Observable together</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Predict updates for computed, nested and ignored properties</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Keep Observation apart from threading and persistence</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.3 &middot; Where we are</p>
+  <h2>Today: inside @Observable</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 04 &middot; Application Architecture &amp; MVVM</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 04 progress: lesson 4.3 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">4.1</text><text x="12" y="50" style="font-size:14px">Architecture</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">4.2</text><text x="126.667" y="50" style="font-size:14px">MVVM</text><text x="126.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd lit"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">4.3</text><text x="241.333" y="50" style="font-size:14px">Observation</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">4.4</text><text x="356" y="50" style="font-size:14px">Dependency</text><text x="356" y="68" style="font-size:14px">injection</text></g>
+        <g class="nd ghost"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">4.5</text><text x="470.667" y="50" style="font-size:14px">Repository</text><text x="470.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">4.6</text><text x="585.333" y="50" style="font-size:14px">Use cases</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">4.7</text><text x="700" y="50" style="font-size:14px">UI state</text><text x="700" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">4.8</text><text x="814.667" y="50" style="font-size:14px">Modules</text><text x="814.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">4.9</text><text x="929.333" y="50" style="font-size:14px">Testing</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">4.10</text><text x="1044" y="50" style="font-size:14px">Integration</text><text x="1044" y="68" style="font-size:14px">lab</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>4.2: PaymentViewModel, owned by a feature root.</span><span><b>Today</b>Observation internals: tracking, scope, limits.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last time PaymentViewModel became @Observable and @State kept one instance alive. Today we look inside: what the macro generates and how SwiftUI learns, view by view, what to update. The text arrived in two parts; the second restarts at Section 16.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Why Observation</h2>
+    <p class="lead">Update only what depends on the change</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>And what happens without it.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our engineering problem (section 1)</p>
+  <h2>One keystroke: what should update?</h2>
+  <div class="body">
+    <i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1060 180" style="max-height:190px" role="img" aria-labelledby="dep">
+        <title id="dep">A recipient change should update PaymentForm, not BalanceCard or History</title>
+        <g class="nd solid"><rect class="sh" x="380" y="0" width="300" height="56" rx="12"/><use class="on" href="#i-tap" x="394" y="15" width="26" height="26"/><text class="on" x="432" y="25">recipient changes</text><text class="sm on" x="432" y="43">one keystroke</text></g>
+        <path class="wire faint" d="M530 57L150 118M143 111l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="120" width="300" height="60" rx="12"/><text x="16" y="147">BalanceCard</text><text class="sm" x="16" y="165">₹25,000 &middot; unrelated</text></g>
+        <path class="wire" data-lit="1+" d="M530 57L530 118M523 111l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="380" y="120" width="300" height="60" rx="12"/><text x="396" y="147">PaymentForm</text><text class="sm" x="396" y="165">reads recipient</text></g>
+        <path class="wire faint" d="M530 57L910 118M903 111l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="760" y="120" width="300" height="60" rx="12"/><text x="776" y="147">History</text><text class="sm" x="776" y="165">3 transactions &middot; unrelated</text></g>
+      </svg>
+    </div>
+    <p class="small muted" style="margin:6px 0 0">Intended dependencies, not measured body counts.</p>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px">
+      <div class="step"><div class="card accent"><span class="label">Three areas, one store</span><ul style="margin:6px 0 0"><li>BalanceCard reads the balance</li><li>PaymentForm reads the recipient</li><li>History reads transactions</li></ul></div></div>
+      <div class="rule step" data-label="Goal"><ul style="margin:6px 0 0"><li>Property-level dependency tracking</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Imagine three independent areas of NPay reading the same NPayStore: BalanceCard shows ₹25,000, PaymentForm shows the recipient, TransactionHistory shows transactions. The user types one character into the recipient field. Should SwiftUI update the balance and every transaction row? Ideally, no. Click: only PaymentForm reads the recipient.</p>
+    <span class="notes-label">SAY</span><p>Click: three areas, one store. Click: what we want is property-level dependency tracking, and that is what modern Observation makes possible. Let&rsquo;s discover how, starting with no Observation at all.</p>
+    <span class="notes-label">CONNECT</span><p>An ordinary class.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Without Observation, then with it (sections 2&ndash;3)</p>
+  <h2>Same view; only the model changes</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 2: an ordinary class</span></div><pre class="cb" style="font-size:11.5px">final class CounterModel {
+    var count = 0
+}
+
+struct CounterLab: View {
+    @State private var model = CounterModel()
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(&quot;Count: \(model.count)&quot;)
+
+            Button(&quot;Increment&quot;) {
+                model.count += 1
+            }
+        }
+    }
+}</pre></div>
+        <div class="step"><div class="cw"><div class="ch"><span>Section 3: change only the model</span></div><pre class="cb" style="font-size:12.5px">@Observable
+final class CounterModel {
+    var count = 0
+}</pre></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Plain class, three taps (simulator)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">tap: model.count is now 1 &hellip; 2 &hellip; 3<br>screen shows: <b>Count: 0</b></p></div>
+          <div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/plain.png" alt="Plain class"></div><p class="shot-cap">Plain class</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">@Observable, three taps</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">screen shows: <b>Count: 3</b></p></div>
+          <div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/observable.png" alt="@Observable"></div><p class="shot-cap">@Observable</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 2: an ordinary class, CounterModel, with a count; a view that owns it in @State, shows the count and increments it. Predict: when you tap Increment, will the count reliably update?</p>
+    <span class="notes-label">SAY</span><p>Click: section 3 changes only the model: add @Observable. Click: first, the plain class, three taps in the simulator. The model counted to three; the screen still says Count: 0. @State stores the reference, but mutating a property of a plain class tells SwiftUI nothing. Other unrelated updates might make the value appear later, but that is not a reactive design.</p>
+    <span class="notes-label">SAY</span><p>Click: with @Observable and the same view: Count: 3. No refresh call, no notification of our own: the macro made the model take part in Observation.</p>
+    <span class="notes-label">CONNECT</span><p>So what is @Observable?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Inside the macro</h2>
+    <p class="lead">What @Observable generates</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The compiler&rsquo;s real expansion.</p>
+    <span class="notes-label">CONNECT</span><p>The idea.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What exactly is @Observable? (section 4)</p>
+  <h2>A macro, not a base class or protocol you implement</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1100 120" style="max-height:128px" role="img" aria-labelledby="macro">
+        <title id="macro">Source, macro expansion, compiled observable model, SwiftUI</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="260" height="120" rx="14"/><use href="#i-code" x="116" y="14" width="28" height="28"/><text x="130" y="84" text-anchor="middle">Your source</text><text class="sm" x="130" y="104" text-anchor="middle">@Observable class CounterModel</text></g>
+        <path class="wire" d="M261 60H278M271 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="280" y="0" width="260" height="120" rx="14"/><use href="#i-gear" x="396" y="14" width="28" height="28"/><text x="410" y="84" text-anchor="middle">Macro expansion</text><text class="sm" x="410" y="104" text-anchor="middle">adds tracking machinery</text></g>
+        <path class="wire" d="M541 60H558M551 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="560" y="0" width="260" height="120" rx="14"/><use href="#i-layers" x="676" y="14" width="28" height="28"/><text x="690" y="84" text-anchor="middle">Compiled model</text><text class="sm" x="690" y="104" text-anchor="middle">reads and writes are tracked</text></g>
+        <path class="wire" d="M821 60H838M831 53l7 7-7 7"/>
+        <g class="nd" data-lit="4+"><rect class="sh" x="840" y="0" width="260" height="120" rx="14"/><use href="#i-eye" x="956" y="14" width="28" height="28"/><text x="970" y="84" text-anchor="middle">SwiftUI</text><text class="sm" x="970" y="104" text-anchor="middle">records which properties a view read</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px">
+      <div class="step"><div class="card accent"><span class="label">Not a base class</span><ul style="margin:6px 0 0"><li>No superclass</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">Not hand-written</span><ul style="margin:6px 0 0"><li>No conformance you implement</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">Compile time</span><ul style="margin:6px 0 0"><li>The type is transformed</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>@Observable is a Swift macro. Click through: your source, an @Observable class; the macro expansion adds observation tracking machinery; the compiled model&rsquo;s property reads and writes take part in Observation; SwiftUI tracks which properties each view depends on.</p>
+    <span class="notes-label">SAY</span><p>Click: it is not a base class. Click: it is not a protocol conformance you implement by hand. Click: the macro transforms the annotated type at compile time. That is why we never write a notification for each property.</p>
+    <span class="notes-label">CONNECT</span><p>Let&rsquo;s see the real expansion.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Inspect the macro expansion (section 5)</p>
+  <h2>Real compiler output, condensed</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:22px;align-items:start">
+      <div class="card accent"><span class="label">swiftc -Xfrontend -dump-macro-expansions (Swift 6.3)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">@ObservationIgnored private let _$observationRegistrar =<br>&ensp;&ensp;&ensp;&ensp;Observation.ObservationRegistrar()<br><br>@ObservationTracked var count = 0&ensp;&ensp;&rarr;&ensp;&ensp;private var _count = 0<br><br>get {<br>&ensp;&ensp;access(keyPath: \.count)<br>&ensp;&ensp;return _count<br>}<br>set {<br>&ensp;&ensp;guard shouldNotifyObservers(_count, newValue) else {<br>&ensp;&ensp;&ensp;&ensp;_count = newValue; return<br>&ensp;&ensp;}<br>&ensp;&ensp;withMutation(keyPath: \.count) { _count = newValue }<br>}<br><br>extension CounterModel: nonisolated Observation.Observable {}</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">What we see</span><ul style="margin:6px 0 0"><li>Backing storage: <code>_count</code></li><li>A registrar</li><li>Access tracked in <code>get</code></li><li>Mutation tracked in <code>set</code></li></ul></div></div>
+        <div class="rule step" data-label="Equatable values"><ul style="margin:6px 0 0"><li>Old and new compared first</li><li>Same value: no notification</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text shows a conceptual expansion. We asked the compiler for the real one, swiftc with dump-macro-expansions, Swift 6.3, and condensed it. A private registrar, _$observationRegistrar, itself ignored by Observation. The stored property count becomes tracked: its value moves to private backing storage, _count, and count becomes a computed property.</p>
+    <span class="notes-label">SAY</span><p>The getter calls access with the key path backslash count, then returns _count: that is the read being recorded. The setter asks shouldNotifyObservers, and, if so, wraps the write in withMutation for the same key path: that is the mutation being announced. And an extension makes the class conform to Observable. The real expansion also has a _modify accessor and an init accessor; details can change between Swift versions.</p>
+    <span class="notes-label">SAY</span><p>Click: so: backing storage, a registrar, access tracking, mutation tracking, exactly the text&rsquo;s list. Click: one detail the conceptual version hides: for Equatable values, shouldNotifyObservers is lhs not-equal rhs: assigning the same value notifies nobody, which is what Lesson 3.11 observed. In Xcode, right-click @Observable and choose Expand Macro; the menu location varies by version.</p>
+    <span class="notes-label">CONNECT</span><p>The registrar.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What is ObservationRegistrar? (section 8)</p>
+  <h2>Records reads and writes; renders nothing</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Two questions</span><ul style="margin:6px 0 0"><li>Which property is being <b>accessed</b>? &rarr; <code>access(keyPath:)</code></li><li>When is it being <b>mutated</b>? &rarr; <code>withMutation(keyPath:)</code></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">One per object</span><ul style="margin:6px 0 0"><li><code>_$observationRegistrar</code>, generated</li><li>Itself <code>@ObservationIgnored</code></li></ul></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">SwiftUI</span><ul style="margin:6px 0 0"><li>Uses that information to invalidate views</li></ul></div></div>
+        <div class="rule step" data-label="Distinction"><ul style="margin:6px 0 0"><li>Registrar: tracking</li><li>SwiftUI: invalidation and updates</li><li>Rendering: a separate responsibility</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In the expansion we met ObservationRegistrar. An observable model must answer two questions: which property is being accessed, and when is it being mutated. The generated access method passes the key path to the registrar; withMutation tells it a mutation is happening. Click: each observable object gets its own registrar, generated by the macro and itself excluded from tracking.</p>
+    <span class="notes-label">SAY</span><p>Click: SwiftUI uses that information to coordinate view invalidation and updates. Click: the distinction: the registrar does not render the UI; SwiftUI decides what to invalidate; rendering remains a separate framework responsibility, as Lesson 3.12&rsquo;s pipeline showed.</p>
+    <span class="notes-label">CONNECT</span><p>How does SwiftUI learn which property a view read?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Dependencies follow reads</h2>
+    <p class="lead">Each view depends on what its body read</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Measured with _printChanges.</p>
+    <span class="notes-label">CONNECT</span><p>Two views.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; How does SwiftUI know which property was read? (sections 6, 13)</p>
+  <h2>Type four letters: one view updates</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 13 (excerpt; ObservationLab holds both)</span></div><pre class="cb" style="font-size:11px">@Observable
+final class DemoStore {
+    var balance = 25000
+    var recipient = &quot;&quot;
+}
+
+struct BalanceDisplay: View {
+    let store: DemoStore
+    var body: some View {
+        let _ = Self._printChanges()
+        return Text(&quot;Balance: \(store.balance)&quot;)
+    }
+}
+
+struct RecipientEditor: View {
+    @Bindable var store: DemoStore
+    var body: some View {
+        let _ = Self._printChanges()
+        return TextField(&quot;Recipient&quot;,
+                         text: $store.recipient)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Simulator console</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">BalanceDisplay: @self changed.<br>RecipientEditor: @self changed.<br>-- typing "ravi"<br>RecipientEditor: \DemoStore.recipient changed.&ensp;&times;4<br>-- (no BalanceDisplay lines)</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Read it</span><ul style="margin:6px 0 0"><li>Each body ran once at first appearance (@self)</li><li>Then only RecipientEditor, once per letter</li><li>Named by key path</li></ul></div></div>
+        <div class="warn step" data-label="Nuance"><ul style="margin:6px 0 0"><li>Tracking is precise, not a ban on re-evaluation</li><li>Parents and identity still matter</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 6&rsquo;s idea, with Section 13&rsquo;s runnable lab: one observable DemoStore with a balance and a recipient; BalanceDisplay reads only the balance, RecipientEditor binds the recipient; both bodies call _printChanges. Observation records the accesses while SwiftUI evaluates each view.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran it and typed "ravi". At first appearance each view printed "@self changed". Then four lines, all RecipientEditor: "backslash DemoStore dot recipient changed", once per letter. BalanceDisplay never printed: it does not depend on the recipient. Click: that answers the text&rsquo;s three investigation questions for this environment; extra updates from the parent or the input system did not appear here.</p>
+    <span class="notes-label">SAY</span><p>Click: the nuance: Observation provides more precise dependency tracking, not an absolute prohibition. Parent updates, identity changes and other dependencies can still re-evaluate BalanceDisplay. And _printChanges is a debugging aid, not a rendering measurement.</p>
+    <span class="notes-label">CONNECT</span><p>Now change the balance instead.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Debugging Observation (section 22)</p>
+  <h2>Different views, different dependencies</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Section 22&rsquo;s lab</span><ul style="margin:6px 0 0"><li><code>@MainActor @Observable ObservationDemo</code></li><li>BalanceDebugView, RecipientDebugView</li><li>Step 5: a button that changes the balance (ours: &ldquo;Add ₹100&rdquo;)</li></ul></div>
+        <div class="cw"><div class="ch"><span>Step 5</span></div><pre class="cb" style="font-size:13px">Button(&quot;Add ₹100&quot;) { model.balance += 100 }</pre></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Simulator console</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">-- typing "ravi@npay"<br>RecipientDebugView: \ObservationDemo.recipient changed.&ensp;&times;9<br>-- Add ₹100, twice<br>BalanceDebugView: \ObservationDemo.balance changed.&ensp;&times;2</p></div></div>
+        <div class="rule step" data-label="Learned"><ul style="margin:6px 0 0"><li>Each view tracks its own reads</li><li>_printChanges: a debugging aid, not a performance metric</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 22 repeats the lab with a main-actor ViewModel, ObservationDemo, and adds steps: type ravi@npay, then add a button that modifies the balance and compare. Our button adds ₹100.</p>
+    <span class="notes-label">SAY</span><p>Click: nine letters, nine RecipientDebugView lines, each naming the recipient. Two taps on Add ₹100, two BalanceDebugView lines, each naming the balance. Neither view ever updated for the other&rsquo;s property.</p>
+    <span class="notes-label">SAY</span><p>Click: SwiftUI tracks different observable dependencies for different views. And _printChanges remains a debugging aid, not a guaranteed rendering or performance measurement.</p>
+    <span class="notes-label">CONNECT</span><p>What if a view reads several properties, or a computed one?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Observation follows property reads (sections 7, 17)</p>
+  <h2>A computed property depends on what it reads</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 17</span></div><pre class="cb" style="font-size:12.5px">@Observable
+final class NPayMetrics {
+    var balance = 25000
+    var transactionCount = 10
+
+    var summary: String {
+        &quot;\(balance) — \(transactionCount)&quot;
+    }
+}</pre></div>
+        <div class="card accent"><span class="label">Three views</span><ul style="margin:6px 0 0"><li>BalanceCard: <code>balance</code></li><li>TransactionCount: <code>transactionCount</code></li><li>DashboardSummary: <code>summary</code></li></ul></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Changed</th><th>Balance</th><th>Count</th><th>Summary</th></tr></thead><tbody><tr><td>balance</td><td>1</td><td>0</td><td>1</td></tr><tr><td>transactionCount</td><td>0</td><td>1</td><td>1</td></tr><tr><td>balance = same value</td><td>0</td><td>0</td><td>0</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">Body evaluations counted in the simulator (ours).</p></div>
+        <div class="rule step" data-label="Computed"><ul style="margin:6px 0 0"><li><code>summary</code>&rsquo;s getter reads both</li><li>So the view depends on both</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s dependency explorer, measured. NPayMetrics has a balance, a transaction count and a computed summary that reads both. Three views read balance, transactionCount and summary respectively.</p>
+    <span class="notes-label">SAY</span><p>Click: we changed each property from code and counted body evaluations. Changing the balance ran BalanceCard and DashboardSummary, not TransactionCount. Changing the count ran TransactionCount and DashboardSummary. Assigning the balance its own value ran nothing, the equality check in the expansion.</p>
+    <span class="notes-label">SAY</span><p>Click: summary is computed: when DashboardSummary reads it, the getter accesses both stored properties, and those accesses become its dependencies. That is why computed properties work naturally with Observation.</p>
+    <span class="notes-label">CONNECT</span><p>Before Observation, SwiftUI used ObservableObject.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>ObservableObject</h2>
+    <p class="lead">Object-level vs property-level</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The older model, measured side by side.</p>
+    <span class="notes-label">CONNECT</span><p>The comparison.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; How is this different from ObservableObject? (section 9)</p>
+  <h2>Every observer, on every change</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>The older pattern</span></div><pre class="cb" style="font-size:11.5px">final class OldPaymentModel: ObservableObject {
+    @Published var recipient = &quot;&quot;
+    @Published var amountText = &quot;&quot;
+}
+
+@StateObject private var model = OldPaymentModel()</pre></div>
+        <table class="tbl compact"><thead><tr><th>ObservableObject</th><th>@Observable</th></tr></thead><tbody><tr><td>Protocol</td><td>Macro-based observation</td></tr><tr><td>@Published properties</td><td>Stored properties, tracked by the macro</td></tr><tr><td>Object-level change publisher</td><td>Property-access tracking</td></tr><tr><td>@StateObject for owned objects</td><td>@State for owned objects</td></tr><tr><td>Combine-oriented</td><td>Observation framework</td></tr></tbody></table>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Section 13&rsquo;s lab rebuilt with ObservableObject (ours)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">-- typing "ravi" (ObservableObject + @Published)<br>OldBalanceDisplay: _store changed.&ensp;&ensp;&times;5<br>OldRecipientEditor: _store changed.&ensp;&times;5</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Compare</span><ul style="margin:6px 0 0"><li>@Observable: 4 RecipientEditor, 0 BalanceDisplay</li><li>ObservableObject: both, every time</li></ul></div></div>
+        <div class="rule step" data-label="Not obsolete"><ul style="margin:6px 0 0"><li>Older iOS, existing code, APIs built on it</li><li>NPay targets iOS 17+: Observation</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Before Observation: a class conforming to ObservableObject, @Published properties, owned with @StateObject. It publishes changes at the object level through Combine; Observation tracks individual property accesses. The table: protocol versus macro; @Published versus tracked stored properties; an object-level change publisher versus property-access tracking; @StateObject versus @State for owned objects; Combine versus the Observation framework.</p>
+    <span class="notes-label">SAY</span><p>Click: we rebuilt Section 13&rsquo;s lab with ObservableObject and @Published, both views using @ObservedObject, and typed "ravi". Both views printed "_store changed" on every change, five times each: the balance view updated for the recipient too, because it observes the whole object. Click: with @Observable, four RecipientEditor updates and no BalanceDisplay updates.</p>
+    <span class="notes-label">SAY</span><p>Click: is ObservableObject obsolete? No: existing codebases, older iOS versions and APIs designed around it still use it. NPay targets iOS 17 and later, so we continue with Observation.</p>
+    <span class="notes-label">CONNECT</span><p>Three attributes that are easy to mix up.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Owning and binding</h2>
+    <p class="lead">@Observable, @State, @Bindable</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Who tracks, who owns, who binds.</p>
+    <span class="notes-label">CONNECT</span><p>The three.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; @State, @Bindable and @Observable together (section 10)</p>
+  <h2>Track, own, bind</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 10</span></div><pre class="cb" style="font-size:12px">@Observable
+final class PaymentViewModel {
+    var recipient = &quot;&quot;
+}
+
+struct PaymentScreen: View {
+    @State private var viewModel = PaymentViewModel()
+
+    var body: some View {
+        @Bindable var viewModel = viewModel
+
+        TextField(
+            &quot;Recipient&quot;,
+            text: $viewModel.recipient
+        )
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <table class="tbl compact"><thead><tr><th>Mechanism</th><th>Responsibility</th></tr></thead><tbody><tr><td>@Observable</td><td>Makes model properties observable</td></tr><tr><td>@State</td><td>Owns the model reference in SwiftUI state</td></tr><tr><td>@Bindable</td><td>Creates bindings to its mutable properties</td></tr></tbody></table>
+        <div class="step"><div class="card accent"><span class="label">Why not @Binding?</span><ul style="margin:6px 0 0"><li>@Binding: one particular value</li><li>@Bindable: bindings to <i>any</i> property</li><li><code>$viewModel.recipient</code> &rarr; a TextField binding</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three attributes that are often confused, in one example. @Observable makes the model&rsquo;s properties observable. @State owns the model reference in SwiftUI&rsquo;s state storage, so it survives body evaluations, as 4.2 measured. @Bindable, here declared locally inside body, creates bindings to the model&rsquo;s mutable properties.</p>
+    <span class="notes-label">SAY</span><p>Click: why not @Binding? A @Binding represents a binding to one particular value. @Bindable provides dynamic binding projections to any property of an observable model: dollar viewModel dot recipient produces a binding suitable for TextField.</p>
+    <span class="notes-label">CONNECT</span><p>Ownership done wrong.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Common mistake: a ViewModel inside body (section 20)</p>
+  <h2>Every evaluation can build a new one</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 20 (poor ownership)</span></div><pre class="cb" style="font-size:12px">struct PaymentsScreen: View {
+    var body: some View {
+        let viewModel = PaymentViewModel()
+
+        return TextField(
+            &quot;Recipient&quot;,
+            text: Binding(
+                get: { viewModel.recipient },
+                set: { viewModel.recipient = $0 }
+            )
+        )
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Simulator (lab type renamed; parent button ours)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">at launch:&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;1 ViewModel<br>typed "ravi":&ensp;&ensp;&ensp;&ensp;field shows "ravi"<br>&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;4 more ViewModels created<br>parent update:&ensp;&ensp;&ensp;field shows <b>""</b>, 1 more ViewModel</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">What happened</span><ul style="margin:6px 0 0"><li>Each keystroke re-ran body: a new ViewModel</li><li>An unrelated parent update: the draft vanished</li></ul></div></div>
+        <div class="rule step" data-label="Better"><ul style="margin:6px 0 0"><li><code>@State private var viewModel</code></li><li>Or receive it from a stable parent (4.2)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A poor ownership design: body creates a PaymentViewModel and binds a TextField to it with a hand-made Binding. Every time body is evaluated, the expression can construct another ViewModel.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran it, with a parent that can update for an unrelated reason, a button of ours. Typing "ravi" looked fine, the field showed ravi, but four more ViewModels were created along the way. Then one unrelated parent update: the field went blank, and one more ViewModel appeared. The draft was in an object nobody holds any more.</p>
+    <span class="notes-label">SAY</span><p>Click: the user&rsquo;s draft is lost and the model&rsquo;s lifetime is hard to reason about. Click: better: @State private var viewModel, or receive a ViewModel created by a stable parent, NPay&rsquo;s PaymentsFeatureRoot. ViewModel ownership is a lifecycle decision, not merely a syntax choice.</p>
+    <span class="notes-label">CONNECT</span><p>Computed, ignored and nested properties.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Computed, ignored, nested</h2>
+    <p class="lead">What is tracked, exactly</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three cases, measured.</p>
+    <span class="notes-label">CONNECT</span><p>Computed.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Tracking and computed properties (section 11)</p>
+  <h2>Dependencies are the reads that actually happened</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 11</span></div><pre class="cb" style="font-size:12.5px">@Observable
+final class PaymentViewModel {
+    var recipient = &quot;&quot;
+    var amountText = &quot;&quot;
+
+    var isValid: Bool {
+        !recipient.isEmpty &amp;&amp; !amountText.isEmpty
+    }
+}
+
+.disabled(!viewModel.isValid)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">The getter reads</span><ul style="margin:6px 0 0"><li><code>recipient</code> and <code>amountText</code></li><li>Both can become dependencies</li></ul></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>Changed (starting empty)</th><th>Continue button body</th></tr></thead><tbody><tr><td>amountText (recipient still empty)</td><td><b>0</b></td></tr><tr><td>recipient</td><td>1</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">Simulator count (ours).</p></div>
+        <div class="step"><div class="card accent"><span class="label">Why 0?</span><ul style="margin:6px 0 0"><li><code>&amp;&amp;</code> stopped at the empty recipient</li><li><code>amountText</code> was never read, so not tracked</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The ViewModel&rsquo;s isValid reads recipient and amountText. When SwiftUI evaluates .disabled(!viewModel.isValid), the getter&rsquo;s reads become tracked dependencies, so we do not need a stored isValid flag.</p>
+    <span class="notes-label">SAY</span><p>Click: we measured it, starting from an empty form. Setting amountText did not re-run the Continue button at all. Setting recipient did. Click: why? The && short-circuited: with an empty recipient, the getter returned false without ever reading amountText, so that evaluation had no dependency on it. Once the recipient changes and the body runs again, both are read and both are tracked.</p>
+    <span class="notes-label">SAY</span><p>This is the precise meaning of "can become dependencies": Observation tracks the reads that actually happened during the last evaluation, and that is always enough to stay correct, because the result could not have changed.</p>
+    <span class="notes-label">CONNECT</span><p>Properties that should not be tracked.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Properties that should not be observed (section 12)</p>
+  <h2>@ObservationIgnored</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 12 (import OSLog)</span></div><pre class="cb" style="font-size:12.5px">@Observable
+final class PaymentViewModel {
+    var recipient = &quot;&quot;
+
+    @ObservationIgnored
+    private let logger = Logger(
+        subsystem: &quot;com.example.npay&quot;,
+        category: &quot;Payments&quot;
+    )
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Expansion</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">recipient:&ensp;@ObservationTracked, _recipient<br>logger:&ensp;&ensp;&ensp;nothing generated</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">An ignored <code>var note</code> in a view (simulator)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">note changed:&ensp;&ensp;&ensp;&ensp;&ensp;view body 0; screen "/ first"<br>recipient changed: view body 1; screen "ravi@npay / second"</p></div></div>
+        <div class="warn step" data-label="Only observation"><ul style="margin:6px 0 0"><li>Not thread safety, not ownership</li><li>An ignored value shown in UI goes stale</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Not every property belongs in Observation. A logger is an implementation detail, not something that should drive UI updates, so the text marks it @ObservationIgnored. You need import OSLog for Logger. Click: the expansion confirms it: recipient gets @ObservationTracked and backing storage; the ignored logger gets nothing.</p>
+    <span class="notes-label">SAY</span><p>Click: we also ignored a var, note, that a view displays. Changing note ran no body: the screen still said "first". Changing the tracked recipient ran the body once, and only then did the new note appear. Click: so ignoring affects observation participation only: it does not make the property thread safe or change its ownership, and if the UI shows an ignored value, the UI goes stale.</p>
+    <span class="notes-label">CONNECT</span><p>Models inside models.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Nested observable models (section 18)</p>
+  <h2>Each link in the chain is a dependency</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 18</span></div><pre class="cb" style="font-size:11.5px">@Observable
+final class AccountModel {
+    var balancePaise = 2_500_000
+}
+
+@Observable
+final class PaymentModel {
+    var recipient = &quot;&quot;
+    var amountText = &quot;&quot;
+}
+
+@Observable
+final class NPayAppState {
+    var account = AccountModel()
+    var payment = PaymentModel()
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Changed</th><th>Account view</th><th>Payment view</th></tr></thead><tbody><tr><td>payment.recipient</td><td>0</td><td>1</td></tr><tr><td>payment.amountText</td><td>0</td><td>0</td></tr><tr><td>account.balancePaise</td><td>1</td><td>0</td></tr><tr><td>new AccountModel</td><td>1</td><td>0</td></tr><tr><td>new PaymentModel</td><td>0</td><td>1</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">Body evaluations, simulator (ours).</p></div>
+        <div class="rule step" data-label="Not recursive"><ul style="margin:6px 0 0"><li>No parent-wide publishing</li><li>Only properties actually read</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A more realistic shape: separate observable models for the account and the payment, composed into NPayAppState. A view can read appState.account.balancePaise or appState.payment.recipient.</p>
+    <span class="notes-label">SAY</span><p>Click: we measured two views, one reading each chain. A recipient change ran only the payment view; amountText, read by nobody, ran nothing; a balance change ran only the account view. Replacing the whole account with a new AccountModel ran the account view; replacing the payment model ran the payment view.</p>
+    <span class="notes-label">SAY</span><p>The access chain involves two observations: reading appState.account is a read of the parent&rsquo;s account property, and reading balancePaise is a read of the child. Either changing invalidates the view. Click: and it is not recursive publishing: changing any property of the child does not notify everyone who reads the parent; dependencies are the properties actually accessed.</p>
+    <span class="notes-label">CONNECT</span><p>What Observation does not do.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>What Observation isn&rsquo;t</h2>
+    <p class="lead">Not persistence, thread safety or performance</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Separate concerns, separate tools.</p>
+    <span class="notes-label">CONNECT</span><p>Persistence.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Observation isn&rsquo;t persistence or performance (sections 14, 19, 23)</p>
+  <h2>It coordinates updates; nothing more</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <table class="tbl compact"><thead><tr><th>Mechanism</th><th>Responsibility</th></tr></thead><tbody><tr><td>@Observable</td><td>Tracks observable changes</td></tr><tr><td>@State</td><td>Owns state in the SwiftUI hierarchy</td></tr><tr><td>@Bindable</td><td>Exposes mutable bindings</td></tr><tr><td>SwiftData</td><td>Persists structured local data</td></tr><tr><td>UserDefaults</td><td>Persists simple preferences</td></tr><tr><td>Keychain</td><td>Stores secrets securely</td></tr></tbody></table>
+        <p class="small muted" style="margin:0">Section 19. Persistent repositories: Unit 6. Relaunch empties the draft (3.5).</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="cw"><div class="ch"><span>Section 14</span></div><pre class="cb" style="font-size:12px">var filteredTransactions: [Transaction] {
+    transactions.filter {
+        $0.title.contains(searchText)
+    }
+}</pre></div></div>
+        <div class="step"><div class="card accent"><span class="label">Still your job</span><ul style="margin:6px 0 0"><li>A computed property isn&rsquo;t cached</li><li>50,000 records: 4 keystrokes, 4 filters (3.11)</li><li>Layout, identity, main-thread work</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Setting viewModel.recipient updates the interface. Does the value get saved to disk? No. Observation tracks changes; persistence stores data durably. @Observable tracks, @State owns, @Bindable binds; SwiftData, UserDefaults and the Keychain persist, each for its own kind of data. Lesson 3.5 showed a relaunch emptying the draft; persistent repositories come in Unit 6.</p>
+    <span class="notes-label">SAY</span><p>Click: and performance. A filtered list as a computed property is still recomputed whenever it is read after a change. Click: Observation tracks dependencies; it does not cache arbitrary computed properties or improve their algorithms. Lesson 3.11 measured it: four keystrokes, four filters of fifty thousand records. Property-level tracking avoids invalidating unrelated views, but layout complexity, expensive calculations, collection identity and main-thread work remain yours. Observation improves update coordination; it does not replace profiling.</p>
+    <span class="notes-label">CONNECT</span><p>And it is not thread safety.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Observation isn&rsquo;t thread safety (sections 15, 21)</p>
+  <h2>Two concurrent writers: the compiler objects</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Two tasks write one model (ours)</span></div><pre class="cb" style="font-size:11px">@Observable
+final class PaymentViewModel {
+    var amountText = &quot;&quot;
+}
+
+func edit(_ viewModel: PaymentViewModel) async {
+    await withTaskGroup(of: Void.self) { group in
+        for i in 0..&lt;2 {
+            group.addTask {
+                viewModel.amountText = &quot;\(i)&quot;
+            }
+        }
+    }
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">swiftc -swift-version 6</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11px;line-height:1.55">error: passing closure as a 'sending' parameter risks<br>causing data races between code in the current task<br>and concurrent execution of the closure</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Add @MainActor</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11px;line-height:1.55">error: main actor-isolated property 'amountText'<br>can not be mutated from a nonisolated context</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">With <code>await MainActor.run { &hellip; }</code></span><ul style="margin:6px 0 0"><li>Compiles: each write waits its turn on the main actor</li></ul></div></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>Observation</th><th>Actor isolation</th></tr></thead><tbody><tr><td>Tracks property access and changes</td><td>Controls concurrent access</td></tr><tr><td>Supports reactive UI updates</td><td>Helps prevent data races</td></tr><tr><td>Doesn&rsquo;t guarantee thread safety</td><td>Doesn&rsquo;t render UI</td></tr></tbody></table></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Does @Observable make an object thread safe? No. We wrote two concurrent tasks writing the same observable model. Click: Swift 6 rejected it: passing the closure risks a data race. The macro made the model observable; it did nothing to serialize mutations. Note: this check runs after type checking, so a plain typecheck does not show it; a full compile does.</p>
+    <span class="notes-label">SAY</span><p>Click: add @MainActor, NPay&rsquo;s choice for UI-facing state: now the error is about isolation: a main-actor property cannot be mutated from a nonisolated context. Click: the mutation rules are explicit, and with await MainActor.run, each write waits its turn on the main actor, and it compiles.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s table: Observation tracks access and changes and supports reactive UI, but does not guarantee thread safety; actor isolation controls concurrent access and helps prevent data races, but does not render UI. Observation answers what changed; actor isolation answers who may access or mutate this state, and when. Unit 8 goes deep on actors.</p>
+    <span class="notes-label">CONNECT</span><p>The whole flow, end to end.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>The full flow, in NPay</h2>
+    <p class="lead">From keystroke to updated screen</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>And what NPay&rsquo;s ViewModel actually tracks.</p>
+    <span class="notes-label">CONNECT</span><p>The flow.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; The complete NPay Observation flow (section 16) &middot; conceptual</p>
+  <h2>Views declare dependencies by reading</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 124" style="max-height:130px" role="img" aria-labelledby="flow">
+        <title id="flow">Edit, binding write, withMutation, invalidation, body re-evaluated, screen updates</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="124" rx="14"/><use href="#i-tap" x="72" y="14" width="28" height="28"/><text x="86" y="88" text-anchor="middle">User edits amount</text><text class="sm" x="86" y="108" text-anchor="middle">TextField gets new text</text></g>
+        <path class="wire" d="M173 62H186M179 55l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="188" y="0" width="172" height="124" rx="14"/><use href="#i-link" x="260" y="14" width="28" height="28"/><text x="274" y="88" text-anchor="middle">Binding writes</text><text class="sm" x="274" y="108" text-anchor="middle">$viewModel.amountText</text></g>
+        <path class="wire" d="M361 62H374M367 55l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="376" y="0" width="172" height="124" rx="14"/><use href="#i-gear" x="448" y="14" width="28" height="28"/><text x="462" y="88" text-anchor="middle">withMutation</text><text class="sm" x="462" y="108" text-anchor="middle">the registrar records it</text></g>
+        <path class="wire" d="M549 62H562M555 55l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="564" y="0" width="172" height="124" rx="14"/><use href="#i-eye" x="636" y="14" width="28" height="28"/><text x="650" y="88" text-anchor="middle">Invalidation</text><text class="sm" x="650" y="108" text-anchor="middle">views that read amountText</text></g>
+        <path class="wire" d="M737 62H750M743 55l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="752" y="0" width="172" height="124" rx="14"/><use href="#i-code" x="824" y="14" width="28" height="28"/><text x="838" y="88" text-anchor="middle">Body re-evaluated</text><text class="sm" x="838" y="108" text-anchor="middle">reads, and tracks, again</text></g>
+        <path class="wire" d="M925 62H938M931 55l7 7-7 7"/>
+        <g class="nd" data-lit="6+"><rect class="sh" x="940" y="0" width="172" height="124" rx="14"/><use href="#i-phone" x="1012" y="14" width="28" height="28"/><text x="1026" y="88" text-anchor="middle">Screen updates</text><text class="sm" x="1026" y="108" text-anchor="middle">message, Review button</text></g>
+      </svg>
+    </div>
+    <p class="small muted" style="margin:6px 0 0">Stage 1 is the text&rsquo;s; stages 2&ndash;6 are ours, from the expansion and today&rsquo;s runs.</p>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="step"><div class="card accent"><span class="label">NPay&rsquo;s PaymentViewModel, expanded</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">recipient&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;@ObservationTracked<br>amountText&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;@ObservationTracked<br>errorMessage&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;@ObservationTracked<br>let store&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;nothing (a let)<br>parsedAmountPaise, &hellip;&ensp;nothing (computed)</p></div></div>
+      <div class="rule step" data-label="No refreshPaymentScreen()"><ul style="margin:6px 0 0"><li>Reading an observable property declares the dependency</li><li>SwiftUI coordinates the rest</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The full flow. Only the first stage of the text&rsquo;s stepper was shared, so stages two to six are ours, built from today&rsquo;s expansion and runs. Click through: the user edits the amount and the TextField receives text through the input system; the binding writes viewModel.amountText; the generated setter calls withMutation and the registrar records it; SwiftUI invalidates the views whose last evaluation read amountText; their bodies run again, reading, and so re-tracking, what they need; the screen shows the validation message and the Review button&rsquo;s new state.</p>
+    <span class="notes-label">SAY</span><p>Click: applied to NPay: we expanded NPay&rsquo;s real PaymentViewModel. recipient, amountText and errorMessage get @ObservationTracked. The injected store, a let, gets nothing: it never changes, so there is nothing to observe. Computed properties like parsedAmountPaise get nothing either: their dependencies are the stored properties they read.</p>
+    <span class="notes-label">SAY</span><p>Click: the principle: SwiftUI never needs a refreshPaymentScreen() call; the screen declares its dependencies by reading observable properties during evaluation, and SwiftUI coordinates the updates. User input, binding, observable ViewModel, dependency tracking, SwiftUI update.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.3 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p style="font-size:23px"><b>A macro that rewrites properties</b><br><span class="muted" style="font-size:19px">get &rarr; access, set &rarr; withMutation, via a registrar</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p style="font-size:23px"><b>Dependencies = reads that happened</b><br><span class="muted" style="font-size:19px">only RecipientEditor updated; ObservableObject updated both</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p style="font-size:23px"><b>Tracking only</b><br><span class="muted" style="font-size:19px">not persistence, not thread safety, not caching</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. @Observable is a macro: each stored property becomes a computed one whose getter reports an access and whose setter wraps the write in withMutation, through a per-object registrar; equal values notify nobody. A view depends exactly on the observable properties its last evaluation read, including through computed properties and nested models, which is why typing updated only RecipientEditor while ObservableObject updated both views. And Observation only tracks: it does not save, it does not make a class thread safe, and it does not cache expensive computations.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does @Observable primarily provide?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>@Observable</code> primarily provide?</p><ol class="q-opts"><li>Database persistence</li><li>Property observation support</li><li>Automatic thread safety</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Tracked getters and setters, via a registrar.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading more into the macro than tracking.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Tracked getters and setters, via a registrar.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does @Observable automatically save values to disk?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>@Observable</code> automatically save values to disk?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Persistence is SwiftData, UserDefaults, Keychain: Unit 6.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing observed with stored.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. Persistence is SwiftData, UserDefaults, Keychain: Unit 6.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can a computed property participate in Observation dependencies?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can a computed property participate in Observation dependencies?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">summary depended on both properties it read.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking only stored properties count.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. summary depended on both properties it read.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why avoid constructing ViewModels inside body?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why avoid constructing ViewModels inside <code>body</code>?</p><ol class="q-opts"><li>Classes can&rsquo;t be initialized there</li><li>Unstable ownership and possible state loss</li><li>SwiftUI prohibits local variables</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Our run: 5 ViewModels, then a blank field.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating ownership as syntax.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Our run: 5 ViewModels, then a blank field.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does @MainActor serve the same purpose as @Observable?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>@MainActor</code> serve the same purpose as <code>@Observable</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">One answers who may mutate; the other, what changed.</p>
+          <p class="q-trap"><b>Common trap:</b> Merging isolation and observation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. One answers who may mutate; the other, what changed.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does every observed mutation cause a full-screen redraw?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does every observed mutation necessarily cause a full-screen redraw?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Only dependent views re-evaluated; rendering is separate.</p>
+          <p class="q-trap"><b>Common trap:</b> Picturing whole-screen refreshes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Only dependent views re-evaluated; rendering is separate.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can different views track different properties of the same model?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can different views track different properties of the same observable model?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">RecipientDebugView &times;9, BalanceDebugView &times;2.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting object-level updates.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. RecipientDebugView &times;9, BalanceDebugView &times;2.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Plain class, @State, three Increment taps: the screen shows?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-tap"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>final class CounterModel { var count = 0 }</code> (no @Observable), owned with <code>@State</code>. After three taps on Increment, the screen shows&hellip;</p><ol class="q-opts"><li>Count: 3</li><li>Count: 0</li><li>A runtime error</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The model reached 3; SwiftUI was never told.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting @State to observe a class&rsquo;s properties.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The model reached 3; SwiftUI was never told.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="isValid = !recipient.isEmpty &amp;&amp; !amountText.isEmpty; recipient empty; set amountText. Does the button&#x27;s body re-run?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">A button reads <code>isValid</code> (<code>!recipient.isEmpty &amp;&amp; !amountText.isEmpty</code>). The recipient is empty. You set <code>amountText</code>. Does the button&rsquo;s body re-run?</p><ol class="q-opts"><li>Yes, it reads isValid</li><li>No: amountText was never read</li><li>Only if amountText is valid</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The && short-circuited; measured: 0 evaluations.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming every property in a getter is tracked.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The && short-circuited; measured: 0 evaluations.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 4.2: where should NPay&#x27;s PaymentViewModel be created?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 4.2: where is NPay&rsquo;s PaymentViewModel created?</p><ol class="q-opts"><li>Inside PaymentsScreen.body</li><li>In NPayStore</li><li>In PaymentsFeatureRoot&rsquo;s @State, with the shared store</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">A stable owner; the store injected.</p>
+          <p class="q-trap"><b>Common trap:</b> Creating models where views are described.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 4.2.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. A stable owner; the store injected.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.3 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">4.4</td><td><b>Dependency injection</b></td><td>constructor injection, composition roots, a mock payment service</td></tr><tr><td class="mono">4.7</td><td><b>UI state modeling</b></td><td>loading, success, error as observable state</td></tr><tr><td class="mono">Unit 6</td><td><b>Persistence</b></td><td>what Observation deliberately doesn&rsquo;t do</td></tr><tr><td class="mono">Unit 8</td><td><b>Concurrency</b></td><td>actor isolation, beyond @MainActor</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.4 is dependency injection: constructor injection, protocol-based dependencies, composition roots, environment injection, and swapping NPay&rsquo;s demo payment service for a mock without changing the screen. Unit 6 adds the persistence Observation leaves out, and Unit 8 the concurrency it does not provide.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.3 &middot; Lab</p>
+  <h2>Observe Observation</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Predict, run, read the console.</p><ol class="lab"><li>Run CounterLab without, then with, @Observable.</li><li>Expand @Observable in Xcode; find access and withMutation.</li><li>Run the section 22 lab; type, then change the balance.</li><li>Rebuild it with ObservableObject; compare the console.</li><li>Read a computed and a nested property; predict updates.</li><li>Mark one property @ObservationIgnored; watch the UI.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your expansion, annotated</li><li>Console output for both labs</li><li>Your predictions vs results</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: Count: 0 then Count: 3; only the view that read a property reports it; ObservableObject updates both views; an ignored property shown in the UI goes stale.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 4.3 complete</p>
+    <h2>Swift Observation<br>Framework Internals</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 4.4 &mdash; Dependency Injection in iOS</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now read what @Observable generates, explain how property reads become view dependencies, contrast Observation with ObservableObject, and keep it apart from persistence, thread safety and performance work.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 4.4: dependency injection, and replacing NPay&rsquo;s demo payment service with a mock without changing the screen.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.10 — Accessibility &amp; Localization</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.10 — Accessibility &amp; Localization">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.10</p>
+    <h1 style="font-size:54px;line-height:1.05">Accessibility &amp;<br>Localization</h1>
+    <p class="lead" style="max-width:760px">The same NPay screen in English, Tamil and Hindi, mirrored for right-to-left, and <b>read aloud</b> meaningfully. The money never changes.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>This deck covers Part 2 of Lesson 3.10: localization internals, right-to-left layout and accessibility testing, Sections 15 to 25. Part 1, on VoiceOver, Dynamic Type and String Catalogs, was not shared. We compiled a real String Catalog into the app and ran it in English, Tamil and Hindi, used Xcode&rsquo;s right-to-left pseudolanguage, formatted rupees in several locales, and printed exactly what VoiceOver gets from each NPay screen.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.10 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></span><p>Explain how a localized string is resolved, and when it isn&rsquo;t</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p>Format money by locale without changing its value</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Build layouts that survive right-to-left</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Give VoiceOver meaning, not layout</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p>Add stable accessibility identifiers for UI tests</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Inspect an app&rsquo;s accessibility, element by element</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.10 &middot; Where we are</p>
+  <h2>Today: every user, every language</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.10 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd lit"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.9: environment values and shared configuration.</span><span><b>Today</b>Localization, RTL and accessibility testing (Part 2).</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.9 used the environment for configuration; locale, layoutDirection and dynamicTypeSize are environment values too. Today they meet localization and accessibility. Part 1 of the text, on VoiceOver basics, Dynamic Type and String Catalogs, was not shared; this deck starts at Section 15. Unit 3 runs to twelve lessons: performance and an integration review follow.</p>
+    <span class="notes-label">CONNECT</span><p>Languages.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>Localization at runtime</h2>
+    <p class="lead">One screen, three languages</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Keys resolved against the app&rsquo;s language.</p>
+    <span class="notes-label">CONNECT</span><p>The explorer, for real.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; NPay in three languages (section 15)</p>
+  <h2>Same structure; different words, different lengths</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start">
+      <div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/loc_en.png" alt="-AppleLanguages (en)"></div><p class="shot-cap">-AppleLanguages (en)</p></div>
+      <div class="step"><div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/loc_ta.png" alt="(ta): Tamil"></div><p class="shot-cap">(ta): Tamil</p></div></div>
+      <div class="step"><div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/loc_hi.png" alt="(hi): Hindi"></div><p class="shot-cap">(hi): Hindi</p></div></div>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px">
+      <div class="step"><div class="card accent"><span class="label">Observe</span><ul style="margin:6px 0 0"><li>The screen&rsquo;s <b>structure</b> is unchanged</li><li>Labels change length: layout must adapt (3.8)</li></ul></div></div>
+      <div class="card accent"><span class="label">How we ran it</span><ul style="margin:6px 0 0"><li><code>Localizable.xcstrings</code> compiled into the app</li><li>Launched with <code>-AppleLanguages</code>, <code>-AppleLocale</code></li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s language explorer, done for real. We wrote a small String Catalog with three keys and their English, Tamil and Hindi values, compiled it into the app with Xcode&rsquo;s xcstringstool, and launched the same lab screen three times with the language and locale passed as launch arguments, the way Xcode&rsquo;s scheme options do. English first.</p>
+    <span class="notes-label">SAY</span><p>Click: Tamil: பணம் அனுப்பு for Send Money, and the balance title. Click: Hindi. The translations are ours and should be reviewed by native speakers before real use.</p>
+    <span class="notes-label">SAY</span><p>Click: what to observe: the SwiftUI structure did not change at all; only the strings did. But translations change label lengths: the Tamil balance title is noticeably longer. That is why localization and adaptive layout, Lesson 3.8, must work together. Notice the second line on each screen: it did not translate. Next slide.</p>
+    <span class="notes-label">CONNECT</span><p>How does a key become a translation?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; How localization is resolved (section 16)</p>
+  <h2>A literal is a key; a String is just text</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 112" style="max-height:118px" role="img" aria-labelledby="res">
+        <title id="res">Text, localization key, locale and app language, Localizable.xcstrings, rendered text</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="208" height="112" rx="14"/><use href="#i-code" x="90" y="14" width="28" height="28"/><text x="104" y="76" text-anchor="middle">SwiftUI Text</text><text class="sm" x="104" y="96" text-anchor="middle">Text("payment.send")</text></g>
+        <path class="wire" d="M210 56H226M219 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="228" y="0" width="208" height="112" rx="14"/><use href="#i-key" x="318" y="14" width="28" height="28"/><text x="332" y="76" text-anchor="middle">Localization key</text><text class="sm" x="332" y="96" text-anchor="middle">identifies the resource</text></g>
+        <path class="wire" d="M438 56H454M447 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="456" y="0" width="208" height="112" rx="14"/><use href="#i-globe" x="546" y="14" width="28" height="28"/><text x="560" y="76" text-anchor="middle">Locale + app language</text><text class="sm" x="560" y="96" text-anchor="middle">choose the localization</text></g>
+        <path class="wire" d="M666 56H682M675 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="684" y="0" width="208" height="112" rx="14"/><use href="#i-file" x="774" y="14" width="28" height="28"/><text x="788" y="76" text-anchor="middle">Localizable.xcstrings</text><text class="sm" x="788" y="96" text-anchor="middle">translations</text></g>
+        <path class="wire" d="M894 56H910M903 49l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="912" y="0" width="208" height="112" rx="14"/><use href="#i-eye" x="1002" y="14" width="28" height="28"/><text x="1016" y="76" text-anchor="middle">Rendered text</text><text class="sm" x="1016" y="96" text-anchor="middle">the resolved string</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>String versus LocalizedStringKey</span></div><pre class="cb" style="font-size:11.5px">Text(&quot;payment.send&quot;)                    // literal: a LocalizedStringKey
+
+let title: String = &quot;payment.send&quot;
+Text(title)                             // a String: shown as is
+
+Text(LocalizedStringKey(title))         // explicitly a key</pre></div>
+      <div class="step"><table class="tbl compact"><thead><tr><th>Line</th><th>en</th><th>ta</th></tr></thead><tbody><tr><td>literal</td><td>Send Money</td><td>பணம் அனுப்பு</td></tr><tr><td><code>Text(title)</code></td><td><b>payment.send</b></td><td><b>payment.send</b></td></tr><tr><td>explicit key</td><td>Send Money</td><td>பணம் அனுப்பு</td></tr></tbody></table>
+        <p class="small muted" style="margin:6px 0 0">Accessibility labels read from the simulator.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The resolution pipeline: Text("payment.send") is interpreted as a LocalizedStringKey; the key identifies a translatable resource; the locale and the app&rsquo;s language decide which localization applies; the catalog supplies the value, with the development-language value as fallback; and the resolved string is rendered.</p>
+    <span class="notes-label">SAY</span><p>The important distinction. A string literal passed straight to Text uses SwiftUI&rsquo;s LocalizedStringKey initializer. A String variable uses the verbatim initializer: it is shown as is. To localize a key held in a variable, wrap it: Text(LocalizedStringKey(title)).</p>
+    <span class="notes-label">SAY</span><p>Click: our run: the literal and the explicit key resolved, Send Money and பணம் அனுப்பு; the String variable showed "payment.send" in every language. That raw key would also be what VoiceOver reads. It compiles without a warning, so it is easy to ship.</p>
+    <span class="notes-label">CONNECT</span><p>Money is the other half of localization.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>Money and locale</h2>
+    <p class="lead">Same amount, local conventions</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Value, currency and formatting locale are separate.</p>
+    <span class="notes-label">CONNECT</span><p>The example.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Locale-aware currency formatting (section 17)</p>
+  <h2>Always INR; the locale decides the look</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>The text&rsquo;s example</span></div><pre class="cb" style="font-size:12px">let amount = Decimal(150050) / Decimal(100)
+
+let india = amount.formatted(
+    .currency(code: &quot;INR&quot;)
+        .locale(Locale(identifier: &quot;en_IN&quot;)))
+
+let usa = amount.formatted(
+    .currency(code: &quot;INR&quot;)
+        .locale(Locale(identifier: &quot;en_US&quot;)))
+
+print(india)
+print(usa)</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Output (Mac)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">₹1,500.50<br>₹1,500.50</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Locale</th><th>₹1,500.50</th><th>₹12,345,678.50</th></tr></thead><tbody><tr><td>en_IN</td><td>₹1,500.50</td><td>₹1,23,45,678.50</td></tr><tr><td>en_US</td><td>₹1,500.50</td><td>₹12,345,678.50</td></tr><tr><td>ta_IN, hi_IN</td><td>₹1,500.50</td><td></td></tr><tr><td>de_DE</td><td>1.500,50 ₹</td><td></td></tr><tr><td>fr_FR</td><td>1 500,50 ₹</td><td></td></tr><tr><td>ar_SA</td><td>١٬٥٠٠٫٥٠ ₹</td><td></td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">Authored additions to the run: more locales and a larger amount.</p></div>
+        <div class="rule step" data-label="Separate"><ul style="margin:6px 0 0"><li>Monetary <b>value</b>: paise in the domain</li><li><b>Currency</b>: INR</li><li><b>Formatting locale</b>: presentation</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A financial app must keep three things apart: the monetary value, the currency, and the formatting locale. The text&rsquo;s example formats ₹1,500.50 as INR in the en_IN and en_US locales. Click: our run printed ₹1,500.50 twice: at this amount the two look identical.</p>
+    <span class="notes-label">SAY</span><p>Click: so we added a larger amount and more locales. At twelve million, en_IN groups in lakhs and crores, ₹1,23,45,678.50, while en_US groups in thousands, ₹12,345,678.50, as Lesson 2.12 showed. German uses a dot for grouping, a comma for decimals and puts the symbol after; French uses a narrow space; Arabic in Saudi Arabia uses Arabic-Indic digits. Every one is the same INR value.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s insight: changing the user&rsquo;s language must not change the currency or the monetary value. Localization is presentation; calculations follow the domain model, integer paise.</p>
+    <span class="notes-label">CONNECT</span><p>So why not build the string ourselves?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Why not build currency strings manually? (section 18)</p>
+  <h2>Interpolation drops what formatting knows</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Manual vs formatted</span></div><pre class="cb" style="font-size:14px">Text(&quot;₹\(amount)&quot;)                       // avoid
+
+Text(amount,
+     format: .currency(code: &quot;INR&quot;))     // prefer</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Mac run, same values</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">"₹\(amount)":&ensp;₹1500.5&ensp;&ensp;₹12345678.5<br>formatted (en_IN):&ensp;₹1,500.50&ensp;₹1,23,45,678.50</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">What manual formatting loses</span><ul style="margin:6px 0 0"><li>Grouping: no separators at all</li><li>Decimals: the trailing zero vanishes</li><li>Symbol placement and separators by locale</li><li>A clean spoken form for VoiceOver</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">NPay</span><ul style="margin:6px 0 0"><li>Amounts stay integer paise (2.12)</li><li>Convert to a decimal only to format</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text says to avoid Text("₹\(amount)") for production money, and to prefer Text with a currency format. Click: what the manual string gives: ₹1500.5 and ₹12345678.5: no grouping, and the trailing zero is gone, so one thousand five hundred rupees and fifty paise reads like fifty paise less. The formatted version: ₹1,500.50 and ₹1,23,45,678.50.</p>
+    <span class="notes-label">SAY</span><p>Click: manual formatting gets grouping, decimal separators, currency placement and the accessibility announcement wrong. Click: in NPay amounts remain integer paise, from Lesson 2.12; we convert to a decimal only for formatting, which is what Money.display has done all along.</p>
+    <span class="notes-label">CONNECT</span><p>Writing direction.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Right-to-left</h2>
+    <p class="lead">Leading isn&rsquo;t always left</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Arabic and Hebrew mirror the layout.</p>
+    <span class="notes-label">CONNECT</span><p>The environment value.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Right-to-left layout (sections 19&ndash;20)</p>
+  <h2>The same Home, mirrored</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:150px 150px 150px minmax(0,1fr);gap:16px;align-items:start">
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/home.png" alt="Left to right"></div><p class="shot-cap">Left to right</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/rtl_env.png" alt="Environment override"></div><p class="shot-cap">Environment override</p></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/rtl_pseudo.png" alt="RTL pseudolanguage"></div><p class="shot-cap">RTL pseudolanguage</p></div></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="step"><div class="card accent"><span class="label">@Environment(\.layoutDirection)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">default:&ensp;&ensp;&ensp;&ensp;leftToRight<br>pseudolanguage: rightToLeft</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">What mirrored</span><ul style="margin:6px 0 0"><li>Tabs, quick actions, row layout</li><li><code>.leading</code> text moved to the right</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">What didn&rsquo;t</span><ul style="margin:6px 0 0"><li><code>arrow.up.right</code> still points right</li><li>Directional symbols need checking</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Tamil and Hindi are left-to-right; Arabic and Hebrew are right-to-left. SwiftUI is layout-direction aware, and the direction is an environment value, layoutDirection, leftToRight or rightToLeft.</p>
+    <span class="notes-label">SAY</span><p>Left, Home normally. Click: the text&rsquo;s preview technique, applied to the whole app: .environment(\.layoutDirection, .rightToLeft). Click: and the realistic test: Xcode&rsquo;s right-to-left pseudolanguage, the scheme option that forces RTL writing direction, passed as launch arguments. Both mirror the layout.</p>
+    <span class="notes-label">SAY</span><p>Click: under the pseudolanguage the app read layoutDirection as rightToLeft. Click: the tab bar, the quick actions and the transaction rows are mirrored, and everything aligned .leading moved to the right. Click: but the arrow symbols still point up and to the right: not every SF Symbol mirrors, so directional icons need a decision. And the text&rsquo;s point: neither technique replaces testing in a real RTL language.</p>
+    <span class="notes-label">CONNECT</span><p>Why leading and trailing.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Leading and trailing; test RTL (sections 19&ndash;20)</p>
+  <h2>Semantic alignment adapts; left and right don&rsquo;t</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Semantic alignment and an RTL preview</span></div><pre class="cb" style="font-size:13.5px">.frame(maxWidth: .infinity, alignment: .leading)   // adapts
+
+#Preview(&quot;RTL&quot;) {
+    ContentView()
+        .environment(\.layoutDirection, .rightToLeft)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Leading / trailing</span><ul style="margin:6px 0 0"><li>Start and end of the reading direction</li><li>Prefer them to hardcoded left/right</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">RTL preview</span><ul style="margin:6px 0 0"><li>Finds layout assumptions fast</li></ul></div></div>
+        <div class="warn step" data-label="Not a substitute"><ul style="margin:6px 0 0"><li>Test the app in a supported RTL language</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>.frame(maxWidth: .infinity, alignment: .leading) uses semantic alignment: leading means the start of the reading direction, which is the right edge in Arabic. Avoid assuming leading means left; prefer leading and trailing over hardcoded left and right where appropriate. Every NPay alignment so far was semantic, which is why the mirror on the last slide just worked.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s RTL preview: the content with the layoutDirection environment set to rightToLeft. Useful for finding layout assumptions. Click: but not a substitute for running the actual app in a supported RTL language, with real translations, fonts and symbol behaviour.</p>
+    <span class="notes-label">CONNECT</span><p>Now what VoiceOver hears.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Accessibility meets localization</h2>
+    <p class="lead">Meaning, not arrangement</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What VoiceOver actually receives from NPay.</p>
+    <span class="notes-label">CONNECT</span><p>A transaction row.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Accessibility and localization together (section 21)</p>
+  <h2>Four fragments, or one meaningful element</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 21</span></div><pre class="cb" style="font-size:13.5px">TransactionRow(transaction: transaction)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(transaction.title)
+    .accessibilityValue(
+        Money.display(transaction.amountPaise)
+    )</pre></div>
+        <div class="card accent"><span class="label">Meaning</span><ul style="margin:6px 0 0"><li>Label: <b>what</b>; value: <b>how much</b></li><li>Both must be localized too</li></ul></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Plain row: elements VoiceOver gets</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">"arrow.up.right" [image]<br>"Sent to ravi@npay" [text]<br>"-₹1,500.50" [text]<br>"24 Oct" [text]</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">With section 21</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">"Sent to ravi@npay" value "-₹1,500.50"</p></div></div>
+        <div class="rule step" data-label="Notice"><ul style="margin:6px 0 0"><li>Unlabelled SF Symbol: its <b>name</b> is spoken, &ldquo;arrow.up.right&rdquo;</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A row shows "Sent to ravi@npay" and ₹1,500.50. The layout may look right, but how will VoiceOver announce it? The text&rsquo;s answer: make the row one accessibility element, ignore its children, and give it a label, the title, and a value, the formatted amount. Label and value must be localized too in a localized app.</p>
+    <span class="notes-label">SAY</span><p>Click: we printed the accessibility elements of a plain row: four separate stops: the arrow image, labelled with its symbol name "arrow.up.right"; the title; the amount; and the date. Click: with the Section 21 modifiers: one element, "Sent to ravi@npay", value minus ₹1,500.50.</p>
+    <span class="notes-label">SAY</span><p>Click: the symbol name is worth a moment: an SF Symbol without its own label can be announced by its name, which means nothing to a listener, and is never translated. Accessibility text should communicate meaning, not reproduce the visual arrangement.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s inspection table, measured.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Accessibility inspection (section 23)</p>
+  <h2>Expected vs what NPay exposes</h2>
+  <div class="body">
+    <table class="tbl compact"><thead><tr><th>Component</th><th>Expected</th><th>Measured (elements printed in the simulator)</th></tr></thead><tbody><tr><td>BalanceCard</td><td>announces the balance meaningfully</td><td>3 separate texts &rarr; one combined element (ours)</td></tr><tr><td>Send Money / quick actions</td><td>announces its action</td><td>&ldquo;Send&rdquo;, &ldquo;Request&rdquo;, &ldquo;History&rdquo; [button]</td></tr><tr><td>Payment TextField</td><td>has a meaningful label</td><td><b>empty label</b>; placeholder &ldquo;Recipient ID&rdquo; as value</td></tr><tr><td>Transaction row</td><td>announces transaction details</td><td>&ldquo;Coffee Shop&rdquo; value &ldquo;-₹250.00&rdquo;</td></tr><tr><td>Success screen</td><td>not only animation</td><td>checkmark read as <b>&ldquo;Selected&rdquo;</b>; the text carries it</td></tr><tr><td>Tab bar</td><td>meaningful tab labels</td><td>Home, Payments, History, Profile [button, selected]</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="step"><div class="card accent"><span class="label">Two fixes to make</span><ul style="margin:6px 0 0"><li>TextFields: a real label &middot; the checkmark: a meaningful label, or hide it</li></ul></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s inspection table, with what NPay actually exposes. BalanceCard: three separate texts, until our integration combined them into one element. The quick actions announce their action as buttons. The payment TextFields: an empty label, with the placeholder as their value; when the user has typed, the placeholder is gone, so VoiceOver has only the typed text. Transaction rows: one element with label and value, after Section 21.</p>
+    <span class="notes-label">SAY</span><p>The success screen: the checkmark image is announced as "Selected", the symbol&rsquo;s built-in meaning, which is wrong here; success is carried by the "Payment Recorded" text, which is exactly why success must not rely only on a green animated checkmark. The tab bar exposes meaningful labels and the selected state.</p>
+    <span class="notes-label">SAY</span><p>Click: two fixes to make: real labels for the fields, and a proper label for the checkmark, or hide it since the text says it all. Tools: VoiceOver in the simulator to hear the order, and Apple&rsquo;s Accessibility Inspector for labels, values, traits and relationships. We printed the same information from inside the app.</p>
+    <span class="notes-label">CONNECT</span><p>A reusable accessible action.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Built for every user</h2>
+    <p class="lead">Localized titles, stable identifiers</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A design-system action and a test contract.</p>
+    <span class="notes-label">CONNECT</span><p>NPayActionButton.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; A reusable accessible NPay action (section 22)</p>
+  <h2>Translated title; identifier never spoken</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayActionButton</span></div><pre class="cb" style="font-size:11.5px">struct NPayActionButton: View {
+    let title: LocalizedStringKey
+    let symbol: String
+    let accessibilityID: String
+    let action: () -&gt; Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+        }
+        .buttonStyle(.borderedProminent)
+        .accessibilityIdentifier(accessibilityID)
+    }
+}
+
+NPayActionButton(title: &quot;payment.send&quot;,
+                 symbol: &quot;arrow.up.right&quot;,
+                 accessibilityID: &quot;npay.sendPayment&quot;) {
+    print(&quot;Send Money tapped&quot;)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Simulator, Tamil</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">"பணம் அனுப்பு" [button] id npay.sendPayment</p></div></div>
+        <div class="card accent"><span class="label"><code>LocalizedStringKey</code></span><ul style="margin:6px 0 0"><li>&ldquo;payment.send&rdquo; is looked up, not shown</li><li>A <code>String</code> parameter would show the key (Part 1)</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label"><code>accessibilityIdentifier</code></span><ul style="margin:6px 0 0"><li>Stable, for UI automation</li><li><b>Not</b> spoken by VoiceOver</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text adds an accessible action to the design system: NPayActionButton takes its title as a LocalizedStringKey, a symbol, an accessibility identifier and an action, and renders a bordered-prominent Button with a Label.</p>
+    <span class="notes-label">SAY</span><p>Click: run in Tamil, the element is "பணம் அனுப்பு", a button, with the identifier npay.sendPayment. Why LocalizedStringKey? So the literal "payment.send" at the call site is looked up; had the parameter been a String, we would see the key, as Part 1 showed.</p>
+    <span class="notes-label">SAY</span><p>Click: why accessibilityIdentifier? It gives UI automation a stable identifier that does not change with the language. It is not a spoken label: VoiceOver reads the localized title; tests find the identifier. Two audiences, two properties.</p>
+    <span class="notes-label">CONNECT</span><p>Identifiers across NPay.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Identifiers for future UI tests (section 24)</p>
+  <h2>One enum, used everywhere</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>App/NPayAccessibilityID.swift</span></div><pre class="cb" style="font-size:12px">enum NPayAccessibilityID {
+    static let balanceCard = &quot;npay.balanceCard&quot;
+    static let recipientField = &quot;npay.recipientField&quot;
+    static let amountField = &quot;npay.amountField&quot;
+    static let sendButton = &quot;npay.sendButton&quot;
+    static let transactionList = &quot;npay.transactionList&quot;
+}
+
+TextField(&quot;Recipient&quot;, text: $recipient)
+    .accessibilityIdentifier(NPayAccessibilityID.recipientField)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Integrated NPay (simulator)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">Home:&ensp;&ensp;&ensp;"Available Balance, ₹25,000.00, …" id npay.balanceCard<br>Payments: "" value "Recipient ID" id npay.recipientField<br>&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;"" value "Amount (₹)" id npay.amountField<br>&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;"Review Payment" [button] id npay.sendButton<br>History:&ensp;&ensp;id npay.transactionList</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Why an enum</span><ul style="margin:6px 0 0"><li>One spelling, shared by the app and its tests</li><li>Unit 9 writes the UI tests that use them</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text defines stable identifiers in one enum, NPayAccessibilityID: the balance card, the recipient and amount fields, the send button and the transaction list, and applies them consistently, for example on the recipient TextField.</p>
+    <span class="notes-label">SAY</span><p>Click: our integration applies all five, flagged as ours; printed from the running app: the combined balance card, both fields, the Review Payment button as the send button, and the History list. Note again the fields&rsquo; empty labels: identifiers help tests, not VoiceOver users.</p>
+    <span class="notes-label">SAY</span><p>Click: why an enum: tests and app share one spelling, so a typo is a compile error, not a flaky test. Unit 9 writes the UI automation tests that use these identifiers.</p>
+    <span class="notes-label">CONNECT</span><p>What changed in NPay.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>NPay after Lesson 3.10</h2>
+    <p class="lead">Accessible by default</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Identifiers, grouping, row descriptions.</p>
+    <span class="notes-label">CONNECT</span><p>The changes.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; NPay after Lesson 3.10 (integration, authored)</p>
+  <h2>Five small changes</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:22px;align-items:start">
+      <table class="tbl"><thead><tr><th>File</th><th>Change</th></tr></thead><tbody><tr><td>App/NPayAccessibilityID.swift</td><td>the section 24 enum</td></tr><tr><td>BalanceCard</td><td><code>.accessibilityElement(children: .combine)</code> + identifier</td></tr><tr><td>TransactionRow</td><td>section 21: one element, label and value</td></tr><tr><td>PaymentsScreen</td><td>identifiers on both fields and Review Payment</td></tr><tr><td>HistoryScreen</td><td>identifier on the List</td></tr></tbody></table>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Not yet</span><ul style="margin:6px 0 0"><li>Field labels; the checkmark label</li><li>Localizing the whole app: our catalog has three keys</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Unit 3 status (from the text)</span><ul style="margin:6px 0 0"><li>Twelve lessons: next 3.11 Performance, then 3.12 Integration &amp; review</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Our integration, flagged as ours: the NPayAccessibilityID enum; BalanceCard combined into one element with an identifier; TransactionRow described with the Section 21 label and value, applied inside the component so Home and History both benefit; identifiers on the payment fields, the Review Payment button and the History list.</p>
+    <span class="notes-label">SAY</span><p>Click: not done yet: real labels for the text fields and the checkmark, the two problems we measured; and localizing the whole app, since our catalog only holds the three keys of the lab. Click: the text&rsquo;s status: Unit 3 runs to twelve lessons; 3.11 on performance and 3.12, a complete integration and architecture review, are next.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.10 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></span><p style="font-size:23px"><b>Keys resolve; Strings don&rsquo;t</b><br><span class="muted" style="font-size:19px">literals and LocalizedStringKey are looked up</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p style="font-size:23px"><b>Locale formats, never changes, money</b><br><span class="muted" style="font-size:19px">INR stays INR; paise stay paise</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p style="font-size:23px"><b>Meaning for every user</b><br><span class="muted" style="font-size:19px">leading/trailing; one element per idea; stable identifiers</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. A string literal in Text is a localization key resolved against the app&rsquo;s language, but a String variable is shown as is unless you wrap it in LocalizedStringKey. Locale-aware formatting changes how money looks, lakhs or thousands, symbol first or last, never its value or currency. And build for every user: semantic leading and trailing so layouts mirror, accessibility elements that carry meaning rather than layout, labels for every field and symbol, and stable identifiers for tests that VoiceOver never speaks.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Is every SwiftUI container a separate VoiceOver element?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does VoiceOver necessarily expose every SwiftUI layout container as a separate element?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Our Home exposed texts, buttons and combined elements, no stacks.</p>
+          <p class="q-trap"><b>Common trap:</b> Picturing the view tree as the accessibility tree.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Our Home exposed texts, buttons and combined elements, no stacks.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is accessibilityIdentifier for?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the purpose of <code>accessibilityIdentifier</code>?</p><ol class="q-opts"><li>Spoken VoiceOver label</li><li>Stable programmatic identification</li><li>Currency formatting</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">npay.sendPayment stayed the same in Tamil; the label changed.</p>
+          <p class="q-trap"><b>Common trap:</b> Using identifiers as labels.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. npay.sendPayment stayed the same in Tamil; the label changed.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should changing NPay&#x27;s language change its monetary values?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should changing NPay&rsquo;s language change its underlying monetary values?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">₹1,500.50 in every locale we tried; only the format differs.</p>
+          <p class="q-trap"><b>Common trap:</b> Converting currency with the language.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. ₹1,500.50 in every locale we tried; only the format differs.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why prefer leading and trailing alignment?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why prefer <code>.leading</code> and <code>.trailing</code> alignment?</p><ol class="q-opts"><li>They are always faster</li><li>They disable localization</li><li>They adapt to semantic layout direction</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Our Home mirrored correctly under the RTL pseudolanguage.</p>
+          <p class="q-trap"><b>Common trap:</b> Hardcoding left and right.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. Our Home mirrored correctly under the RTL pseudolanguage.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Is a LocalizedStringKey equivalent to every String?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Is a <code>LocalizedStringKey</code> equivalent to every ordinary <code>String</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why"><code>Text(title)</code> with a String showed &ldquo;payment.send&rdquo;.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming every string is looked up.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. <code>Text(title)</code> with a String showed &ldquo;payment.send&rdquo;.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should payment success rely only on a green animated checkmark?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should payment success rely only on a green animated checkmark?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">VoiceOver read the checkmark as &ldquo;Selected&rdquo;; the text carried the meaning.</p>
+          <p class="q-trap"><b>Common trap:</b> Communicating with colour and motion alone.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. VoiceOver read the checkmark as &ldquo;Selected&rdquo;; the text carried the meaning.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="let title = &quot;payment.send&quot;; Text(title) in Tamil?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>let title: String = "payment.send"</code>, then <code>Text(title)</code>, with the app in Tamil and a Tamil translation in the catalog. What appears?</p><ol class="q-opts"><li>பணம் அனுப்பு</li><li>payment.send</li><li>Send Money</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A String uses the verbatim initializer; wrap it in LocalizedStringKey.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting variables to be localized.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. A String uses the verbatim initializer; wrap it in LocalizedStringKey.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="How is Image(systemName: &quot;checkmark.circle.fill&quot;) announced?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">With no label of your own, how did VoiceOver get NPay&rsquo;s success checkmark?</p><ol class="q-opts"><li>&ldquo;Payment successful&rdquo;</li><li>&ldquo;Selected&rdquo;</li><li>Nothing</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The symbol&rsquo;s built-in meaning, not ours: label it or hide it.</p>
+          <p class="q-trap"><b>Common trap:</b> Trusting icons to speak for themselves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The symbol&rsquo;s built-in meaning, not ours: label it or hide it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="₹12,345,678.50 in en_IN?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>.currency(code: "INR")</code> in the <code>en_IN</code> locale formats 12,345,678.50 as&hellip;</p><ol class="q-opts"><li>₹12,345,678.50</li><li>₹1,23,45,678.50</li><li>12.345.678,50 ₹</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Lakhs and crores; en_US gives A, de_DE gives C.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming one grouping style.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Lakhs and crores; en_US gives A, de_DE gives C.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.9: who supplies layoutDirection to a view?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 3.9: where does <code>@Environment(\.layoutDirection)</code> get its value?</p><ol class="q-opts"><li>A global variable</li><li>The view&rsquo;s position in the hierarchy (its ancestors)</li><li>The view&rsquo;s initializer</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Like colorScheme: the nearest ancestor&rsquo;s value; the pseudolanguage set it at the root.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating environment values as globals.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.9.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Like colorScheme: the nearest ancestor&rsquo;s value; the pseudolanguage set it at the root.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.10 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.11</td><td><b>SwiftUI performance, lazy loading &amp; profiling</b></td><td>LazyVStack, body evaluations, Instruments, NPay&rsquo;s history</td></tr><tr><td class="mono">3.12</td><td><b>Unit 3 integration &amp; architecture review</b></td><td>the complete app, reviewed</td></tr><tr><td class="mono">Unit 9</td><td><b>Testing</b></td><td>UI tests that use NPayAccessibilityID</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.11 investigates rendering performance with NPay&rsquo;s transaction history: LazyVStack, unnecessary body evaluations and Instruments. Lesson 3.12 integrates and reviews the whole of Unit 3. Unit 9 writes the UI automation tests that rely on today&rsquo;s identifiers.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.10 &middot; Lab</p>
+  <h2>Every user, every language</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Localize a screen; mirror it; listen to it.</p><ol class="lab"><li>Add a String Catalog with English and one more language.</li><li>Compare <code>Text("key")</code>, <code>Text(title)</code>, <code>LocalizedStringKey</code>.</li><li>Format ₹12,345,678.50 in three locales.</li><li>Run with the RTL pseudolanguage; find what didn&rsquo;t mirror.</li><li>Turn on VoiceOver; walk Home and Payments.</li><li>Fix the field labels and the checkmark.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Screenshots in two languages and RTL</li><li>Your accessibility element list for Payments</li><li>The two fixes, with before and after</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: the literal and LocalizedStringKey translate, the String variable shows its key; lakh grouping in en_IN; layout mirrors but directional arrows don&rsquo;t; VoiceOver hears empty labels on the fields and &ldquo;Selected&rdquo; for the checkmark until you fix them.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.10 complete</p>
+    <h2>Accessibility &amp;<br>Localization</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.11 &mdash; SwiftUI Performance, Lazy Loading &amp; Profiling</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain how localized strings resolve and when they don&rsquo;t, format money by locale without changing it, build layouts that mirror for right-to-left, give VoiceOver meaningful elements, add stable identifiers for tests, and inspect what an app really exposes.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.11: SwiftUI performance, lazy loading and profiling, using NPay&rsquo;s transaction history.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

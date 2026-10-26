@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.8 — Adaptive Layouts</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.8 — Adaptive Layouts">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.8</p>
+    <h1 style="font-size:54px;line-height:1.05">Adaptive Layouts<br>&amp; GeometryReader</h1>
+    <p class="lead" style="max-width:760px">One screen, many sizes: iPhone SE to iPad, portrait to landscape, default text to the largest. Adapt to the <b>content</b>, not a guessed breakpoint.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.7 gave NPay a design system. Today the question every iOS developer meets: how does one SwiftUI screen work on a small iPhone, a large one, an iPad, and with much larger text? We look at how SwiftUI&rsquo;s layout negotiates sizes, at GeometryReader, ViewThatFits and AnyLayout. We ran everything on three simulated devices, at two text sizes and in landscape, and logged the layout negotiation itself.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.8 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Explain the layout negotiation: <b>propose</b>, choose, place</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></span><p>Predict what <code>.frame</code> and modifier order do</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg></span><p>Use <code>GeometryReader</code> when you need geometry, and know its traps</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Adapt with <code>ViewThatFits</code> instead of a fixed breakpoint</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p>Switch layouts with <code>AnyLayout</code> and keep state</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Test sizes, orientation, Dynamic Type and safe areas</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.8 &middot; Where we are</p>
+  <h2>Today: layouts that adapt</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.8 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd lit"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.7: tokens and reusable components.</span><span><b>Today</b>Quick actions that fit any width and text size.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.7 built the components. Today they learn to adapt to space and text size. Next lesson: environment and preferences.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The milestone</h2>
+    <p class="lead">Fixed layouts break</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A row of quick actions on every screen size.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our NPay milestone (section 1)</p>
+  <h2>Fine on a wide screen; cramped with large text</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 230px 230px;gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Today&rsquo;s quick actions</span></div><pre class="cb" style="font-size:14px">HStack(spacing: 12) {
+    QuickAction(title: &quot;Send&quot;)
+    QuickAction(title: &quot;Request&quot;)
+    QuickAction(title: &quot;History&quot;)
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">The goal</span><ul style="margin:6px 0 0"><li>Adapt to the <b>available space</b></li><li>Small screens, large screens, larger text</li></ul></div></div>
+      </div>
+      <div class="step"><div style="width:230px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/qa_fit.png" alt="iPhone 17, default text"></div><p class="shot-cap">iPhone 17, default text</p></div></div>
+      <div class="step"><div style="width:230px;max-width:100%;margin:0 auto"><div class="shot" style="height:170px"><img src="img/qa_geo_ax.png" alt="Same row, largest text: &ldquo;Req…&rdquo;, &ldquo;Hist…&rdquo;"></div><p class="shot-cap">Same row, largest text: &ldquo;Req…&rdquo;, &ldquo;Hist…&rdquo;</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay&rsquo;s quick actions sit in a fixed HStack: Send, Request, History. On a wide screen that works.</p>
+    <span class="notes-label">SAY</span><p>Click: the goal: adapt to the available space. The text&rsquo;s simulator let you shrink the width and enlarge the text; we did it for real.</p>
+    <span class="notes-label">SAY</span><p>Click: an iPhone 17 at the default text size: three tidy buttons. Click: the same horizontal row at the largest accessibility text size: "Req…" and "Hist…". The labels no longer fit, and nothing in a fixed layout notices. That is today&rsquo;s problem.</p>
+    <span class="notes-label">CONNECT</span><p>First, how SwiftUI lays out at all.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>The layout negotiation</h2>
+    <p class="lead">Propose, choose, place</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Not frames and constraints: a conversation.</p>
+    <span class="notes-label">CONNECT</span><p>The model.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; SwiftUI&rsquo;s layout system (section 2)</p>
+  <h2>A conversation between parent and child</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1110 112" style="max-height:130px" role="img" aria-labelledby="neg">
+        <title id="neg">Parent proposes a size, child chooses its size, parent places the child</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="350" height="112" rx="14"/><use href="#i-layers" x="161" y="14" width="28" height="28"/><text x="175" y="76" text-anchor="middle">Parent proposes a size</text><text class="sm" x="175" y="96" text-anchor="middle">how much space is available?</text></g>
+        <path class="wire" d="M352 56H378M371 49l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="380" y="0" width="350" height="112" rx="14"/><use href="#i-frame" x="541" y="14" width="28" height="28"/><text x="555" y="76" text-anchor="middle">Child chooses its size</text><text class="sm" x="555" y="96" text-anchor="middle">how much does the content need?</text></g>
+        <path class="wire" d="M732 56H758M751 49l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="760" y="0" width="350" height="112" rx="14"/><use href="#i-grid" x="921" y="14" width="28" height="28"/><text x="935" y="76" text-anchor="middle">Parent places the child</text><text class="sm" x="935" y="96" text-anchor="middle">where should it appear?</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div class="card accent"><span class="label">UIKit</span><ul style="margin:6px 0 0"><li>Frames and Auto Layout constraints</li></ul></div>
+      <div class="step"><div class="card accent"><span class="label">SwiftUI</span><ul style="margin:6px 0 0"><li>Proposal-based: children decide their own size</li><li><code>Text("NPay")</code> takes what its content needs</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In UIKit we think in frames and constraints. SwiftUI uses a proposal-based layout system, a conversation. Click: the parent proposes a size: here is how much space is available. Click: the child chooses its size: here is how much my content needs. Click: the parent places the child: where it should appear. This is a conceptual description of SwiftUI&rsquo;s layout protocol, and the next slide shows it really happening.</p>
+    <span class="notes-label">SAY</span><p>Click: the important insight: a child does not always take all the space it is offered. Text("NPay") picks a size from its content and the proposal.</p>
+    <span class="notes-label">CONNECT</span><p>Watch the conversation.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; The negotiation, logged (sections 2, 15; authored experiment)</p>
+  <h2>A VStack of 320 points asks; each child answers</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>A logging Layout (simplified: ours formats the sizes)</span></div><pre class="cb" style="font-size:11px">struct ProposalLog: Layout {   // passes through, prints
+    let name: String
+    func sizeThatFits(proposal: ProposedViewSize,
+                      subviews: Subviews, cache: inout ()) -&gt; CGSize {
+        let size = subviews[0].sizeThatFits(proposal)
+        print(&quot;\(name): proposed \(proposal) → chose \(size)&quot;)
+        return size
+    }
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize,
+                       subviews: Subviews, cache: inout ()) {
+        subviews[0].place(at: bounds.origin, proposal: proposal)
+    }
+}
+
+VStack(spacing: 24) {
+    ProposalLog(name: &quot;Text&quot;) { Text(&quot;NPay&quot;) }
+    ProposalLog(name: &quot;maxWidth&quot;) {
+        Text(&quot;NPay&quot;).frame(maxWidth: .infinity)
+    }
+    ProposalLog(name: &quot;Color&quot;) { Color.blue }
+}
+.frame(width: 320, height: 300)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="step"><div class="card accent"><span class="label">Probing: what's your smallest and largest?</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">Text: 320×0 &rarr; 39×24&ensp;&ensp;320×∞ &rarr; 39×24<br>maxWidth: 320×0 &rarr; 320×24&ensp;320×∞ &rarr; 320×24<br>Color: 320×0 &rarr; 320×0&ensp;&ensp;320×∞ &rarr; 320×∞</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Final proposals, then placement</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">Text: 320×84 &rarr; 39×24<br>maxWidth: 320×113 &rarr; 320×24<br>Color: 320×203 &rarr; 320×203</p></div></div>
+        <div class="rule step" data-label="Read it"><ul style="margin:6px 0 0"><li>Text takes its content: 39×24</li><li><code>maxWidth: .infinity</code> = take the <b>proposed</b> width, not infinity</li><li>Color takes whatever it is offered</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>To see the conversation, we wrote a tiny custom Layout, authored, that passes everything through to its single child and prints each proposal and the size the child chose. We wrapped three children in a VStack 320 points wide and 300 high: a plain Text, the same Text with frame maxWidth infinity, and a Color.</p>
+    <span class="notes-label">SAY</span><p>Click: first the VStack probes each child: what is your size if I offer zero height, and if I offer unlimited height? The Text answers 39 by 24 both times: it only needs its content. The maxWidth frame answers the full 320 wide. The Color is fully flexible: zero when offered zero, infinite when offered infinite.</p>
+    <span class="notes-label">SAY</span><p>Click: then the VStack shares out its 300 points, minus spacing, and makes final proposals: the Text still chooses 39 by 24; the frame 320 by 24; the Color takes the 203 left over. Click: Section 15&rsquo;s point, measured: maxWidth infinity does not make a view infinitely wide; it lets the frame expand to the proposed width.</p>
+    <span class="notes-label">CONNECT</span><p>Frames and modifier order.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Frames and order</h2>
+    <p class="lead">Modifiers wrap layout</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>.frame is not UIView.frame.</p>
+    <span class="notes-label">CONNECT</span><p>Two orders.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; How .frame() works; modifier order (section 3)</p>
+  <h2>Background first, or frame first?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Two orders (red border: the 200×80 frame)</span></div><pre class="cb" style="font-size:13.5px">// Example A
+Text(&quot;NPay&quot;)
+    .background(.blue)
+    .frame(width: 200, height: 80)
+
+// Example B
+Text(&quot;NPay&quot;)
+    .frame(width: 200, height: 80)
+    .background(.blue)</pre></div>
+        <div class="step"><div class="card accent"><span class="label">.frame() is a view</span><ul style="margin:6px 0 0"><li>A new view description that takes part in layout</li><li>Not a mutable <code>UIView.frame</code></li></ul></div></div>
+        <div class="rule step" data-label="Order matters for more than colour"><ul style="margin:6px 0 0"><li>Layout, hit testing, animation, rendering</li></ul></div>
+      </div>
+      <div class="step"><div style="width:300px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/order.png" alt="A: background wraps the text &middot; B: background fills the frame"></div><p class="shot-cap">A: background wraps the text &middot; B: background fills the frame</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Text("NPay").frame(width: 200, height: 80) is not assigning a UIView&rsquo;s frame property. It creates a modified view description, a frame view around the text, that takes part in the negotiation we just watched.</p>
+    <span class="notes-label">SAY</span><p>Click: so order matters. Example A puts the background on the text, then frames it: the background wraps the text&rsquo;s own size. Example B frames first, then adds the background: it covers the whole 200 by 80 region. Click: our screenshot: in A the blue hugs "NPay" inside the red frame; in B it fills the frame.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s question: does order matter only for colours? No. It affects layout, hit testing, animation and rendering: a tap area or an animation attaches to whatever layer you put it on.</p>
+    <span class="notes-label">CONNECT</span><p>Sometimes a view needs to know its space: GeometryReader.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>GeometryReader</h2>
+    <p class="lead">Geometry, when you need it</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A container that reports the space it was offered.</p>
+    <span class="notes-label">CONNECT</span><p>The experiment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; What is GeometryReader? (section 4, experiments 1&ndash;2)</p>
+  <h2>The proxy reports the offered space</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>GeometryExperiment.swift</span></div><pre class="cb" style="font-size:12.5px">struct GeometryExperiment: View {
+    var body: some View {
+        GeometryReader { geometry in
+            VStack {
+                Text(&quot;Width: \(geometry.size.width)&quot;)
+                Text(&quot;Height: \(geometry.size.height)&quot;)
+            }
+        }
+    }
+}
+
+geometry.size
+geometry.safeAreaInsets
+geometry.frame(in: .local)
+geometry.frame(in: .global)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">GeometryProxy</span><ul style="margin:6px 0 0"><li>Size, safe-area insets, frames in coordinate spaces</li><li>Read during layout</li></ul></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>Device</th><th>Reported size (pt)</th></tr></thead><tbody><tr><td>iPhone 17, portrait</td><td>402 × 778</td></tr><tr><td>iPhone 17, landscape</td><td>750 × 382</td></tr><tr><td>iPhone SE (3rd gen.)</td><td>375 × 647</td></tr><tr><td>iPad Air 11-inch</td><td>820 × 1128</td></tr></tbody></table></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>GeometryReader is a container that gives its content geometry information about the space offered to it. Its closure receives a GeometryProxy: the container&rsquo;s size, its safe-area insets, and its frame in coordinate spaces such as local and global.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s first two experiments, on three simulators. iPhone 17 portrait: 402 by 778. Rotated to landscape: 750 by 382. iPhone SE: 375 by 647. iPad Air 11-inch: 820 by 1128.</p>
+    <span class="notes-label">SAY</span><p>Two details. These are the safe-area sizes: the status bar and home indicator are already excluded. And in landscape the iPhone 17 window is 874 wide, but the reader gets 750: the sides belong to the camera housing and rounded corners.</p>
+    <span class="notes-label">CONNECT</span><p>How it fits into layout.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; How GeometryReader participates in layout (section 5)</p>
+  <h2>It takes what it&rsquo;s offered</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 112" style="max-height:130px" role="img" aria-labelledby="gf">
+        <title id="gf">Parent proposes, GeometryReader receives, proxy exposes, content builds, SwiftUI renders</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="208" height="112" rx="14"/><use href="#i-layers" x="90" y="14" width="28" height="28"/><text x="104" y="76" text-anchor="middle">Parent proposes space</text><text class="sm" x="104" y="96" text-anchor="middle">e.g. 390 × 700</text></g>
+        <path class="wire" d="M210 56H226M219 49l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="228" y="0" width="208" height="112" rx="14"/><use href="#i-grid" x="318" y="14" width="28" height="28"/><text x="332" y="76" text-anchor="middle">GeometryReader receives it</text><text class="sm" x="332" y="96" text-anchor="middle">generally expands to fill it</text></g>
+        <path class="wire" d="M438 56H454M447 49l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="456" y="0" width="208" height="112" rx="14"/><use href="#i-eye" x="546" y="14" width="28" height="28"/><text x="560" y="76" text-anchor="middle">Proxy exposes geometry</text><text class="sm" x="560" y="96" text-anchor="middle">size, coordinates</text></g>
+        <path class="wire" d="M666 56H682M675 49l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="684" y="0" width="208" height="112" rx="14"/><use href="#i-diff" x="774" y="14" width="28" height="28"/><text x="788" y="76" text-anchor="middle">Content builds layout</text><text class="sm" x="788" y="96" text-anchor="middle">chooses based on width</text></g>
+        <path class="wire" d="M894 56H910M903 49l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="912" y="0" width="208" height="112" rx="14"/><use href="#i-play" x="1002" y="14" width="28" height="28"/><text x="1016" y="76" text-anchor="middle">SwiftUI positions, renders</text><text class="sm" x="1016" y="96" text-anchor="middle">the result is presented</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="warn step" data-label="Caution"><ul style="margin:6px 0 0"><li>It often takes <b>all</b> the space proposed</li><li>Inside a ScrollView or VStack: surprises (next slide)</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s flow. Click: the parent proposes space, say 390 by 700. Click: GeometryReader receives the proposal and generally expands to fill it, like the Color in our log. Click: the proxy exposes that geometry. Click: the content builds its layout from it, for example NPay choosing an arrangement by width. Click: SwiftUI positions and renders the result.</p>
+    <span class="notes-label">SAY</span><p>Click: the caution: because it takes all the space it is offered, a GeometryReader used carelessly inside a ScrollView or a VStack can produce unexpected layout. Experiment 7.</p>
+    <span class="notes-label">CONNECT</span><p>Inside a ScrollView.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Why GeometryReader sometimes behaves unexpectedly (sections 13, 16)</p>
+  <h2>In a ScrollView: 10 points tall</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 150px;gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>Experiment 7, then the fix</span></div><pre class="cb" style="font-size:13px">ScrollView {
+    GeometryReader { geometry in
+        Text(&quot;Width: \(geometry.size.width)&quot;)
+    }
+
+    GeometryReader { geometry in
+        Text(&quot;Width: \(geometry.size.width)&quot;)
+    }
+    .frame(height: 100)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Measured GeometryReader sizes</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">no height:&ensp;&ensp;&ensp;&ensp;&ensp;402 × <b>10</b><br>.frame(height: 100): 402 × 100</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Why</span><ul style="margin:6px 0 0"><li>A vertical ScrollView proposes an <b>unspecified</b> height</li><li>GeometryReader&rsquo;s ideal size is small: 10</li></ul></div></div>
+      </div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:160px"><img src="img/geoscroll.png" alt="Red borders: 10 pt, then 100 pt"></div><p class="shot-cap">Red borders: 10 pt, then 100 pt</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Experiment 7: a GeometryReader inside a ScrollView with no height. You might expect it to fill the visible scroll area. Click: measured: 402 wide, 10 high.</p>
+    <span class="notes-label">SAY</span><p>Click: why: a vertical ScrollView proposes an unspecified height along the scrolling axis, it has no fixed height to give, and GeometryReader&rsquo;s ideal size for an unspecified dimension is small: here 10 points. The text overflows its 10-point box. The text&rsquo;s fix: give it an explicit height, 100, and the reader is 402 by 100, predictable.</p>
+    <span class="notes-label">SAY</span><p>Click: the screenshot: the first red box is a thin strip with the text spilling out; the second is 100 tall. The principle: use GeometryReader when you genuinely need geometry information, not as the default container for every responsive layout.</p>
+    <span class="notes-label">CONNECT</span><p>Now the adaptive quick actions.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Adaptive quick actions</h2>
+    <p class="lead">A breakpoint, or a fit?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Two versions of NPayQuickActions, measured.</p>
+    <span class="notes-label">CONNECT</span><p>The GeometryReader version.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Build adaptive quick actions with GeometryReader (section 6)</p>
+  <h2>Measure the width; switch below 350</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayQuickActions (section 6, condensed)</span></div><pre class="cb" style="font-size:10.5px">struct NPayQuickActions: View {
+    let onSend: () -&gt; Void
+    let onRequest: () -&gt; Void
+    let onHistory: () -&gt; Void
+
+    var body: some View {
+        GeometryReader { geometry in
+            let isCompact = geometry.size.width &lt; 350
+            Group {
+                if isCompact {
+                    VStack(spacing: 12) { actions }
+                } else {
+                    HStack(spacing: 12) { actions }
+                }
+            }
+        }
+        .frame(height: 180)
+    }
+
+    @ViewBuilder
+    private var actions: some View {
+        QuickAction(symbol: &quot;arrow.up.right&quot;, title: &quot;Send&quot;,
+                    action: onSend)
+        // Request and History the same way
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What it introduces</span><ul style="margin:6px 0 0"><li>GeometryReader measures the width</li><li>A conditional picks HStack or VStack</li><li><code>@ViewBuilder</code> shares the actions; closures supply behaviour</li></ul></div>
+        <div class="warn step" data-label="The text&rsquo;s own warning"><ul style="margin:6px 0 0"><li><code>.frame(height: 180)</code>: a teaching shortcut</li><li>May waste space, or clip with larger text</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s first version: a GeometryReader measures the available width; below 350 points the three actions stack vertically, otherwise they sit in a row. @ViewBuilder lets one property supply the three QuickAction views to either stack, and the parent supplies behaviour through closures. QuickAction is Lesson 2.7&rsquo;s component, back in our code.</p>
+    <span class="notes-label">SAY</span><p>Click: the text itself flags the limitation: the fixed 180-point height is a teaching shortcut; it may waste space in the row and clip content with larger text. The next slide shows both happening.</p>
+    <span class="notes-label">CONNECT</span><p>What it did on three devices.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; The 350-point breakpoint, measured (sections 6, 17)</p>
+  <h2>Wrong in both directions</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 210px 210px;gap:18px;align-items:start">
+      <div><table class="tbl compact"><thead><tr><th>Device, text size</th><th>Width</th><th>Chose</th><th>Result</th></tr></thead><tbody><tr><td>iPhone 17, default</td><td>370</td><td>HStack</td><td>fine; 180 pt mostly empty</td></tr><tr><td>iPhone 17, largest</td><td>370</td><td>HStack</td><td><b>&ldquo;Req…&rdquo;, &ldquo;Hist…&rdquo;</b></td></tr><tr><td>iPhone SE, default</td><td>343</td><td>VStack</td><td><b>third button clipped</b> by 180 pt</td></tr><tr><td>iPad Air 11, default</td><td>788</td><td>HStack</td><td>fine</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div class="rule step" data-label="Section 17"><ul style="margin:6px 0 0"><li>350 assumes one breakpoint for every text size and language</li><li>It failed at both a narrow width and a large text size</li></ul></div></div>
+      <div class="step"><div style="width:210px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/qa_geo_ax.png" alt="iPhone 17, largest text"></div><p class="shot-cap">iPhone 17, largest text</p></div></div>
+      <div class="step"><div style="width:210px;max-width:100%;margin:0 auto"><div class="shot"><img src="img/qa_geo_se.png" alt="iPhone SE: History below the 180-pt frame"></div><p class="shot-cap">iPhone SE: History below the 180-pt frame</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We put the GeometryReader version in a padded container on three simulators. The width column is what the reader measured. On the iPhone 17 at the default size, 370 points: a row, fine, but the fixed 180-point height leaves most of the box empty.</p>
+    <span class="notes-label">SAY</span><p>At the largest accessibility text size, still 370 points, so still a row; but the labels no longer fit: "Req…" and "Hist…". Click: the screenshot. On the iPhone SE at the default text size, 343 points, under 350, so it stacks vertically; but three stacked buttons need about 246 points and the frame is 180. Click: the History button sits below the red 180-point frame, outside the space the layout reserved, where the next view would overlap it.</p>
+    <span class="notes-label">SAY</span><p>Click: Section 17&rsquo;s point exactly: a check like width under 350 assumes 350 is the right breakpoint for every text size and language. Here it failed both ways: it stacked when a row would have fitted, and kept a row when the text did not fit.</p>
+    <span class="notes-label">CONNECT</span><p>The alternative: ask whether it fits.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Better: ViewThatFits (sections 7, 19)</p>
+  <h2>The first candidate that fits wins</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>NPayQuickActions (section 19, condensed)</span></div><pre class="cb" style="font-size:11px">struct NPayQuickActions: View {
+    let onSend: () -&gt; Void
+    let onRequest: () -&gt; Void
+    let onHistory: () -&gt; Void
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) { actionViews }
+            VStack(spacing: 12) { actionViews }
+        }
+    }
+
+    @ViewBuilder
+    private var actionViews: some View {
+        // the same three QuickActions
+    }
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Why better</span><ul style="margin:6px 0 0"><li>Decides by whether the content <b>fits</b></li><li>No fixed height; no device breakpoint</li></ul></div></div>
+      </div>
+      <div class="step"><table class="tbl compact"><thead><tr><th>Device, text size</th><th>ViewThatFits chose</th></tr></thead><tbody><tr><td>iPhone 17, default</td><td>HStack</td></tr><tr><td>iPhone 17, largest</td><td><b>VStack</b>, full width</td></tr><tr><td>iPhone SE, default</td><td><b>HStack</b>: it fits</td></tr><tr><td>iPhone SE, largest</td><td>VStack</td></tr><tr><td>iPad Air 11, default</td><td>HStack</td></tr></tbody></table>
+        <div class="gap"></div>
+        <div style="width:300px;max-width:100%;margin:0 auto"><div class="shot" style="height:90px"><img src="img/qa_fit_se.png" alt="iPhone SE, default text: a row"></div><p class="shot-cap">iPhone SE, default text: a row</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI&rsquo;s ViewThatFits takes candidate views in order and uses the first one that fits the available space along the given axes, horizontal here. The text&rsquo;s improved NPayQuickActions offers an HStack first, then a VStack, with the same three actions. No GeometryReader, no fixed height.</p>
+    <span class="notes-label">SAY</span><p>Click: why better: the decision is whether the content fits, not an assumption about device width, which matters most with Dynamic Type. Click: measured: on the iPhone 17 a row at the default size and a full-width column at the largest size; on the SE a row, because it does fit, and a column at the largest size; on the iPad a row. Both of the breakpoint&rsquo;s mistakes are gone.</p>
+    <span class="notes-label">CONNECT</span><p>It is not magic, though.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; ViewThatFits: an important nuance (sections 7, 17)</p>
+  <h2>It judges ideal sizes, not truncation</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">How it decides</span><ul style="margin:6px 0 0"><li>Each candidate&rsquo;s <b>ideal</b> size along the axis</li><li>Not a comparison with a hardcoded screen width</li></ul></div>
+        <div class="warn step" data-label="Not an overflow detector"><ul style="margin:6px 0 0"><li>Flexible content can &ldquo;fit&rdquo; while compressing or truncating</li><li>QuickAction uses <code>maxWidth: .infinity</code>: its ideal width is its label</li></ul></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">So</span><ul style="margin:6px 0 0"><li>It worked here because the labels&rsquo; ideal widths grew with the text</li><li>Still <b>test</b>: large text, other languages</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Other tools (section 12)</span><ul style="margin:6px 0 0"><li><code>AnyLayout</code>, grids, custom <code>Layout</code>, size classes</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s nuance. ViewThatFits evaluates candidates by their ideal sizing behaviour along the axes you give it. It is not a universal overflow detector: some flexible content reports that it fits while it compresses or truncates.</p>
+    <span class="notes-label">SAY</span><p>Click: our QuickAction is flexible, it uses frame maxWidth infinity, but its ideal width still comes from its icon and label, which grow with Dynamic Type, so the row stopped fitting at the largest size and ViewThatFits chose the column. Click: with different content that might not happen, so test the actual UI: large text sizes and localised labels.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s trainer question: is ViewThatFits always the best adaptive solution? No: for complex responsive designs, custom Layout implementations, AnyLayout, grid containers and size-class-aware structures may be more appropriate.</p>
+    <span class="notes-label">CONNECT</span><p>AnyLayout.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>AnyLayout and identity</h2>
+    <p class="lead">Switch the layout, keep the children</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Layout changes can reset state, or not.</p>
+    <span class="notes-label">CONNECT</span><p>AnyLayout.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; AnyLayout: switch the algorithm, keep the structure (section 8)</p>
+  <h2>One child list, two layouts</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>AdaptiveActions.swift</span></div><pre class="cb" style="font-size:13px">struct AdaptiveActions: View {
+    let compact: Bool
+
+    var body: some View {
+        let layout = compact
+            ? AnyLayout(VStackLayout(spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 12))
+
+        layout {
+            Text(&quot;Send&quot;)
+            Text(&quot;Request&quot;)
+            Text(&quot;History&quot;)
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">AnyLayout</span><ul style="margin:6px 0 0"><li>Type-erases a <code>Layout</code>: <code>HStackLayout</code>, <code>VStackLayout</code>…</li><li>Callable like a container: <code>layout { … }</code></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Why it matters</span><ul style="margin:6px 0 0"><li>Not two branches with two structures</li><li>The <b>same</b> children; only the algorithm changes</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>AnyLayout lets us choose between HStackLayout and VStackLayout at run time: both are Layout types, and AnyLayout erases which one, so a single variable can hold either. You call it like a container with the children in a closure.</p>
+    <span class="notes-label">SAY</span><p>Click: why it is interesting: instead of two separate branches that create two different layout structures, we switch the layout container while keeping the same child descriptions. That can preserve view identity across layout changes. Let&rsquo;s measure that.</p>
+    <span class="notes-label">CONNECT</span><p>The identity experiment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; AnyLayout and state identity (sections 9, 18)</p>
+  <h2>Count to 3, switch the layout</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Two ways to switch (condensed)</span></div><pre class="cb" style="font-size:12.5px">struct CounterView: View {
+    @State private var count = 0
+    var body: some View {
+        Button(&quot;Count: \(count)&quot;) { count += 1 }
+    }
+}
+
+// AnyLayout (section 18)
+let layout = vertical ? AnyLayout(VStackLayout())
+                      : AnyLayout(HStackLayout())
+layout { CounterView() }
+
+// Branches (section 9)
+if vertical {
+    VStack { CounterView() }
+} else {
+    HStack { CounterView() }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Simulator: tap Count three times, then Switch Layout</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13.5px;line-height:1.55">AnyLayout:&ensp;Count: 3 &rarr; Count: <b>3</b><br>if / else:&ensp;Count: 3 &rarr; Count: <b>0</b></p></div></div>
+        <div class="rule step" data-label="Lesson 3.5 again"><ul style="margin:6px 0 0"><li>Branches: different structural positions, new identity</li><li>AnyLayout: same position, same identity, state kept</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Adaptive design</span><ul style="margin:6px 0 0"><li>Consider identity, not only the arrangement</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s experiment. CounterView keeps a count in @State. In LayoutIdentityExperiment, from Section 18, a Switch Layout button toggles between a VStackLayout and an HStackLayout through AnyLayout. Section 9&rsquo;s alternative uses if and else with a VStack in one branch and an HStack in the other.</p>
+    <span class="notes-label">SAY</span><p>Click: we tapped Count three times and switched. With AnyLayout: still Count: 3. With the branches: Count: 0.</p>
+    <span class="notes-label">SAY</span><p>Click: Lesson 3.5 explains it: the two branches give CounterView different structural positions, so SwiftUI treats the switch as removing one counter and inserting another, and its state resets. AnyLayout keeps the child in the same position and only changes the algorithm, so the identity and the state survive. Click: adaptive layout design must consider identity, not only visual arrangement: a user&rsquo;s half-filled form should not reset because they rotated the phone.</p>
+    <span class="notes-label">CONNECT</span><p>Space the system reserves: safe areas.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Beyond width</h2>
+    <p class="lead">Safe areas, text size, orientation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Responsive means more than a screen width.</p>
+    <span class="notes-label">CONNECT</span><p>Safe areas.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Safe areas (sections 10, 13)</p>
+  <h2>Extend backgrounds, not buttons</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.8fr) 170px;gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>Experiment 6 (authored layout)</span></div><pre class="cb" style="font-size:13px">ZStack {
+    Color.blue.opacity(0.3)
+    Text(&quot;default&quot;)
+}
+
+ZStack {
+    Color.blue.opacity(0.3)
+        .ignoresSafeArea()
+    Text(&quot;.ignoresSafeArea()&quot;)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Safe areas</span><ul style="margin:6px 0 0"><li>Status bar, home indicator, other system boundaries</li><li>Layout respects them by default</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label"><code>.ignoresSafeArea()</code></span><ul style="margin:6px 0 0"><li>Good: a decorative <b>background</b></li><li>Bad: <b>interactive</b> controls under system gestures or cutouts</li></ul></div></div>
+      </div>
+      <div class="step"><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/safe.png" alt="Left: default &middot; right: ignores"></div><p class="shot-cap">Left: default &middot; right: ignores</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>iPhones have system-managed areas: the status bar, the home indicator region, other interface boundaries. SwiftUI layout respects the safe area by default: content stays inside it, as our GeometryReader sizes showed.</p>
+    <span class="notes-label">SAY</span><p>Click: a background can be extended on purpose with ignoresSafeArea. Click: our experiment 6, two halves side by side: the left background stops at the safe area, leaving white at the top and bottom; the right one runs to the edges. Extending a decorative background is often right; placing interactive buttons under system gestures or the camera cutout usually is not.</p>
+    <span class="notes-label">CONNECT</span><p>Text size, again.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Adaptive typography and Dynamic Type (section 11)</p>
+  <h2>Text grows; layouts must make room</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 170px 170px;gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">From 3.7</span><ul style="margin:6px 0 0"><li><code>.headline</code>: 24.3 &rarr; 74.7 pt at the largest size</li><li><code>.system(size: 16)</code>: stays 19.3 pt</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Layout consequence</span><ul style="margin:6px 0 0"><li>An HStack that fits at the default size may not</li><li>Adapt to <b>content</b>, not just device dimensions</li></ul></div></div>
+        <div class="warn step" data-label="Found in our Home"><ul style="margin:6px 0 0"><li>At the largest size the balance wraps: &ldquo;₹25,000.0 / 0&rdquo;</li><li>A money value must never split: fix in BalanceCard</li></ul></div>
+      </div>
+      <div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/home.png" alt="Default text"></div><p class="shot-cap">Default text</p></div>
+      <div class="step"><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/home_ax.png" alt="Largest text"></div><p class="shot-cap">Largest text</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.7 measured it: semantic styles like headline scale with Dynamic Type, from 24 to almost 75 points; a fixed 16-point font does not. Prefer semantic styles, then test with larger accessibility sizes.</p>
+    <span class="notes-label">SAY</span><p>Click: why this is a layout topic: text takes more width and height as the size grows, so an HStack that fits at the default size can become cramped, as the quick actions showed. Adaptive layouts must consider content, not only device dimensions.</p>
+    <span class="notes-label">SAY</span><p>Click: and a finding in our own Home at the largest size: the balance card wraps the amount, "₹25,000.0" with the final zero on the next line. A money value must never split. A fix belongs in BalanceCard, for example keeping the amount on one line with a minimum scale factor, or switching layout with ViewThatFits; we leave it as the lab&rsquo;s last step.</p>
+    <span class="notes-label">CONNECT</span><p>Width is only one factor.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Responsive design isn&rsquo;t only about width (section 20)</p>
+  <h2>Seven factors; we measured five</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:22px;align-items:start">
+      <div><table class="tbl compact"><thead><tr><th>Factor</th><th>Example (ours where measured)</th></tr></thead><tbody><tr><td>Available width</td><td>iPhone SE 375 pt, iPhone 17 402 pt, iPad 820 pt</td></tr><tr><td>Orientation</td><td>landscape: 750 × 382 usable on iPhone 17</td></tr><tr><td>Dynamic Type</td><td>labels truncate; a row stops fitting</td></tr><tr><td>Safe areas</td><td>status bar, home indicator, side insets</td></tr><tr><td>Localization</td><td>longer translated labels</td></tr><tr><td>Keyboard</td><td>less visible content</td></tr><tr><td>Multitasking</td><td>iPad: variable window size; rotation can&rsquo;t be forced</td></tr></tbody></table></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">iPad Air 11, requestGeometryUpdate(landscape)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">UISceneErrorDomain 101: &ldquo;The current windowing<br>mode does not allow for programmatic<br>changes to interface orientation.&rdquo;</p></div></div>
+        <div class="rule step" data-label="Not a list of breakpoints"><ul style="margin:6px 0 0"><li>Adapt to the actual <b>content</b> and <b>space</b></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A professional NPay interface considers several factors. Available width: our three simulators gave 375, 402 and 820 points. Orientation: 750 by 382 usable in landscape on the iPhone 17. Dynamic Type: truncation and rows that stop fitting. Safe areas. Localization: German or Tamil labels can be much longer. The keyboard: it takes away visible content. And multitasking: on iPad the window size varies.</p>
+    <span class="notes-label">SAY</span><p>Click: a multitasking detail we hit: on the iPad, asking the scene to rotate to landscape failed with "the current windowing mode does not allow for programmatic changes to interface orientation". On iPadOS the user and the windowing system are in charge of the window&rsquo;s shape, so layouts must handle whatever size they get.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s distinction: a responsive layout is not a collection of hardcoded device breakpoints; it adapts to the actual content and the available space.</p>
+    <span class="notes-label">CONNECT</span><p>NPay, integrated.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>NPay, responsive</h2>
+    <p class="lead">Integrate and verify</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The quick actions in Home, on every device.</p>
+    <span class="notes-label">CONNECT</span><p>A dashboard layout.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; A responsive dashboard layout (section 12)</p>
+  <h2>ViewThatFits, made generic</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayDashboardLayout.swift</span></div><pre class="cb" style="font-size:13px">struct NPayDashboardLayout&lt;Content: View&gt;: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 16) { content }
+            VStack(spacing: 16) { content }
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Adaptive composition</span><ul style="margin:6px 0 0"><li>3.7&rsquo;s generic <code>Content: View</code> + <code>@ViewBuilder</code></li><li>Any content: row if it fits, else column</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Note</span><ul style="margin:6px 0 0"><li><code>content</code> appears in both candidates</li><li>For complex content, prefer explicit layout components</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text generalises the idea: NPayDashboardLayout, generic over its content with @ViewBuilder, as in 3.7, wraps whatever it is given in a ViewThatFits with a row and a column.</p>
+    <span class="notes-label">SAY</span><p>Click: a note: the same content value is used in both candidates, which is fine for simple views; the text says that for complex content we often prefer more explicit layout components, and that AnyLayout, grids, custom layouts and size classes are other options.</p>
+    <span class="notes-label">CONNECT</span><p>Our integration.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; NPay Home with responsive quick actions (integration, authored)</p>
+  <h2>Same code, four environments</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:130px 130px minmax(0,1fr);gap:16px;align-items:start">
+      <div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/home_se.png" alt="iPhone SE"></div><p class="shot-cap">iPhone SE</p></div>
+      <div class="step"><div style="width:130px;max-width:100%;margin:0 auto"><div class="shot" style="height:283px"><img src="img/home_ax.png" alt="iPhone 17, largest text"></div><p class="shot-cap">iPhone 17, largest text</p></div></div>
+      <div class="step"><img src="img/homeland.png" alt="iPhone 17 landscape" style="width:100%;border:1px solid var(--line-2);border-radius:14px"><p class="shot-cap">iPhone 17, landscape</p>
+        <p class="small muted" style="margin:8px 0 0">Home now uses NPayQuickActions (section 19): Send &rarr; Payments, History &rarr; History, Request &rarr; an alert (not in the demo).</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text names the integration as its remaining task; we did it, flagged as ours. Home now uses the Section 19 NPayQuickActions instead of the single Send Money button: Send selects the Payments tab, History the History tab, and Request, which NPay does not have, shows a short alert saying so. QuickAction comes back from Unit 2 for this.</p>
+    <span class="notes-label">SAY</span><p>On the iPhone SE, the actions fit in a row. Click: on the iPhone 17 at the largest text size, ViewThatFits switched them to a column; the balance wraps, the finding from Part 7. Click: in landscape, a wide row; the content keeps clear of the camera side.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s checklist.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Xcode verification lab (sections 13, 21)</p>
+  <h2>Eight checks, all run</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Check</th><th>Result (simulator)</th></tr></thead><tbody><tr><td>Smaller iPhone simulator</td><td>iPhone SE (3rd gen.): 375 pt; actions in a row</td></tr><tr><td>Larger iPhone simulator</td><td>iPhone 17: 402 pt; iPad Air 11: 820 pt</td></tr><tr><td>Rotate to landscape</td><td>750 × 382 usable; row of actions</td></tr><tr><td>Increase Dynamic Type</td><td>actions become a column; balance wraps (to fix)</td></tr><tr><td>GeometryReader vs ViewThatFits</td><td>breakpoint truncated and clipped; ViewThatFits didn&rsquo;t</td></tr><tr><td>AnyLayout HStack ↔ VStack</td><td>switches; same children</td></tr><tr><td>CounterView survives the switch</td><td>AnyLayout 3 &rarr; 3; branches 3 &rarr; 0</td></tr><tr><td>Buttons usable, text readable</td><td>yes, except the wrapped balance</td></tr></tbody></table>
+    <p class="small muted" style="margin:6px 0 0">Debugging tip from section 13: <code>.border(.red)</code> shows container bounds; our screenshots use it.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s practical checklist, run. A smaller iPhone, the SE: 375 points wide, actions in a row. Larger devices: the iPhone 17 at 402 and an iPad Air at 820. Landscape: 750 by 382 usable, a row of actions. Increased Dynamic Type: the actions become a column; the balance wraps, which we flagged. GeometryReader versus ViewThatFits: the breakpoint version truncated and clipped; ViewThatFits did not. AnyLayout switches between row and column with the same children, and the counter survives; branches reset it. And the buttons stay usable and readable, apart from the balance.</p>
+    <span class="notes-label">SAY</span><p>The text&rsquo;s debugging tip, borders, is in our screenshots: every red line on the quick-action and ScrollView pictures is a .border(.red).</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.8 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Propose, choose, place</b><br><span class="muted" style="font-size:19px">children size themselves; maxWidth means the proposed width</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p style="font-size:23px"><b>Fit, don&rsquo;t guess</b><br><span class="muted" style="font-size:19px">ViewThatFits over a 350-pt breakpoint; test anyway</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p style="font-size:23px"><b>Adapt without resetting</b><br><span class="muted" style="font-size:19px">AnyLayout keeps identity; respect safe areas and text size</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. SwiftUI layout is a negotiation: the parent proposes, the child chooses, the parent places; that is why Text takes 39 points and maxWidth infinity means the proposed width. Adapt to content rather than guessed breakpoints: GeometryReader is for real geometry needs and misbehaves in a ScrollView, while ViewThatFits picks what fits, though you still test large text and other languages. And adapt without breaking things: AnyLayout switches arrangement while keeping identity and state, backgrounds may extend into the safe area but controls should not, and text must stay whole at every size.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is SwiftUI&#x27;s core layout negotiation?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is SwiftUI&rsquo;s core layout negotiation model?</p><ol class="q-opts"><li>Every view uses absolute coordinates</li><li>Parent proposes, child chooses, parent places</li><li>Only Auto Layout constraints</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Our log: proposed 320×0 &rarr; chose 39×24 for Text.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking in UIKit frames.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Our log: proposed 320×0 &rarr; chose 39×24 for Text.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does GeometryReader provide?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>GeometryReader</code> provide?</p><ol class="q-opts"><li>Network data</li><li>Persistent storage</li><li>Geometry information from its layout context</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">402 × 778 on iPhone 17; 820 × 1128 on iPad Air.</p>
+          <p class="q-trap"><b>Common trap:</b> Using it for everything responsive.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. 402 × 778 on iPhone 17; 820 × 1128 on iPad Air.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why can GeometryReader misbehave in a ScrollView?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why can <code>GeometryReader</code> be problematic inside a <code>ScrollView</code>?</p><ol class="q-opts"><li>It always crashes</li><li>Its sizing interacts unexpectedly with scroll-axis proposals</li><li>It disables SwiftUI</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Unspecified height &rarr; 10 points tall.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting it to fill the scroll area.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Unspecified height &rarr; 10 points tall.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is ViewThatFits useful for?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is <code>ViewThatFits</code> useful for?</p><ol class="q-opts"><li>Choosing content that fits available space</li><li>Persisting payment data</li><li>Routing between screens</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Row on the SE, column at the largest text size.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting it to detect truncation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. Row on the SE, column at the largest text size.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why use AnyLayout?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why use <code>AnyLayout</code>?</p><ol class="q-opts"><li>To erase application state</li><li>To create threads</li><li>To switch layout algorithms while retaining child structure</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Same children, HStackLayout or VStackLayout; the counter kept 3.</p>
+          <p class="q-trap"><b>Common trap:</b> Writing two branches.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. Same children, HStackLayout or VStackLayout; the counter kept 3.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does a fixed width breakpoint account for Dynamic Type?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does a fixed screen-width breakpoint always account for Dynamic Type?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">At 370 points and the largest text: &ldquo;Req…&rdquo;, &ldquo;Hist…&rdquo;.</p>
+          <p class="q-trap"><b>Common trap:</b> Designing for one text size.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. At 370 points and the largest text: &ldquo;Req…&rdquo;, &ldquo;Hist…&rdquo;.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="iPhone SE, default text: which stack?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">On an iPhone SE the quick actions get 343 points; at the default text size a row of three fits. With the <code>width &lt; 350</code> version, what do you get?</p><ol class="q-opts"><li>A row</li><li>A column, clipped by the 180-point frame</li><li>Nothing</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">343 &lt; 350: VStack; three buttons need about 246 points.</p>
+          <p class="q-trap"><b>Common trap:</b> Trusting the breakpoint.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. 343 &lt; 350: VStack; three buttons need about 246 points.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="GeometryReader in a ScrollView, no height?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>ScrollView { GeometryReader { … } }</code> on an iPhone 17, no height given. Its size?</p><ol class="q-opts"><li>402 × 778</li><li>402 × 10</li><li>0 × 0</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The unspecified scroll-axis height leaves its ideal size: 10.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting it to fill the screen.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The unspecified scroll-axis height leaves its ideal size: 10.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="if/else between HStack and VStack: the counter?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">CounterView shows Count: 3. A Switch Layout button toggles between <code>if vertical { VStack { CounterView() } } else { HStack { … } }</code>. After switching?</p><ol class="q-opts"><li>Count: 3</li><li>Count: 0</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Different branches, new identity; AnyLayout kept 3.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking a layout change is cosmetic.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Different branches, new identity; AnyLayout kept 3.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.7: which font scales with Dynamic Type?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 3.7: which of these scales with the user&rsquo;s text size?</p><ol class="q-opts"><li><code>.font(.system(size: 16))</code></li><li><code>.font(.headline)</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Headline 24.3 &rarr; 74.7 pt; the fixed 16 pt stayed 19.3.</p>
+          <p class="q-trap"><b>Common trap:</b> Using fixed sizes for UI text.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.7.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Headline 24.3 &rarr; 74.7 pt; the fixed 16 pt stayed 19.3.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.8 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.9</td><td><b>SwiftUI environment &amp; preferences</b></td><td>custom environment values, themes, @Environment, @EnvironmentObject</td></tr><tr><td class="mono">3.10</td><td><b>Accessibility</b></td><td>Dynamic Type, motion and more, in depth</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.9 explores environment propagation and preferences: custom environment values, theme management, @Environment and @EnvironmentObject, so NPay can share configuration without passing every value through each layer. Lesson 3.10 is accessibility in depth, including the Dynamic Type issues we found today.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.8 &middot; Lab</p>
+  <h2>A responsive NPay</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Make Home adapt; prove it on three devices.</p><ol class="lab"><li>Show the available width with GeometryReader.</li><li>Run both NPayQuickActions on an SE and an iPhone 17.</li><li>Switch to the largest text size; compare.</li><li>Count to 3; switch layouts with AnyLayout, then branches.</li><li>Rotate; check safe areas with <code>.border(.red)</code>.</li><li>Stop the balance wrapping at the largest size.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Screenshots: SE, iPhone 17 large text, landscape</li><li>Your counter results</li><li>Your BalanceCard fix</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: 375 pt on the SE and 402 pt on the iPhone 17; the 350-pt version stacks and clips on the SE and truncates at the largest size, while ViewThatFits keeps a row on the SE and switches to a column at the largest size; AnyLayout keeps Count: 3 and branches reset it; the balance must stay on one line.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.8 complete</p>
+    <h2>Adaptive Layouts<br>&amp; GeometryReader</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.9 &mdash; SwiftUI Environment &amp; Preferences</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain the propose-choose-place negotiation, predict what frames and modifier order do, use GeometryReader for real geometry and avoid its ScrollView trap, prefer ViewThatFits to fixed breakpoints, switch layouts with AnyLayout without losing state, and test width, orientation, Dynamic Type, safe areas and multitasking.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.9: SwiftUI environment and preferences: sharing configuration such as themes across NPay without passing it through every layer.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

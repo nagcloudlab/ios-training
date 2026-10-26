@@ -1,0 +1,1154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.9 — Environment</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.9 — Environment">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.9</p>
+    <h1 style="font-size:54px;line-height:1.05">SwiftUI Environment &amp;<br>Shared Configuration</h1>
+    <p class="lead" style="max-width:760px">One appearance setting reaches every screen, and nobody passes it through an initializer. The <b>environment</b> carries it, contextually.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.8 made NPay adapt to sizes. Today an architectural question: NPay gets a Light, Dark or System appearance preference. Do we pass a theme through every initializer? SwiftUI&rsquo;s environment propagates contextual values through the view hierarchy instead. We read built-in values, override them, define our own, inject an observable preferences model, and see exactly what happens when a required dependency is missing.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.9 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Read environment values with <code>@Environment</code> and key paths</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Explain how values propagate and how the <b>nearest</b> override wins</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Choose between <code>@State</code>, <code>@Binding</code>, <code>@Environment</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p>Apply an appearance preference with <code>preferredColorScheme</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Define a custom environment value</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Inject observable models, and handle missing dependencies</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.9 &middot; Where we are</p>
+  <h2>Today: configuration without plumbing</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.9 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd lit"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.8: adaptive layouts across devices and text sizes.</span><span><b>Today</b>NPayPreferences in the environment: appearance and a demo badge.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.8 adapted layout to space. Today the environment carries shared configuration. Next lesson, the last of Unit 3: accessibility and localization.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The milestone</h2>
+    <p class="lead">A preference for the whole app</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Light, Dark or System, chosen once.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our NPay milestone (section 1)</p>
+  <h2>One choice, every screen</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px 150px;gap:18px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Passing the theme by hand</span></div><pre class="cb" style="font-size:14px">HomeScreen(theme: theme)
+BalanceCard(theme: theme)
+PaymentsScreen(theme: theme)
+HistoryScreen(theme: theme)</pre></div>
+        <div class="warn step" data-label="Doesn&rsquo;t scale"><ul style="margin:6px 0 0"><li>Every initializer, every layer, forever</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">The environment</span><ul style="margin:6px 0 0"><li>Propagates <b>contextual</b> information down the hierarchy</li><li>No parameter at each step</li></ul></div></div>
+      </div>
+      <div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/home.png" alt="System: light"></div><p class="shot-cap">System: light</p></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/settings.png" alt="Profile &rarr; Appearance: Dark"></div><p class="shot-cap">Profile &rarr; Appearance: Dark</p></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/home_dark.png" alt="Home follows"></div><p class="shot-cap">Home follows</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay has four tabs, navigation destinations, reusable components and a design system. Now it introduces a user preference: Light, Dark or System appearance. Should we pass the selected theme manually through every initializer: HomeScreen, BalanceCard, PaymentsScreen, HistoryScreen?</p>
+    <span class="notes-label">SAY</span><p>Click: that becomes impossible to maintain as the app grows: every new layer must accept and forward a value it does not use. Click: SwiftUI provides the environment, a mechanism to propagate contextual information through the view hierarchy.</p>
+    <span class="notes-label">SAY</span><p>On the right, today&rsquo;s app, which follows the system light appearance. Click: in Profile, a new Appearance screen; we choose Dark. Click: Home, and every other tab, follows. One selection, the whole interface.</p>
+    <span class="notes-label">CONNECT</span><p>Start with a built-in value.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>@Environment</h2>
+    <p class="lead">Reading contextual values</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A key path into EnvironmentValues.</p>
+    <span class="notes-label">CONNECT</span><p>The first experiment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What is @Environment? (section 2)</p>
+  <h2>The same view reads a different value</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>EnvironmentExperiment.swift</span></div><pre class="cb" style="font-size:11.5px">struct EnvironmentExperiment: View {
+    @Environment(\.colorScheme)
+    private var colorScheme
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(&quot;NPay Environment Lab&quot;)
+                .font(.title2.bold())
+            Text(colorScheme == .dark ? &quot;Dark Mode&quot;
+                                      : &quot;Light Mode&quot;)
+            Image(systemName: colorScheme == .dark
+                  ? &quot;moon.fill&quot; : &quot;sun.max.fill&quot;)
+                .font(.system(size: 48))
+        }
+        .padding()
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:190px"><img src="img/envexp_light.png" alt="System light"></div><p class="shot-cap">System light</p></div><div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:190px"><img src="img/envexp_dark.png" alt="System dark"></div><p class="shot-cap">System dark</p></div></div></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>Part</th><th>Meaning</th></tr></thead><tbody><tr><td><code>@Environment</code></td><td>SwiftUI property wrapper</td></tr><tr><td><code>\.colorScheme</code></td><td>key path to an environment value</td></tr><tr><td><code>colorScheme</code></td><td>local property to read it</td></tr><tr><td><code>.dark</code> / <code>.light</code></td><td>cases of <code>ColorScheme</code></td></tr></tbody></table></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s first experiment, EnvironmentExperiment.swift: a property declared with @Environment(\.colorScheme), and a body that shows "Dark Mode" or "Light Mode" and a moon or a sun accordingly.</p>
+    <span class="notes-label">SAY</span><p>Click, click: the parts: @Environment, the property wrapper; \.colorScheme, a key path identifying an environment value; colorScheme, the local property we read; .dark and .light, cases of the ColorScheme enum. Unit 1 connection: a key path is a typed reference to a property, here a property of SwiftUI&rsquo;s EnvironmentValues, which SwiftUI uses to look the value up for this view.</p>
+    <span class="notes-label">SAY</span><p>Our runs, top right: with the simulator in light appearance, "Light Mode" and a sun; switched to dark, the same code reads dark: "Dark Mode" and a moon. Nobody passed anything in.</p>
+    <span class="notes-label">CONNECT</span><p>So where does the value come from?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Where does the value come from? (section 3)</p>
+  <h2>From the hierarchy, not the initializer</h2>
+  <div class="body">
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 940 204" style="max-height:230px" role="img" aria-labelledby="prop">
+        <title id="prop">NPayRootView supplies configuration; TabView and NavigationStack pass it; each screen reads colorScheme</title>
+        <g class="nd lit"><rect class="sh" x="240" y="0" width="460" height="50" rx="12"/><use href="#i-layers" x="254" y="12" width="26" height="26"/><text x="292" y="22">NPayRootView</text><text class="sm" x="292" y="40">supplies shared environment configuration</text></g>
+        <path class="wire" d="M470 52V66M463 59l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="240" y="70" width="460" height="50" rx="12"/><use href="#i-grid" x="254" y="82" width="26" height="26"/><text x="292" y="92">TabView / NavigationStack</text><text class="sm" x="292" y="110">descendants receive contextual values</text></g>
+        <path class="wire" d="M470 122V136H110V150M103 143l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="154" width="220" height="50" rx="12"/><use href="#i-eye" x="14" y="166" width="26" height="26"/><text x="52" y="176">HomeScreen</text><text class="sm" x="52" y="194">reads colorScheme</text></g>
+        <path class="wire" d="M470 122V136H350V150M343 143l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="240" y="154" width="220" height="50" rx="12"/><use href="#i-eye" x="254" y="166" width="26" height="26"/><text x="292" y="176">PaymentsScreen</text><text class="sm" x="292" y="194">reads colorScheme</text></g>
+        <path class="wire" d="M470 122V136H590V150M583 143l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="480" y="154" width="220" height="50" rx="12"/><use href="#i-eye" x="494" y="166" width="26" height="26"/><text x="532" y="176">HistoryScreen</text><text class="sm" x="532" y="194">reads colorScheme</text></g>
+        <path class="wire" d="M470 122V136H830V150M823 143l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="720" y="154" width="220" height="50" rx="12"/><use href="#i-eye" x="734" y="166" width="26" height="26"/><text x="772" y="176">ProfileScreen</text><text class="sm" x="772" y="194">reads colorScheme</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px">
+      <div class="card accent"><span class="label">Propagation</span><ul style="margin:6px 0 0"><li>A parent or ancestor can <b>override</b> a value</li><li>Descendants read the effective value</li></ul></div>
+      <div class="rule step" data-label="Not a global variable"><ul style="margin:6px 0 0"><li>The value depends on <b>where</b> a view sits</li><li>Two instances of one view can read different values</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The most important question. Unlike an initializer parameter, an environment value is supplied through the view hierarchy. The root supplies configuration; containers like the TabView and NavigationStack pass it on; each screen reads what it needs, such as colorScheme. A parent or ancestor can override a value for its descendants.</p>
+    <span class="notes-label">SAY</span><p>Click: the nuance: environment values are not simply global variables. Their value depends on where a view appears in the hierarchy, so two instances of the same view can receive different values if they have different ancestors. The next part proves it.</p>
+    <span class="notes-label">CONNECT</span><p>Override a value.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Overrides and precedence</h2>
+    <p class="lead">The nearest value wins</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Overriding a subtree, and what that really changes.</p>
+    <span class="notes-label">CONNECT</span><p>An override.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Override the environment (section 4)</p>
+  <h2>The child reads dark; its text turns white</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.85fr) 160px;gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Force one subtree into Dark</span></div><pre class="cb" style="font-size:14px">VStack {
+    Text(&quot;Normal appearance&quot;)
+
+    EnvironmentExperiment()
+        .environment(\.colorScheme, .dark)
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Accessibility labels on screen</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">"Normal appearance", "Dark Mode"</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What happens</span><ul style="margin:6px 0 0"><li><code>.environment(…)</code> overrides the value for that <b>subtree</b></li><li>The child reads <code>.dark</code></li></ul></div>
+        <div class="warn step" data-label="Look at the screen"><ul style="margin:6px 0 0"><li>&ldquo;Dark Mode&rdquo; is there, but invisible</li><li>Dark-scheme text is white; nothing darkened the background</li></ul></div>
+      </div>
+      <div class="step"><div style="width:160px;max-width:100%;margin:0 auto"><div class="shot" style="height:348px"><img src="img/override.png" alt="Only the outer text shows"></div><p class="shot-cap">Only the outer text shows</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s override experiment: a VStack with a normal Text, and the EnvironmentExperiment with .environment(\.colorScheme, .dark) applied. The modifier supplies an overridden value to that subtree, and SwiftUI resolves it when descendants read it.</p>
+    <span class="notes-label">SAY</span><p>Click: our run, in a light simulator: the screen&rsquo;s accessibility labels include "Dark Mode": the child read dark. Click: but look at the screenshot: only "Normal appearance" is visible. The child resolved its adaptive colours for the dark scheme, so its text and symbol are white, and nothing in that subtree drew a dark background. White on white.</p>
+    <span class="notes-label">SAY</span><p>The text&rsquo;s trainer question: does this change the iPhone&rsquo;s system appearance? No, only the SwiftUI environment for that subtree. Overriding colorScheme changes how views resolve colours, not the surface beneath them.</p>
+    <span class="notes-label">CONNECT</span><p>Two overrides at once: which wins?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Environment precedence (section 16)</p>
+  <h2>Predict: Outer and Inner?</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>EnvironmentPrecedenceLab.swift</span></div><pre class="cb" style="font-size:12px">struct EnvironmentPrecedenceLab: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            SchemeReader(title: &quot;Outer&quot;)
+
+            SchemeReader(title: &quot;Inner&quot;)
+                .environment(\.colorScheme, .dark)
+        }
+        .environment(\.colorScheme, .light)
+    }
+}
+
+struct SchemeReader: View {
+    let title: String
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Text(&quot;\(title): \(colorScheme == .dark ? &quot;Dark&quot; : &quot;Light&quot;)&quot;)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Predict</span><ul style="margin:6px 0 0"><li>A. Both Light</li><li>B. Outer Light, Inner Dark</li><li>C. Both Dark</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">Outer: Light<br>Inner: Dark</p></div></div>
+        <div class="rule step" data-label="Why"><ul style="margin:6px 0 0"><li>Lookup is contextual: the <b>nearest</b> modifier above the reader wins</li><li>Same struct, different values</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s precedence experiment: a VStack sets colorScheme to light for everything inside it; one of its two SchemeReaders also sets dark on itself. Predict what each reports: both light, outer light and inner dark, or both dark?</p>
+    <span class="notes-label">SAY</span><p>Click: our run: Outer: Light, Inner: Dark. B.</p>
+    <span class="notes-label">SAY</span><p>Click: environment lookup is contextual: the effective value comes from the modifiers and ancestors around the reading view, and the nearer override wins for its own subtree. That is how two BalanceCards can receive different appearance settings while being the same struct.</p>
+    <span class="notes-label">CONNECT</span><p>Three mechanisms side by side.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Which mechanism?</h2>
+    <p class="lead">State, Binding, Environment</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Own it, borrow it, or read it from context.</p>
+    <span class="notes-label">CONNECT</span><p>The comparison.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Environment versus @State versus @Binding (section 5)</p>
+  <h2>Reading context is not owning it</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Mechanism</th><th>Purpose</th><th>NPay example</th></tr></thead><tbody><tr><td><code>@State</code></td><td>own local mutable state</td><td>sheet visibility</td></tr><tr><td><code>@Binding</code></td><td>read/write state owned elsewhere</td><td>balance editor</td></tr><tr><td><code>@Environment</code></td><td>read contextual values from the hierarchy</td><td>color scheme</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px">
+      <div class="step"><div class="card accent"><span class="label">Read, not write</span><ul style="margin:6px 0 0"><li><code>@Environment(\.colorScheme)</code> gives the <b>effective</b> scheme</li><li>It doesn&rsquo;t let you change it</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">To let users choose</span><ul style="margin:6px 0 0"><li><b>Own</b> the preference in state</li><li><b>Apply</b> it to the hierarchy (Part 5)</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three mechanisms. @State owns local mutable state: whether a sheet is shown. @Binding reads and writes state owned elsewhere: the balance editor of Unit 2. @Environment reads contextual values from the hierarchy: the colour scheme.</p>
+    <span class="notes-label">SAY</span><p>Click: @Environment does not automatically mean a view can modify the underlying value: @Environment(\.colorScheme) tells you the effective scheme; it is not a setter. Click: if users should choose their appearance, we own that preference in state and apply it to the hierarchy. That is Part 5.</p>
+    <span class="notes-label">CONNECT</span><p>Built-in values worth knowing.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Built-in environment values (section 10)</p>
+  <h2>You&rsquo;ve been using the environment all unit</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:22px;align-items:start">
+      <table class="tbl"><thead><tr><th>Value</th><th>Purpose (where we met it)</th></tr></thead><tbody><tr><td><code>colorScheme</code></td><td>light or dark appearance</td></tr><tr><td><code>locale</code></td><td>language and regional formatting</td></tr><tr><td><code>dynamicTypeSize</code></td><td>preferred text size (3.7, 3.8)</td></tr><tr><td><code>accessibilityReduceMotion</code></td><td>reduced-motion preference (3.6)</td></tr><tr><td><code>dismiss</code></td><td>dismiss the presentation (3.1, 3.4)</td></tr><tr><td><code>horizontalSizeClass</code></td><td>horizontal size-class context</td></tr><tr><td><code>scenePhase</code></td><td>scene lifecycle state (0.4)</td></tr></tbody></table>
+      <div class="cw"><div class="ch"><span>Reading several</span></div><pre class="cb" style="font-size:12.5px">@Environment(\.locale)
+private var locale
+
+@Environment(\.dynamicTypeSize)
+private var dynamicTypeSize
+
+@Environment(\.accessibilityReduceMotion)
+private var reduceMotion</pre></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI provides many environment values, and we have already used several. colorScheme for appearance. locale for language and regional formatting: Lesson 2.12&rsquo;s en_IN rupee formatting is closely related. dynamicTypeSize, the text size of 3.7 and 3.8. accessibilityReduceMotion from 3.6. dismiss, from 3.1 and 3.4. horizontalSizeClass for size-class context. scenePhase for the scene lifecycle, back in Lesson 0.4.</p>
+    <span class="notes-label">SAY</span><p>Each is read the same way, with @Environment and a key path. These values let views adapt to their context.</p>
+    <span class="notes-label">CONNECT</span><p>Now let users choose an appearance.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Appearance preference</h2>
+    <p class="lead">Own it, apply it</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPayAppearance, a picker and preferredColorScheme.</p>
+    <span class="notes-label">CONNECT</span><p>The model.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Build NPay appearance preferences (sections 6, 17)</p>
+  <h2>System means &ldquo;don&rsquo;t force it&rdquo;: nil</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayAppearance</span></div><pre class="cb" style="font-size:12.5px">enum NPayAppearance: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var title: String { rawValue.capitalized }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light:  return .light
+        case .dark:   return .dark
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Swift features</span><ul style="margin:6px 0 0"><li><code>String</code> raw values; <code>CaseIterable</code> for the picker</li><li><code>Identifiable</code> via <code>id</code>; <code>title</code> from the raw value</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Why <code>ColorScheme?</code></span><ul style="margin:6px 0 0"><li><code>.system</code> &rarr; <code>nil</code></li><li><code>nil</code> = follow the surrounding appearance</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A model for the preference: NPayAppearance, an enum with System, Light and Dark. String raw values give a title through capitalized; CaseIterable lets a picker list all cases; Identifiable lets ForEach use them, with the raw value as the id.</p>
+    <span class="notes-label">SAY</span><p>Click: why is colorScheme optional? Because System means we do not want to force a specific scheme. Returning nil lets the app follow the surrounding appearance. Sections 6 and 17 show the same enum; 17 uses explicit returns.</p>
+    <span class="notes-label">CONNECT</span><p>Applying it: preferredColorScheme.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Why .preferredColorScheme()? (section 7)</p>
+  <h2>A preference for the presentation, not a subtree override</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 150px 150px;gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 7 (store version)</span></div><pre class="cb" style="font-size:13.5px">TabView {
+    // NPay tabs
+}
+.preferredColorScheme(store.appearance.colorScheme)</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Experiment (authored)</span><ul style="margin:6px 0 0"><li>Same screen, two ways to say dark</li><li>Then open a sheet</li></ul></div></div>
+        <div class="rule step" data-label="Result"><ul style="margin:6px 0 0"><li>Overriding <code>colorScheme</code>: the sheet stays <b>light</b></li><li><code>.preferredColorScheme(.dark)</code>: the sheet is dark too</li></ul></div>
+      </div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/sheetenv.png" alt="environment override"></div><p class="shot-cap">environment override</p></div></div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/sheetpref.png" alt="preferredColorScheme"></div><p class="shot-cap">preferredColorScheme</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 7 first put the appearance in NPayStore and applied it on the root with .preferredColorScheme. Why that API? The text says it is the intended way to express an appearance preference for the presentation, and that it differs from overriding the colorScheme environment value inside a subtree. Click: we tested the difference.</p>
+    <span class="notes-label">SAY</span><p>Click: one screen made dark two ways, each with a button that opens a sheet. Click: with the environment override, the screen is dark, but the presented sheet is light: the override stops at that subtree, and a presentation is not inside it. Click: with preferredColorScheme the sheet is dark too: the preference applies to the presentation that contains the view, and what it presents.</p>
+    <span class="notes-label">SAY</span><p>The exact behaviour depends on the enclosing scene and presentation hierarchy, as the text says; for an app-wide appearance setting, preferredColorScheme at the root is the right tool.</p>
+    <span class="notes-label">CONNECT</span><p>The picker.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; The appearance picker and its pipeline (sections 8&ndash;9) &middot; conceptual</p>
+  <h2>Selection &rarr; binding &rarr; model &rarr; root &rarr; screen</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 8 (store version)</span></div><pre class="cb" style="font-size:11.5px">struct AppearanceSettingsView: View {
+    @Bindable var store: NPayStore
+
+    var body: some View {
+        Form {
+            Section(&quot;Appearance&quot;) {
+                Picker(&quot;Theme&quot;, selection: $store.appearance) {
+                    ForEach(NPayAppearance.allCases) { option in
+                        Text(option.title)
+                            .tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+        }
+        .navigationTitle(&quot;Appearance&quot;)
+    }
+}</pre></div>
+      <div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 1132 116" style="max-height:110px" role="img" aria-labelledby="up">
+        <title id="up">Select Dark, binding writes, model changes, root re-evaluates, preference applied, interface updates</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="116" rx="14"/><use href="#i-tap" x="72" y="14" width="28" height="28"/><text x="86" y="80" text-anchor="middle">User selects Dark</text><text class="sm" x="86" y="100" text-anchor="middle">the picker gets it</text></g>
+        <path class="wire" d="M174 58H188M181 51l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="190" y="0" width="172" height="116" rx="14"/><use href="#i-link" x="262" y="14" width="28" height="28"/><text x="276" y="80" text-anchor="middle">Binding writes</text><text class="sm" x="276" y="100" text-anchor="middle">appearance = .dark</text></g>
+        <path class="wire" d="M364 58H378M371 51l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="380" y="0" width="172" height="116" rx="14"/><use href="#i-db" x="452" y="14" width="28" height="28"/><text x="466" y="80" text-anchor="middle">Model changes</text><text class="sm" x="466" y="100" text-anchor="middle">observable property</text></g>
+        <path class="wire" d="M554 58H568M561 51l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="570" y="0" width="172" height="116" rx="14"/><use href="#i-eye" x="642" y="14" width="28" height="28"/><text x="656" y="80" text-anchor="middle">Root re-evaluates</text><text class="sm" x="656" y="100" text-anchor="middle">it read appearance</text></g>
+        <path class="wire" d="M744 58H758M751 51l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="760" y="0" width="172" height="116" rx="14"/><use href="#i-layers" x="832" y="14" width="28" height="28"/><text x="846" y="80" text-anchor="middle">Preference applied</text><text class="sm" x="846" y="100" text-anchor="middle">preferredColorScheme(.dark)</text></g>
+        <path class="wire" d="M934 58H948M941 51l7 7-7 7"/>
+        <g class="nd" data-lit="6"><rect class="sh" x="950" y="0" width="172" height="116" rx="14"/><use href="#i-play" x="1022" y="14" width="28" height="28"/><text x="1036" y="80" text-anchor="middle">Interface updates</text><text class="sm" x="1036" y="100" text-anchor="middle">every tab, dark</text></g>
+      </svg>
+    </div>
+        <div class="gap"></div>
+        <div class="card accent"><span class="label">Segmented picker</span><ul style="margin:6px 0 0"><li><code>selection:</code> a binding; each option&rsquo;s <code>.tag</code> is its value (3.3)</li></ul></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The picker in Section 8: a Form with a segmented Picker bound to $store.appearance, one Text per case, each tagged with its value, like TabView tags in 3.3. When the user changes the selection, the store updates; the root reads the new preference and applies it.</p>
+    <span class="notes-label">SAY</span><p>Only stage 1 of the text&rsquo;s pipeline came with it; the rest is our outline. Click: the user selects Dark. Click: the binding writes .dark. Click: the observable model changes. Click: the root re-evaluates, because it read appearance. Click: it applies preferredColorScheme(.dark). Click: the whole interface updates. SwiftUI manages the propagation and rendering.</p>
+    <span class="notes-label">CONNECT</span><p>Our own environment values.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Custom environment values</h2>
+    <p class="lead">NPay&rsquo;s own configuration</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A key, a typed accessor, a default.</p>
+    <span class="notes-label">CONNECT</span><p>The key.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Create our own environment value (section 11)</p>
+  <h2>A key and an accessor</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayDemoModeKey</span></div><pre class="cb" style="font-size:12.5px">private struct NPayDemoModeKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var npayDemoMode: Bool {
+        get { self[NPayDemoModeKey.self] }
+        set { self[NPayDemoModeKey.self] = newValue }
+    }
+}
+
+// a parent supplies
+.environment(\.npayDemoMode, true)
+
+// a child reads
+@Environment(\.npayDemoMode) private var demoMode</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">The parts</span><ul style="margin:6px 0 0"><li><code>EnvironmentKey</code>: the type and the <b>default</b></li><li><code>EnvironmentValues</code> extension: typed key-path access</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Two readers (simulator)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">no ancestor sets it:&ensp;true&ensp;(the default)<br>ancestor sets false:&ensp;false</p></div></div>
+        <div class="tip step" data-label="Shorter (SDK)"><ul style="margin:6px 0 0"><li><code>extension EnvironmentValues { @Entry var npayDemoMode = true }</code></li><li>Typechecks for our iOS 17 target</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Suppose NPay wants a configuration value controlling whether demo-mode indicators appear. A custom environment value needs two things: an EnvironmentKey, which defines the value&rsquo;s type through its default, true here; and an extension on EnvironmentValues with a computed property that reads and writes through the key. Then any parent can supply .environment(\.npayDemoMode, …) and any child can read it with @Environment.</p>
+    <span class="notes-label">SAY</span><p>Click: our run: a reader with no ancestor setting the value gets the default, true; a reader under .environment(\.npayDemoMode, false) gets false. Unit 1 at work: protocols, static properties, extensions, generics and key paths supporting a framework-level configuration system.</p>
+    <span class="notes-label">SAY</span><p>Click: a note from the SDK: SwiftUI also has the @Entry macro, which writes the key and accessor for you in one line. We typechecked it for NPay&rsquo;s iOS 17 target. The long form shows what @Entry generates.</p>
+    <span class="notes-label">CONNECT</span><p>How a child receives it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Custom environment lookup (section 12) &middot; conceptual</p>
+  <h2>Scoped to a hierarchy, not a singleton</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 600 242" style="max-height:260px" role="img" aria-labelledby="lk">
+        <title id="lk">Root supplies, modifier overrides, hierarchy propagates, BalanceCard reads, conditional UI</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="600" height="42" rx="12"/><use href="#i-layers" x="14" y="8" width="26" height="26"/><text x="52" y="18">NPayRootView</text><text class="sm" x="52" y="36">supplies npayDemoMode = true</text></g>
+        <g class="nd"><rect class="sh" x="0" y="50" width="600" height="42" rx="12"/><use href="#i-gear" x="14" y="58" width="26" height="26"/><text x="52" y="68">Environment modifier</text><text class="sm" x="52" y="86">overrides for descendants</text></g>
+        <g class="nd"><rect class="sh" x="0" y="100" width="600" height="42" rx="12"/><use href="#i-grid" x="14" y="108" width="26" height="26"/><text x="52" y="118">View hierarchy</text><text class="sm" x="52" y="136">propagates contextual values</text></g>
+        <g class="nd"><rect class="sh" x="0" y="150" width="600" height="42" rx="12"/><use href="#i-db" x="14" y="158" width="26" height="26"/><text x="52" y="168">BalanceCard</text><text class="sm" x="52" y="186">reads @Environment(\.npayDemoMode)</text></g>
+        <g class="nd"><rect class="sh" x="0" y="200" width="600" height="42" rx="12"/><use href="#i-eye" x="14" y="208" width="26" height="26"/><text x="52" y="218">Conditional UI</text><text class="sm" x="52" y="236">shows the Demo Account label</text></g>
+      </svg>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="rule" data-label="Scoped"><ul style="margin:6px 0 0"><li>Not a universal app-wide singleton</li><li>Useful for <b>contextual</b> configuration</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Next</span><ul style="margin:6px 0 0"><li>A whole observable model in the environment</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The lookup path: the root supplies npayDemoMode true; an environment modifier can override it for a subtree; the hierarchy propagates it; BalanceCard reads it with @Environment; conditional UI shows a Demo Account label. An environment value is scoped to a view hierarchy; it is not a universal singleton, which is what makes it good for contextual configuration.</p>
+    <span class="notes-label">SAY</span><p>Click: the text then moves from single values to a whole observable model in the environment.</p>
+    <span class="notes-label">CONNECT</span><p>EnvironmentObject, and the modern way.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Observable models in the environment</h2>
+    <p class="lead">Inject by type</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPayPreferences: appearance and a demo badge.</p>
+    <span class="notes-label">CONNECT</span><p>Old and new.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; @EnvironmentObject versus modern Observation (section 13)</p>
+  <h2>Inject an instance; read it by its type</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>Two generations</span></div><pre class="cb" style="font-size:13px">// older code: ObservableObject + @EnvironmentObject
+@EnvironmentObject var store: NPayStore
+
+// Observation (iOS 17+): inject the instance, read by type
+NPayRootView()
+    .environment(store)
+
+@Environment(NPayStore.self)
+private var store</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">@EnvironmentObject</span><ul style="margin:6px 0 0"><li>Classes conforming to <code>ObservableObject</code></li><li>Still in many existing apps</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Observation</span><ul style="margin:6px 0 0"><li>An <code>@Observable</code> object via <code>.environment(object)</code></li><li>Read with <code>@Environment(Type.self)</code></li><li>Good for NPay&rsquo;s iOS 17+ target</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Deeper</span><ul style="margin:6px 0 0"><li>Comparing the architectures: Unit 4</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You will meet older SwiftUI code using @EnvironmentObject, historically with classes conforming to ObservableObject. Click: with modern Observation, we inject an observable model object into the environment by passing the instance to .environment, and a descendant reads it by type, @Environment(NPayStore.self). For our iOS 17+ project, modern Observation is a good choice; @EnvironmentObject remains relevant for existing apps and backward compatibility. Click: Unit 4 compares the architectures.</p>
+    <span class="notes-label">CONNECT</span><p>A dedicated preferences model.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; NPayPreferences, injected at the root (sections 15, 17&ndash;18)</p>
+  <h2>The root owns it; the environment shares it</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayPreferences.swift + NPayRootView</span></div><pre class="cb" style="font-size:12.5px">@MainActor
+@Observable
+final class NPayPreferences {
+    var appearance: NPayAppearance = .system
+    var showDemoBadge = true
+}
+
+// NPayRootView
+@State private var preferences = NPayPreferences()
+
+TabView(selection: $router.selectedTab) {
+    // the four tabs
+}
+.environment(preferences)
+.preferredColorScheme(preferences.appearance.colorScheme)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Why a separate model</span><ul style="margin:6px 0 0"><li>Account data and UI preferences: different concerns</li><li>NPayStore shouldn&rsquo;t collect every setting</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">At the root</span><ul style="margin:6px 0 0"><li><code>@State</code> owns the instance</li><li><code>.environment(preferences)</code> shares it</li><li><code>.preferredColorScheme</code> applies it</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Should NPayStore contain every shared setting? No: it owns the balance, transactions and draft; add language, notifications, security and accessibility settings and it becomes a container for everything. The text&rsquo;s improvement: NPayPreferences, a main-actor observable class with the appearance and a showDemoBadge flag. It owns presentation preferences, not payment data.</p>
+    <span class="notes-label">SAY</span><p>Click: the root view owns one instance with @State, injects it with .environment(preferences), and applies the appearance with preferredColorScheme, read from the same object. Our complete code does exactly this, flagged as our integration.</p>
+    <span class="notes-label">CONNECT</span><p>Reading and editing it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Read and edit the preferences (section 19)</p>
+  <h2>@Environment retrieves; @Bindable binds</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.6fr) 150px;gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>Screens/AppearanceSettingsView.swift</span></div><pre class="cb" style="font-size:11.5px">struct AppearanceSettingsView: View {
+    @Environment(NPayPreferences.self)
+    private var preferences
+
+    var body: some View {
+        @Bindable var preferences = preferences
+
+        Form {
+            Section(&quot;Appearance&quot;) {
+                Picker(&quot;Theme&quot;,
+                       selection: $preferences.appearance) {
+                    ForEach(NPayAppearance.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            Section(&quot;Display&quot;) {
+                Toggle(&quot;Show Demo Badge&quot;,
+                       isOn: $preferences.showDemoBadge)
+            }
+        }
+        .navigationTitle(&quot;Appearance&quot;)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Two jobs</span><ul style="margin:6px 0 0"><li><code>@Environment</code>: get the dependency</li><li><code>@Bindable</code>: bindings for the picker and toggle</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Our wiring (authored)</span><ul style="margin:6px 0 0"><li>Profile &rarr; Appearance row</li><li>A new <code>.appearance</code> route</li></ul></div></div>
+      </div>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/settings.png" alt="Dark selected"></div><p class="shot-cap">Dark selected</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The settings screen now gets the preferences from the environment, by type. Inside body, @Bindable var preferences turns that instance into something we can take bindings from: $preferences.appearance for the segmented picker, $preferences.showDemoBadge for a toggle. The same @Bindable-inside-body pattern as the router in 3.3.</p>
+    <span class="notes-label">SAY</span><p>Click: two different problems: @Environment retrieves a contextual dependency; @Bindable exposes bindings to its mutable properties. Click: our wiring: Profile gets an Appearance row and NPayRoute an .appearance case. Click: the screen in the simulator after choosing Dark.</p>
+    <span class="notes-label">CONNECT</span><p>Use the badge in BalanceCard.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Read the badge preference in BalanceCard (section 20)</p>
+  <h2>Toggle in Profile, change on Home</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>Components/BalanceCard.swift (condensed)</span></div><pre class="cb" style="font-size:10.5px">struct BalanceCard: View {
+    let balancePaise: Int
+
+    @Environment(NPayPreferences.self)
+    private var preferences
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(&quot;Available Balance&quot;)
+                .font(.subheadline)
+            Text(Money.display(balancePaise))
+                .font(.largeTitle.bold())
+            if preferences.showDemoBadge {
+                Text(&quot;DEMO ACCOUNT&quot;)
+                    .font(.caption.bold())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(.white.opacity(0.18), in: Capsule())
+            }
+        }
+        // white text, padding, rounded background as before
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:230px"><img src="img/home.png" alt="Badge on"></div><p class="shot-cap">Badge on</p></div><div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:230px"><img src="img/nobadge.png" alt="Badge off"></div><p class="shot-cap">Badge off</p></div></div></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">Home shows badge: true, ₹25,000.00<br>[toggle "Show Demo Badge"]<br>Home shows badge: false, ₹25,000.00</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>BalanceCard reads the preferences from the environment and shows a DEMO ACCOUNT capsule only when showDemoBadge is on. No showDemoBadge parameter travels from the root to the card. In our integration the card keeps 3.6&rsquo;s numeric transition and 3.7&rsquo;s tokens; the badge replaces the old caption.</p>
+    <span class="notes-label">SAY</span><p>Click: our run: Home showed the badge and ₹25,000.00; we turned Show Demo Badge off in Profile; back on Home, no badge and the same balance. Click: the screenshot.</p>
+    <span class="notes-label">SAY</span><p>The text&rsquo;s safety note: the badge is only a visual preference. NPay stays a simulation either way; a production app must never let a UI preference decide whether payments are real or simulated.</p>
+    <span class="notes-label">CONNECT</span><p>What re-evaluates when a preference changes?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Observation with the environment (sections 21, 24)</p>
+  <h2>_printChanges names the property</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Experiment 8</span><ul style="margin:6px 0 0"><li>The text&rsquo;s BalanceCard + <code>Self._printChanges()</code></li><li>Toggle the badge; change the appearance; change an unrelated counter</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">launch:&ensp;@self, @identity, _preferences changed.<br>toggle badge:&ensp;\NPayPreferences.showDemoBadge changed.<br>change appearance:&ensp;@self changed.<br>unrelated counter:&ensp;(nothing)</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Read it</span><ul style="margin:6px 0 0"><li>Observation tracked the exact property the body read</li><li>The appearance change reached it another way: a new view value</li><li>A change it didn&rsquo;t depend on: no body run</li></ul></div></div>
+        <div class="rule step" data-label="Remember"><ul style="margin:6px 0 0"><li>Exact tracking and scheduling are framework-managed</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s pipeline for the badge toggle: the toggle receives the interaction, writes through the binding, the observable property changes, Observation knows BalanceCard read it, the card re-evaluates, the badge disappears. Experiment 8 lets us watch: the card with Self._printChanges(), in a small lab with three buttons.</p>
+    <span class="notes-label">SAY</span><p>Click: at launch: @self, @identity and _preferences changed: the first evaluation. Toggling the badge: "\NPayPreferences.showDemoBadge changed": _printChanges names the exact observable property, the key path, that triggered the body. Changing the appearance: "@self changed": the card does not read appearance, but the root applied a new colour scheme and SwiftUI handed the card a new view value. Changing an unrelated counter: nothing.</p>
+    <span class="notes-label">SAY</span><p>Click: Observation tracked exactly what the body read. Click: the text&rsquo;s caution: the exact dependency tracking and rendering scheduling are framework-managed; use this to understand, not to build logic on.</p>
+    <span class="notes-label">CONNECT</span><p>And if the dependency is missing?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Missing environment dependency (sections 14, 22)</p>
+  <h2>A required dependency, discovered at run time</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>No ancestor injects NPayPreferences</span></div><pre class="cb" style="font-size:12.5px">// BalanceCard declares:
+@Environment(NPayPreferences.self) private var preferences
+
+// shown without .environment(NPayPreferences())
+BalanceCard(balancePaise: 2_500_000)</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Simulator console</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">SwiftUICore/Environment+Objects.swift:34:<br>Fatal error: No Observable object of type<br>NPayPreferences found. A View.environmentObject(_:)<br>for NPayPreferences may be missing as an<br>ancestor of this view.</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="cw"><div class="ch"><span>Previews and tests supply it too</span></div><pre class="cb" style="font-size:13px">#Preview {
+    BalanceCard(balancePaise: 2_500_000)
+        .environment(NPayPreferences())
+}</pre></div></div>
+        <div class="rule step" data-label="Lesson"><ul style="margin:6px 0 0"><li>It compiles; it crashes when read</li><li>Document required environment dependencies</li><li>Critical ones: consider initializer injection</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>BalanceCard now declares a required dependency: @Environment(NPayPreferences.self). What if no ancestor supplies it? We launched a BalanceCard on its own, experiment 7.</p>
+    <span class="notes-label">SAY</span><p>Click: it compiled fine, and crashed when the card read the value: "Fatal error: No Observable object of type NPayPreferences found. A View.environmentObject for NPayPreferences may be missing as an ancestor of this view." Note the message still mentions environmentObject, the older API.</p>
+    <span class="notes-label">SAY</span><p>Click: the fix for previews and tests is to supply the dependency, as the text shows: .environment(NPayPreferences()). Click: the text&rsquo;s lesson: environment injection is convenient, but dependencies become invisible at the initializer call site and the compiler cannot check them. Document required environment dependencies, provide them in previews and tests, and consider explicit initializer injection for critical ones.</p>
+    <span class="notes-label">CONNECT</span><p>So when should we use the environment?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Dependency injection</h2>
+    <p class="lead">Explicit where it matters</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three ways to supply what a view needs.</p>
+    <span class="notes-label">CONNECT</span><p>The comparison.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Does the environment replace dependency injection? (sections 15, 23)</p>
+  <h2>No: it is one way to supply dependencies</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Approach</th><th>Example</th><th>Best use</th></tr></thead><tbody><tr><td>Initializer injection</td><td><code>BalanceCard(balancePaise: balance)</code></td><td>explicit required data</td></tr><tr><td>Environment values</td><td><code>@Environment(\.colorScheme)</code></td><td>contextual configuration</td></tr><tr><td>Observable environment model</td><td><code>@Environment(NPayPreferences.self)</code></td><td>shared observable preferences</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:20px;align-items:start">
+      <div class="step"><div class="diagram">
+      <svg class="art" viewBox="0 0 940 134" style="max-height:140px" role="img" aria-labelledby="cr">
+        <title id="cr">NPayRootView composes NPayStore, NPayRouter, NPayPreferences and the payment draft</title>
+        <g class="nd lit"><rect class="sh" x="250" y="0" width="440" height="50" rx="12"/><use href="#i-layers" x="264" y="12" width="26" height="26"/><text x="302" y="22">NPayRootView</text><text class="sm" x="302" y="40">application composition root</text></g>
+        <path class="wire" d="M470 52V66H110V80M103 73l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="84" width="220" height="50" rx="12"/><text x="16" y="106">NPayStore</text><text class="sm" x="16" y="124">balance, transactions</text></g>
+        <path class="wire" d="M470 52V66H350V80M343 73l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="240" y="84" width="220" height="50" rx="12"/><text x="256" y="106">NPayRouter</text><text class="sm" x="256" y="124">tabs, navigation</text></g>
+        <path class="wire" d="M470 52V66H590V80M583 73l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="480" y="84" width="220" height="50" rx="12"/><text x="496" y="106">NPayPreferences</text><text class="sm" x="496" y="124">appearance, language</text></g>
+        <path class="wire" d="M470 52V66H830V80M823 73l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="720" y="84" width="220" height="50" rx="12"/><text x="736" y="106">PaymentDraft</text><text class="sm" x="736" y="124">editable payment data</text></g>
+      </svg>
+    </div></div>
+      <div class="rule step" data-label="NPay&rsquo;s rule"><ul style="margin:6px 0 0"><li>Domain data: explicit parameters</li><li>Shared UI configuration: the environment</li><li>Sharing state &ne; one big object</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three approaches. Initializer injection, like BalanceCard(balancePaise:), for explicit required data. Environment values like colorScheme for contextual configuration. An observable environment model like NPayPreferences for shared observable preferences.</p>
+    <span class="notes-label">SAY</span><p>Click: the longer-term architecture from Section 15: the root view as the composition root, owning separate objects with separate responsibilities: NPayStore for balance and transactions, NPayRouter for navigation, NPayPreferences for appearance and language, and the payment draft. Unit 4 formalises this. Click: NPay&rsquo;s rule: explicit parameters for domain data, the environment for suitable shared UI configuration, so we do not hide every dependency in the environment. And sharing state does not mean putting all state into one object.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s investigation lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Xcode investigation lab (section 24)</p>
+  <h2>Every experiment, run</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.3fr) 150px;gap:20px;align-items:start">
+      <table class="tbl compact"><thead><tr><th>Experiment</th><th>Simulator</th></tr></thead><tbody><tr><td>1&ndash;3. Picker: System &rarr; Dark; visit all tabs</td><td>dark on Home, Payments, History, Profile</td></tr><tr><td>4&ndash;5. Show Demo Badge off; Home</td><td>badge gone; balance unchanged</td></tr><tr><td>6. <code>.environment(\.colorScheme, .light/.dark)</code> on a subtree</td><td>only that subtree; colours, not background (Part 3)</td></tr><tr><td>7. Preview without NPayPreferences</td><td>fatal error: no Observable object found</td></tr><tr><td>8. <code>_printChanges</code> in BalanceCard</td><td>names <code>showDemoBadge</code>; ignores unrelated state</td></tr><tr><td>Relaunch after choosing Dark (authored)</td><td>back to System: preferences are in memory</td></tr></tbody></table>
+      <div class="step"><div style="width:150px;max-width:100%;margin:0 auto"><div class="shot" style="height:326px"><img src="img/history_dark.png" alt="History, dark"></div><p class="shot-cap">History, dark</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s eight experiments, all run. System to Dark, and every tab followed. The badge toggle removed the badge without touching the balance. An override on an isolated subtree affected only that subtree, and only how it resolves colours. A view without the required preferences crashed with the fatal error. _printChanges in BalanceCard named showDemoBadge and ignored unrelated state.</p>
+    <span class="notes-label">SAY</span><p>One more of ours: choose Dark, terminate the app, relaunch: back to System. The text&rsquo;s question 4: .environment(preferences) does not persist anything; preferences live in memory like the 3.5 draft. Persistence is Unit 6. Click: History in dark.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.9 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Contextual, not global</b><br><span class="muted" style="font-size:19px">the nearest override wins; values depend on position</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p style="font-size:23px"><b>Own it, apply it</b><br><span class="muted" style="font-size:19px">preferences in an observable model; preferredColorScheme at the root</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p style="font-size:23px"><b>Inject deliberately</b><br><span class="muted" style="font-size:19px">required environment models crash if missing; data stays explicit</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. The environment carries contextual values down the hierarchy: what a view reads depends on where it sits, and the nearest override wins; overriding colorScheme changes how a subtree resolves colours, not the surface or the sheets it presents. User preferences are owned in a model, NPayPreferences, injected with .environment and applied with preferredColorScheme; @Environment retrieves it and @Bindable binds it. And inject deliberately: a missing required model is a run-time crash, nothing is persisted automatically, and domain data stays in explicit parameters.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Is an environment value a global variable?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Is an environment value a global variable?</p><ol class="q-opts"><li>Yes</li><li>No, it is contextual to the view hierarchy</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Outer read Light while Inner read Dark in the same view tree.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking of it as app-wide state.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Outer read Light while Inner read Dark in the same view tree.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="A nearer ancestor overrides a value: what happens?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What happens when a nearer ancestor overrides an environment value?</p><ol class="q-opts"><li>The application restarts</li><li>The outer value always wins</li><li>The nearer value applies to its descendants</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Inner: Dark under an outer Light.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting the outermost to win.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. Inner: Dark under an outer Light.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why @Bindable with an observable preferences object?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why use <code>@Bindable</code> with an observable preferences object?</p><ol class="q-opts"><li>To obtain bindings to mutable properties</li><li>To start a background task</li><li>To persist preferences automatically</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">The picker and toggle need <code>$preferences.appearance</code>, <code>$preferences.showDemoBadge</code>.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking @Environment gives bindings.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. The picker and toggle need <code>$preferences.appearance</code>, <code>$preferences.showDemoBadge</code>.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does .environment(preferences) persist them?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>.environment(preferences)</code> automatically persist preferences to disk?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">After a relaunch the app was back to System.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing sharing with saving.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. After a relaunch the app was back to System.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Risk of a missing required environment model?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the risk of a missing required observable environment model?</p><ol class="q-opts"><li>Automatic fallback to UserDefaults</li><li>A runtime failure when accessed</li><li>A compiler-generated default model</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">&ldquo;Fatal error: No Observable object of type NPayPreferences found.&rdquo;</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting the compiler to catch it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. &ldquo;Fatal error: No Observable object of type NPayPreferences found.&rdquo;</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should every NPay dependency go in the environment?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should every NPay dependency be hidden in the environment?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Domain data stays in explicit parameters; the environment carries shared UI configuration.</p>
+          <p class="q-trap"><b>Common trap:</b> Using the environment for everything.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. Domain data stays in explicit parameters; the environment carries shared UI configuration.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="EnvironmentExperiment with .environment(\.colorScheme, .dark), light app?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">In a light app, <code>EnvironmentExperiment().environment(\.colorScheme, .dark)</code> sits on a white screen. What do you see?</p><ol class="q-opts"><li>A dark panel with white text</li><li>Its text, white on white: effectively invisible</li><li>The whole phone switches to dark</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">It read dark and resolved white text; nothing drew a dark background.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting the override to paint a background.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. It read dark and resolved white text; nothing drew a dark background.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Override colorScheme, then present a sheet?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">A screen uses <code>.environment(\.colorScheme, .dark)</code> and opens a sheet. The sheet is&hellip;</p><ol class="q-opts"><li>Dark</li><li>Light</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The override stops at the subtree; <code>.preferredColorScheme(.dark)</code> darkened the sheet.</p>
+          <p class="q-trap"><b>Common trap:</b> Using an environment override for app appearance.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The override stops at the subtree; <code>.preferredColorScheme(.dark)</code> darkened the sheet.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does @Entry do?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>@Entry var npayDemoMode = true</code> in an <code>EnvironmentValues</code> extension do?</p><ol class="q-opts"><li>Persists the value</li><li>Generates the key and accessor for a custom environment value</li><li>Makes it a global variable</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The same as NPayDemoModeKey plus the get/set accessor, in one line.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking it changes the semantics.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The same as NPayDemoModeKey plus the get/set accessor, in one line.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.8: what keeps state when switching layouts?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 3.8: which kept CounterView&rsquo;s count when switching between a row and a column?</p><ol class="q-opts"><li><code>if</code>/<code>else</code> branches</li><li><code>AnyLayout</code></li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">AnyLayout 3 &rarr; 3; branches 3 &rarr; 0.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating layout changes as cosmetic.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.8.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. AnyLayout 3 &rarr; 3; branches 3 &rarr; 0.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.9 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.10</td><td><b>Accessibility &amp; localization</b></td><td>VoiceOver, Dynamic Type, identifiers, localization, right-to-left</td></tr><tr><td class="mono">Unit 4</td><td><b>Architecture &amp; dependency injection</b></td><td>composition root; Observation vs @EnvironmentObject in depth</td></tr><tr><td class="mono">Unit 6</td><td><b>Persistence</b></td><td>preferences that survive a relaunch</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.10, the last of Unit 3, covers accessibility and localization: VoiceOver, Dynamic Type, accessibility identifiers, localization resources and right-to-left layouts, using the locale and dynamicTypeSize values we listed today. Unit 4 formalises the composition root and dependency injection. Unit 6 makes preferences survive a relaunch.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.9 &middot; Lab</p>
+  <h2>Shared configuration</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Add NPayPreferences; prove each behaviour.</p><ol class="lab"><li>Run EnvironmentExperiment in light and dark.</li><li>Run the precedence lab; predict first.</li><li>Add NPayPreferences; inject it at the root.</li><li>Build AppearanceSettingsView; switch to Dark.</li><li>Add the demo badge; toggle it off.</li><li>Remove the injection from a preview; read the error.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your precedence prediction and result</li><li>Screenshots: light, dark, badge off</li><li>One sentence: environment vs initializer injection</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: Outer Light / Inner Dark; Dark applies to every tab and to sheets; the badge disappears without changing the balance; a view without NPayPreferences fails with "No Observable object of type NPayPreferences found"; nothing survives a relaunch.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.9 complete</p>
+    <h2>SwiftUI Environment &amp;<br>Shared Configuration</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.10 &mdash; Accessibility &amp; Localization</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now read and override environment values, explain contextual precedence, choose between @State, @Binding and @Environment, apply an appearance with preferredColorScheme, define custom values, inject observable models and handle missing dependencies deliberately.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.10: accessibility and localization: VoiceOver, Dynamic Type, identifiers, localization resources and right-to-left layouts.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

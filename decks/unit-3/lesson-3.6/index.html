@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3.6 — Animations</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 03 · Lesson 3.6 — Animations">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 03 &middot; Lesson 3.6</p>
+    <h1 style="font-size:54px;line-height:1.05">SwiftUI Animations<br>&amp; Transitions</h1>
+    <p class="lead" style="max-width:760px">The balance drops from ₹25,000 to ₹23,500 and the digits roll. Nobody wrote a frame: the state changed <b>once</b>, and SwiftUI animated the presentation.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.5 made the draft survive. Today NPay gets motion: a balance that animates, a transaction that slides in, a success checkmark that springs in. Not as decoration: we measure how SwiftUI animates. Our app recorded the value SwiftUI used on every frame, and captured real frames mid-animation, so every claim on these slides comes with numbers or pictures.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.6 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></span><p>Animate a state change with <code>withAnimation</code></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Read curves: linear, ease, spring, <b>measured</b></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Tell animations from <b>transitions</b>, and why identity matters</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></span><p>Know what <code>Animatable</code> interpolates, and what never changes</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></span><p>Animate the balance and new transactions without touching the money</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p>Respect Reduce Motion; measure cost before optimising</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.6 &middot; Where we are</p>
+  <h2>Today: motion with meaning</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 03 &middot; Advanced SwiftUI &amp; Navigation</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 03 progress: lesson 3.6 of 12</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="87" height="84" rx="12"/><text class="sm" x="12" y="24">3.1</text><text x="12" y="50" style="font-size:12px">Navigation</text><text x="12" y="68" style="font-size:12px">Stack</text></g>
+        <g class="nd"><rect class="sh" x="95.3636" y="0" width="87" height="84" rx="12"/><text class="sm" x="107.364" y="24">3.2</text><text x="107.364" y="50" style="font-size:14px">Typed</text><text x="107.364" y="68" style="font-size:14px">routes</text></g>
+        <g class="nd"><rect class="sh" x="190.727" y="0" width="87" height="84" rx="12"/><text class="sm" x="202.727" y="24">3.3</text><text x="202.727" y="50" style="font-size:14px">TabView</text><text x="202.727" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="286.091" y="0" width="87" height="84" rx="12"/><text class="sm" x="298.091" y="24">3.4</text><text x="298.091" y="50" style="font-size:14px">Sheets &amp;</text><text x="298.091" y="68" style="font-size:14px">alerts</text></g>
+        <g class="nd"><rect class="sh" x="381.455" y="0" width="87" height="84" rx="12"/><text class="sm" x="393.455" y="24">3.5</text><text x="393.455" y="50" style="font-size:12px">State</text><text x="393.455" y="68" style="font-size:12px">preservation</text></g>
+        <g class="nd lit"><rect class="sh" x="476.818" y="0" width="87" height="84" rx="12"/><text class="sm" x="488.818" y="24">3.6</text><text x="488.818" y="50" style="font-size:12px">Animations</text><text x="488.818" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="572.182" y="0" width="87" height="84" rx="12"/><text class="sm" x="584.182" y="24">3.7</text><text x="584.182" y="50" style="font-size:14px">Design</text><text x="584.182" y="68" style="font-size:14px">system</text></g>
+        <g class="nd ghost"><rect class="sh" x="667.545" y="0" width="87" height="84" rx="12"/><text class="sm" x="679.545" y="24">3.8</text><text x="679.545" y="50" style="font-size:14px">Adaptive</text><text x="679.545" y="68" style="font-size:14px">layouts</text></g>
+        <g class="nd ghost"><rect class="sh" x="762.909" y="0" width="87" height="84" rx="12"/><text class="sm" x="774.909" y="24">3.9</text><text x="774.909" y="50" style="font-size:12px">Environment</text><text x="774.909" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="858.273" y="0" width="87" height="84" rx="12"/><text class="sm" x="870.273" y="24">3.10</text><text x="870.273" y="50" style="font-size:12px">Accessibility</text><text x="870.273" y="68" style="font-size:12px">&amp; l10n</text></g>
+        <g class="nd ghost"><rect class="sh" x="953.636" y="0" width="87" height="84" rx="12"/><text class="sm" x="965.636" y="24">3.11</text><text x="965.636" y="50" style="font-size:12px">Performance</text><text x="965.636" y="68" style="font-size:12px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1049" y="0" width="87" height="84" rx="12"/><text class="sm" x="1061" y="24">3.12</text><text x="1061" y="50" style="font-size:12px">Integration</text><text x="1061" y="68" style="font-size:12px">review</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.5: a store-owned draft that survives navigation.</span><span><b>Today</b>Balance, insertion and success animations, measured.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.5 finished the state story. Today the same state drives motion. Next lesson: reusable components and an NPay design system.</p>
+    <span class="notes-label">CONNECT</span><p>The milestone.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The milestone</h2>
+    <p class="lead">Three animations</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Balance, transaction insertion, success.</p>
+    <span class="notes-label">CONNECT</span><p>The demo, built natively.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Our NPay milestone (section 1)</p>
+  <h2>One tap: digits roll, a row slides in</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start">
+      <div class="card accent"><span class="label">Three animations</span><ul style="margin:6px 0 0"><li>A smooth <b>balance</b> update</li><li>An animated <b>transaction</b> insertion</li><li>A payment-<b>success</b> transition</li></ul></div>
+      <div class="rule step" data-label="The question"><ul style="margin:6px 0 0"><li>₹25,000 &rarr; ₹23,500: how, without drawing every frame?</li></ul></div>
+    </div>
+    <div class="gap"></div>
+    <div class="step"><div class="" style="display:grid;grid-template-columns:repeat(7,minmax(0,150px));gap:8px;justify-content:center"><figure style="margin:0"><img src="img/lab0.png" alt="frame at 31 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">31 ms</figcaption></figure><figure style="margin:0"><img src="img/lab1.png" alt="frame at 138 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">138 ms</figcaption></figure><figure style="margin:0"><img src="img/lab2.png" alt="frame at 239 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">239 ms</figcaption></figure><figure style="margin:0"><img src="img/lab3.png" alt="frame at 338 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">338 ms</figcaption></figure><figure style="margin:0"><img src="img/lab4.png" alt="frame at 439 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">439 ms</figcaption></figure><figure style="margin:0"><img src="img/lab5.png" alt="frame at 540 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">540 ms</figcaption></figure><figure style="margin:0"><img src="img/lab6.png" alt="frame at 642 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">642 ms</figcaption></figure></div>
+      <p class="small muted" style="margin:6px 0 0;text-align:center">Frames captured by the app after &ldquo;Simulate ₹1,500 payment&rdquo; (iPhone 17 simulator)</p></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three animations for NPay: a smooth balance update, an animated transaction insertion and a payment-success transition. The text showed a web demo; we built the same Animation Lab natively: a balance card, a Simulate ₹1,500 payment button and recent transactions.</p>
+    <span class="notes-label">SAY</span><p>Click: the engineering question: when the balance changes from ₹25,000 to ₹23,500, how does SwiftUI animate it without us updating every frame?</p>
+    <span class="notes-label">SAY</span><p>Click: seven frames the app captured of its own screen after the tap, with their times. Look at the third and fourth: the digits are mid-roll, one digit replaced by the next, and the "Demo Payment" row is sliding in at the top while the others move down. By 338 ms it is settled. All of it from one state change.</p>
+    <span class="notes-label">CONNECT</span><p>Start from zero: what is an animation?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>withAnimation</h2>
+    <p class="lead">Change state; SwiftUI animates</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One state change, many frames.</p>
+    <span class="notes-label">CONNECT</span><p>The first experiment.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; First experiment: withAnimation (sections 2&ndash;3)</p>
+  <h2>80 to 180 points, no frames written</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>AnimationExperiment.swift</span></div><pre class="cb" style="font-size:12px">struct AnimationExperiment: View {
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(spacing: 30) {
+            Circle()
+                .fill(.blue)
+                .frame(width: expanded ? 180 : 80,
+                       height: expanded ? 180 : 80)
+
+            Button(&quot;Toggle Size&quot;) {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    expanded.toggle()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Animation</span><ul style="margin:6px 0 0"><li>How a <b>visual value</b> changes over time</li><li>SwiftUI interpolates animatable properties</li></ul></div>
+        <div class="step"><div class="" style="display:grid;grid-template-columns:repeat(7,minmax(0,80px));gap:8px;justify-content:center"><figure style="margin:0"><img src="img/circle0.png" alt="frame at 17 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">17 ms</figcaption></figure><figure style="margin:0"><img src="img/circle1.png" alt="frame at 131 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">131 ms</figcaption></figure><figure style="margin:0"><img src="img/circle2.png" alt="frame at 236 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">236 ms</figcaption></figure><figure style="margin:0"><img src="img/circle3.png" alt="frame at 343 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">343 ms</figcaption></figure><figure style="margin:0"><img src="img/circle4.png" alt="frame at 450 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">450 ms</figcaption></figure><figure style="margin:0"><img src="img/circle5.png" alt="frame at 558 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">558 ms</figcaption></figure><figure style="margin:0"><img src="img/circle6.png" alt="frame at 666 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">666 ms</figcaption></figure></div>
+          <p class="small muted" style="margin:6px 0 0;text-align:center">Frames the app captured after Toggle Size</p></div>
+        <div class="step"><div class="card accent"><span class="label">What happened</span><ul style="margin:6px 0 0"><li><code>expanded</code> changed inside <code>withAnimation</code></li><li>The update carried an animation; the frame size followed it</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A circle with a frame of 80 points. Change it to 180: without animation SwiftUI just shows the new size. With animation it interpolates supported animatable properties between the old and the new value. Animation describes how a visual value changes over time; we never render the intermediate frames ourselves.</p>
+    <span class="notes-label">SAY</span><p>The text&rsquo;s first experiment, AnimationExperiment: an @State Bool, a circle whose frame depends on it, and a button that toggles it inside withAnimation with an ease-in-out curve of half a second.</p>
+    <span class="notes-label">SAY</span><p>Click: our run: seven frames the app captured of itself after the tap. The circle grows through intermediate sizes, slow at first, fast in the middle, slow at the end. Click: what happened: expanded changed inside withAnimation, so SwiftUI associated an animation with that update, and the frame size, which is animatable, followed it smoothly.</p>
+    <span class="notes-label">CONNECT</span><p>Did expanded take intermediate values?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; How withAnimation works (sections 4, 16) &middot; conceptual</p>
+  <h2>The state changes once; the presentation many times</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1132 120" style="max-height:140px" role="img" aria-labelledby="pipe">
+        <title id="pipe">Tap, state changes once, animation attached, body re-evaluated, interpolation, frames drawn</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="120" rx="14"/><use href="#i-tap" x="72" y="14" width="28" height="28"/><text x="86" y="84" text-anchor="middle">Tap</text><text class="sm" x="86" y="104" text-anchor="middle">the action closure runs</text></g>
+        <path class="wire" d="M174 60H188M181 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="190" y="0" width="172" height="120" rx="14"/><use href="#i-code" x="262" y="14" width="28" height="28"/><text x="276" y="84" text-anchor="middle">State changes</text><text class="sm" x="276" y="104" text-anchor="middle">once, to the target</text></g>
+        <path class="wire" d="M364 60H378M371 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="380" y="0" width="172" height="120" rx="14"/><use href="#i-link" x="452" y="14" width="28" height="28"/><text x="466" y="84" text-anchor="middle">Animation attached</text><text class="sm" x="466" y="104" text-anchor="middle">to this update</text></g>
+        <path class="wire" d="M554 60H568M561 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="570" y="0" width="172" height="120" rx="14"/><use href="#i-diff" x="642" y="14" width="28" height="28"/><text x="656" y="84" text-anchor="middle">Body re-evaluated</text><text class="sm" x="656" y="104" text-anchor="middle">new target values</text></g>
+        <path class="wire" d="M744 60H758M751 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="760" y="0" width="172" height="120" rx="14"/><use href="#i-gear" x="832" y="14" width="28" height="28"/><text x="846" y="84" text-anchor="middle">Interpolation</text><text class="sm" x="846" y="104" text-anchor="middle">old &rarr; new, per frame</text></g>
+        <path class="wire" d="M934 60H948M941 53l7 7-7 7"/>
+        <g class="nd" data-lit="6"><rect class="sh" x="950" y="0" width="172" height="120" rx="14"/><use href="#i-eye" x="1022" y="14" width="28" height="28"/><text x="1036" y="84" text-anchor="middle">Frames drawn</text><text class="sm" x="1036" y="104" text-anchor="middle">until settled</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="step"><div class="card accent"><span class="label">Measured: Bool vs frame size (easeInOut 0.5 s)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">state changes during the animation: 1<br>frame diameter values: 30 (80.2 &hellip; 180.0)</p></div></div>
+      <div class="rule step" data-label="So"><ul style="margin:6px 0 0"><li><code>expanded</code>: <code>false &rarr; true</code>, once</li><li>Intermediate sizes exist only in the <b>presentation</b></li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Only stage 1 came with the text; the rest is our conceptual outline. Click: the user taps; the action closure runs. Click: the state changes once, to its target. Click: withAnimation attaches an animation to that update. Click: SwiftUI re-evaluates the body and gets the new target values. Click: for animatable properties, it interpolates from old to new on every frame. Click: frames are drawn until the animation settles. Exact scheduling and rendering are SwiftUI&rsquo;s business.</p>
+    <span class="notes-label">SAY</span><p>Click: we measured the text&rsquo;s key claim. The Bool changed exactly once during the animation; the frame modifier received 30 different diameters, from 80.2 to 180, one per frame at 60 frames a second.</p>
+    <span class="notes-label">SAY</span><p>Click: withAnimation does not repeatedly mutate the state through intermediate values. The state jumps to its target; intermediate sizes exist only in the presentation.</p>
+    <span class="notes-label">CONNECT</span><p>Those 30 values follow a curve. Which one?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Animation curves</h2>
+    <p class="lead">Same distance, different motion</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Measured, frame by frame.</p>
+    <span class="notes-label">CONNECT</span><p>Three curves.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Animation curves, measured (section 5)</p>
+  <h2>80 &rarr; 180: three curves, same target</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:20px;align-items:start">
+      <div class="diagram">
+      <svg class="art" viewBox="0 0 690 240" style="max-height:250px" role="img" aria-labelledby="crv">
+        <title id="crv">Measured frame diameters over time for linear, easeInOut and spring</title>
+        <path class="wire faint" d="M40 210H679.6"/>
+        <path class="wire faint" d="M40 40H679.6"/>
+        <text class="sm" x="4" y="44">180</text>
+        <text class="sm" x="12" y="214">80</text>
+        <text class="sm" x="418" y="232">500 ms</text>
+        <text class="sm" x="652" y="232">800 ms</text>
+        <g class="fade" data-lit="1+"><path class="wire" d="M40 210 L69.64 204.39 L82.9 198.61 L121.9 181.61 L160.9 164.61 L199.9 147.61 L238.9 130.61 L277.9 113.61 L316.9 96.61 L355.9 79.61 L394.9 62.61 L433.9 45.61 L446.38 40 L664 40" style="fill:none"/></g>
+        <g class="fade" data-lit="2+"><path class="wire" d="M40 210 L61.84 209.66 L75.1 208.47 L114.1 200.48 L153.1 185.01 L192.1 162.4 L231.1 134.69 L270.1 105.62 L309.1 79.44 L348.1 59.04 L387.1 46.12 L426.1 40.34 L439.36 40 L664 40" style="fill:none"/></g>
+        <g class="fade" data-lit="3+"><path class="wire lit" d="M40 210 L68.08 206.6 L80.56 196.23 L119.56 146.08 L158.56 92.53 L197.56 58.53 L236.56 40.34 L275.56 33.88 L314.56 33.2 L353.56 35.07 L392.56 37.28 L431.56 38.81 L509.56 40.17 L665.56 40" style="fill:none"/></g>
+        <text class="sm" x="297.4" y="29.8">spring overshoots</text>
+      </svg>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <table class="tbl compact"><thead><tr><th>≈ time</th><th>linear</th><th>easeInOut</th><th>spring</th></tr></thead><tbody><tr><td>50 ms</td><td>86.7</td><td>80.9</td><td>88.1</td></tr><tr><td>100 ms</td><td>96.7</td><td>85.6</td><td>117.6</td></tr><tr><td>150 ms</td><td>106.7</td><td>94.7</td><td>149.1</td></tr><tr><td>250 ms</td><td>126.7</td><td>124.3</td><td>179.8</td></tr><tr><td>350 ms</td><td>146.7</td><td>156.8</td><td>184.0</td></tr><tr><td>500 ms</td><td>176.7</td><td>179.8</td><td>180.7</td></tr></tbody></table>
+        <p class="small muted" style="margin:0">linear, easeInOut: 0.5 s, 30 values. spring(response 0.45, damping 0.7): 76 values, settled at 1,285 ms.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s easing explorer was illustrative. Ours is measured: the same circle, 80 to 180 points, with each curve, and the diameter SwiftUI used on every frame. Times are from the withAnimation call; the table picks the nearest frame.</p>
+    <span class="notes-label">SAY</span><p>Click: linear: a constant 3.3 points per frame, 100 points over 30 frames. Click: ease-in-out: barely moving at 50 ms, 80.9, fastest in the middle, then easing in to 180 at half a second. Click: the spring, response 0.45 and damping 0.7: fast at first, past 180 by 300 ms, peaking at 184.1, then settling back. 76 frames, about 1.3 seconds: a spring&rsquo;s duration comes from its physics, not from a duration you pass.</p>
+    <span class="notes-label">CONNECT</span><p>Which suits a payments app?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Which should NPay use? (section 5)</p>
+  <h2>Restrained motion for money</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start">
+      <div class="cw"><div class="ch"><span>Common animations</span></div><pre class="cb" style="font-size:15px">.linear(duration: 0.5)
+.easeIn(duration: 0.5)
+.easeOut(duration: 0.5)
+.easeInOut(duration: 0.5)
+.spring(response: 0.4, dampingFraction: 0.7)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl"><thead><tr><th>Use</th><th>Curve</th></tr></thead><tbody><tr><td>Ordinary UI transitions</td><td><code>easeInOut</code></td></tr><tr><td>Playful feedback</td><td><code>spring</code></td></tr><tr><td>Financial confirmation</td><td><b>restrained</b>: success, not spectacle</td></tr></tbody></table></div>
+        <div class="step"><div class="card accent"><span class="label">Remember the spring</span><ul style="margin:6px 0 0"><li>It <b>overshoots</b> (184 for 180)</li><li>Fine for a checkmark; odd for a balance</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI offers linear, ease-in, ease-out, ease-in-out and springs, among others; different curves, different motion characteristics.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s guidance: ease-in-out is a reasonable start for ordinary transitions; a spring can feel natural for playful feedback; for financial confirmation, prefer restrained motion that communicates success without distracting.</p>
+    <span class="notes-label">SAY</span><p>Click: our measurement adds one practical point: the spring overshot its target, 184 for 180. That bounce suits a checkmark appearing; on a number or a balance it would look like the value went too far.</p>
+    <span class="notes-label">CONNECT</span><p>Two ways to attach an animation.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Explicit, implicit, transactions</h2>
+    <p class="lead">Where the animation comes from</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>withAnimation, .animation(value:), and the Transaction that carries it.</p>
+    <span class="notes-label">CONNECT</span><p>Two styles.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Implicit versus explicit animations (section 6)</p>
+  <h2>On the change, or on the value</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div><div class="cw"><div class="ch"><span>Explicit: withAnimation</span></div><pre class="cb" style="font-size:14px">withAnimation(.easeInOut(duration: 0.3)) {
+    expanded.toggle()
+}</pre></div><p class="" style="margin:10px 0 0;font-size:19px">The animation is attached to the <b>state update</b>.</p></div>
+      <div class="step"><div class="cw"><div class="ch"><span>Value-driven: .animation(_:value:)</span></div><pre class="cb" style="font-size:14px">Circle()
+    .frame(width: expanded ? 180 : 80,
+           height: expanded ? 180 : 80)
+    .animation(.easeInOut(duration: 0.3),
+               value: expanded)</pre></div><p class="" style="margin:10px 0 0;font-size:19px">Animates when <b>expanded</b> changes.</p></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Scope"><ul style="margin:6px 0 0"><li><code>.animation(_:value:)</code> affects animatable changes in the modified <b>subtree</b></li><li>Not just one property, unless you scope it</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Explicit animation: withAnimation around the state change. The animation is associated with that update, wherever the change shows up.</p>
+    <span class="notes-label">SAY</span><p>Click: value-driven animation: the .animation modifier with a value. Whenever expanded changes, animatable changes in this part of the tree animate with that curve, no matter who changed the value.</p>
+    <span class="notes-label">SAY</span><p>Click: the important distinction: .animation(_:value:) affects animatable changes in the modified subtree when the value changes. It is not limited to one property unless you scope the modifier appropriately, by placing it close to what should animate.</p>
+    <span class="notes-label">CONNECT</span><p>How does an animation travel with an update?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Animation transactions (section 12)</p>
+  <h2>SwiftUI&rsquo;s Transaction is not our Transaction</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">SwiftUI&rsquo;s <code>Transaction</code></span><ul style="margin:6px 0 0"><li>Carries animation context through an update</li><li><code>withAnimation</code> sets its animation</li></ul></div>
+        <div class="step"><div class="cw"><div class="ch"><span>Both in one module (authored test)</span></div><pre class="cb" style="font-size:12px">struct Transaction: Identifiable {   // NPay&#x27;s domain model
+    let id: UUID
+    let title: String
+    let amountPaise: Int
+    let date: Date
+}
+
+withTransaction(Transaction(animation: .easeInOut)) {
+    show = true
+}</pre></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">swiftc, iOS 26.5 SDK</span><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;cannot convert value of type 'Transaction' to expected argument type 'SwiftUICore.Transaction'</span><div class="gap"></div><span style="font-size:19px;line-height:1.4"><b class="mono" style="font-size:15px;letter-spacing:.06em">ERROR</b>&ensp;extra argument 'animation' in call</span></div></div>
+        <div class="rule step" data-label="Fix"><ul style="margin:6px 0 0"><li><code>SwiftUI.Transaction(animation:)</code> compiles</li><li>Or rename ours <code>PaymentTransaction</code>, as the text suggests</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Behind withAnimation: SwiftUI has a Transaction type that carries animation-related context through view updates. withAnimation associates an animation with the update&rsquo;s transaction, so the framework can coordinate animation for the affected properties.</p>
+    <span class="notes-label">SAY</span><p>The text warns: SwiftUI&rsquo;s Transaction is not NPay&rsquo;s financial Transaction model. Same name, different concepts. Click: we tested what that costs: our domain struct next to a use of SwiftUI&rsquo;s withTransaction. Click: the compiler picks our Transaction, the nearer declaration, and fails: cannot convert our Transaction to SwiftUICore.Transaction, and extra argument animation.</p>
+    <span class="notes-label">SAY</span><p>Click: qualifying it, SwiftUI.Transaction, compiles. The cleaner long-term fix is the text&rsquo;s suggestion: rename the domain model, for example PaymentTransaction.</p>
+    <span class="notes-label">CONNECT</span><p>Now views that arrive and leave: transitions.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Transitions</h2>
+    <p class="lead">How a view enters and leaves</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Insertion and removal, not value changes.</p>
+    <span class="notes-label">CONNECT</span><p>The difference.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Transitions: appearance and disappearance (sections 7&ndash;8)</p>
+  <h2>Animations change values; transitions move views in and out</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>A transition</span></div><pre class="cb" style="font-size:14px">if showSuccess {
+    Text(&quot;Payment Successful&quot;)
+        .transition(.opacity)
+}
+
+withAnimation {
+    showSuccess.toggle()
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl"><thead><tr><th></th><th>Describes</th></tr></thead><tbody><tr><td>Animation</td><td>interpolating <b>animatable values</b></td></tr><tr><td>Transition</td><td>how a view <b>enters or leaves</b> the hierarchy</td></tr></tbody></table></div>
+        <div class="step"><div class="card accent"><span class="label">Identity again (3.5)</span><ul style="margin:6px 0 0"><li>Same identity, new content: maybe no transition</li><li>Insertion and removal are about identity</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Built-in</span><ul style="margin:6px 0 0"><li><code>.opacity</code>, <code>.slide</code>, <code>.scale</code>, <code>.move(edge:)</code>, combined</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Animations and transitions are related but different. The text&rsquo;s example: a Text inside if showSuccess, with an opacity transition; toggling showSuccess inside withAnimation fades it in and out.</p>
+    <span class="notes-label">SAY</span><p>Click: an animation interpolates changes in animatable values. A transition describes how a view enters or leaves the hierarchy. Click: so identity matters, as in Lesson 3.5: if SwiftUI considers the view the same, with only its content changed, there is no insertion or removal, and a transition may not occur.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s explorer showed opacity, slide and scale; there are more, such as move(edge:), and they combine. In Xcode you apply .transition and animate the insertion or removal with withAnimation.</p>
+    <span class="notes-label">CONNECT</span><p>NPay&rsquo;s success screen.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; NPay&rsquo;s animated success screen (section 11)</p>
+  <h2>The checkmark springs in</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentSuccessScreen (excerpt)</span></div><pre class="cb" style="font-size:11.5px">@State private var showContent = false
+
+var body: some View {
+    VStack(spacing: 24) {
+        if showContent {
+            Image(systemName: &quot;checkmark.circle.fill&quot;)
+                .font(.system(size: 80))
+                .foregroundStyle(.green)
+                .transition(.scale.combined(with: .opacity))
+        }
+        Text(&quot;Payment Recorded&quot;)
+            .font(.title.bold())
+        // message, ID, Back to Dashboard as in 3.2
+    }
+    .onAppear {
+        withAnimation(.spring(response: 0.45,
+                              dampingFraction: 0.7)) {
+            showContent = true
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What happens</span><ul style="margin:6px 0 0"><li>On appear, <code>showContent</code>: false &rarr; true</li><li>The checkmark is <b>inserted</b>: scale + opacity</li><li>The spring paces the transition</li></ul></div>
+        <div class="step"><div class="" style="display:grid;grid-template-columns:repeat(4,minmax(0,125px));gap:8px;justify-content:center"><figure style="margin:0"><img src="img/success1.png" alt="frame at 123 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">123 ms</figcaption></figure><figure style="margin:0"><img src="img/success2.png" alt="frame at 234 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">234 ms</figcaption></figure><figure style="margin:0"><img src="img/success3.png" alt="frame at 347 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">347 ms</figcaption></figure><figure style="margin:0"><img src="img/success6.png" alt="frame at 677 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">677 ms</figcaption></figure></div>
+          <p class="small muted" style="margin:6px 0 0;text-align:center">The text&rsquo;s screen, frames captured after it appeared</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s success screen. A showContent flag, false at first. The checkmark exists only when it is true, with a combined scale and opacity transition. On appear, showContent becomes true inside a spring animation.</p>
+    <span class="notes-label">SAY</span><p>When the screen appears, the checkmark enters the hierarchy; SwiftUI applies the combined transition; the spring controls how it progresses. Click: four of our frames: at 123 ms the text is there but no checkmark yet; at 234 ms a small, faded checkmark is growing while the text moves down to make room; at 347 ms and after, it is full size and opaque.</p>
+    <span class="notes-label">CONNECT</span><p>Experiment: remove withAnimation.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Remove withAnimation; enable Reduce Motion (sections 14, 15, 22)</p>
+  <h2>Same transition modifier, no motion</h2>
+  <div class="body">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div><p class="small" style="margin:0 0 6px"><b>Without <code>withAnimation</code></b> (<code>showContent = true</code> in onAppear)</p><div class="" style="display:grid;grid-template-columns:repeat(7,minmax(0,150px));gap:8px;justify-content:center"><figure style="margin:0"><img src="img/noanim0.png" alt="frame at 0 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">0 ms</figcaption></figure><figure style="margin:0"><img src="img/noanim1.png" alt="frame at 131 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">131 ms</figcaption></figure><figure style="margin:0"><img src="img/noanim2.png" alt="frame at 236 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">236 ms</figcaption></figure><figure style="margin:0"><img src="img/noanim3.png" alt="frame at 346 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">346 ms</figcaption></figure><figure style="margin:0"><img src="img/noanim4.png" alt="frame at 455 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">455 ms</figcaption></figure><figure style="margin:0"><img src="img/noanim5.png" alt="frame at 564 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">564 ms</figcaption></figure><figure style="margin:0"><img src="img/noanim6.png" alt="frame at 673 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">673 ms</figcaption></figure></div></div>
+      <div class="step"><p class="small" style="margin:0 0 6px"><b>Reduce Motion on</b> (Settings value read by the text&rsquo;s Section 22 code: <code>accessibilityReduceMotion: true</code>)</p><div class="" style="display:grid;grid-template-columns:repeat(7,minmax(0,150px));gap:8px;justify-content:center"><figure style="margin:0"><img src="img/reduced0.png" alt="frame at 0 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">0 ms</figcaption></figure><figure style="margin:0"><img src="img/reduced1.png" alt="frame at 129 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">129 ms</figcaption></figure><figure style="margin:0"><img src="img/reduced2.png" alt="frame at 238 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">238 ms</figcaption></figure><figure style="margin:0"><img src="img/reduced3.png" alt="frame at 347 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">347 ms</figcaption></figure><figure style="margin:0"><img src="img/reduced4.png" alt="frame at 458 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">458 ms</figcaption></figure><figure style="margin:0"><img src="img/reduced5.png" alt="frame at 568 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">568 ms</figcaption></figure><figure style="margin:0"><img src="img/reduced6.png" alt="frame at 682 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">682 ms</figcaption></figure></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s experiment: remove withAnimation. The transition modifier is still on the checkmark, but nothing animates: by the first frame after the screen appears, the checkmark is there at full size. A transition needs an animated insertion; without one, the view simply appears.</p>
+    <span class="notes-label">SAY</span><p>Click: Reduce Motion, turned on in the simulator&rsquo;s accessibility settings. The app read accessibilityReduceMotion as true, so the text&rsquo;s Section 22 code set showContent without withAnimation: the same immediate result. That is the point: users who ask for less motion get the result without the movement.</p>
+    <span class="notes-label">CONNECT</span><p>How the code decides.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Accessibility: make motion optional (sections 14, 22)</p>
+  <h2>Skip the motion, keep the result</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentSuccessScreen (section 22)</span></div><pre class="cb" style="font-size:13px">@Environment(\.accessibilityReduceMotion)
+private var reduceMotion
+
+.onAppear {
+    if reduceMotion {
+        showContent = true
+    } else {
+        withAnimation(.spring(response: 0.45,
+                              dampingFraction: 0.7)) {
+            showContent = true
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Section 14&rsquo;s first idea</span><ul style="margin:6px 0 0"><li><code>.linear(duration: 0.01)</code> when reduced</li><li>Still motion, just very fast</li></ul></div>
+        <div class="rule step" data-label="Better"><ul style="margin:6px 0 0"><li>For significant motion, <b>no</b> transition at all</li><li>Never hide information behind an animation</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">More</span><ul style="margin:6px 0 0"><li>Accessibility in depth: Lesson 3.10</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI provides the accessibilityReduceMotion environment value. Section 14 first suggested picking a near-instant linear animation when it is on. Section 22 improves it: if the user prefers reduced motion, set showContent directly; otherwise animate with the spring.</p>
+    <span class="notes-label">SAY</span><p>Click: why better: an extremely fast animation can still be uncomfortable; for significant motion, avoiding the transition entirely is the better reduced-motion experience. The information, the checkmark, still appears. Click: the text covers accessibility in depth in Lesson 3.10.</p>
+    <span class="notes-label">CONNECT</span><p>Back to the balance card.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Balance and insertion</h2>
+    <p class="lead">Animate the money&rsquo;s presentation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>numericText for digits; stable IDs for rows.</p>
+    <span class="notes-label">CONNECT</span><p>The balance card.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Animate NPay&rsquo;s balance card (section 9)</p>
+  <h2>Digits roll; paise stay integers</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>BalanceCard</span></div><pre class="cb" style="font-size:13px">Text(Money.display(balancePaise))
+    .font(.largeTitle.bold())
+    .contentTransition(.numericText())
+    .animation(.easeInOut(duration: 0.4),
+               value: balancePaise)</pre></div>
+        <div class="warn step" data-label="Presentation only"><ul style="margin:6px 0 0"><li><code>numericText()</code> changes how text <b>changes</b></li><li>Money is still an <code>Int</code> of paise</li></ul></div>
+      </div>
+      <div class="step"><div class="" style="display:grid;grid-template-columns:repeat(4,minmax(0,165px));gap:8px;justify-content:center"><figure style="margin:0"><img src="img/lab0.png" alt="frame at 31 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">31 ms</figcaption></figure><figure style="margin:0"><img src="img/lab2.png" alt="frame at 239 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">239 ms</figcaption></figure><figure style="margin:0"><img src="img/lab3.png" alt="frame at 338 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">338 ms</figcaption></figure><figure style="margin:0"><img src="img/lab4.png" alt="frame at 439 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">439 ms</figcaption></figure></div>
+        <p class="small muted" style="margin:6px 0 0;text-align:center">The balance during the change</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The balance card displays Money.display of balancePaise; when the balance changes, the text normally updates instantly. contentTransition(.numericText()) asks SwiftUI to animate numeric text changes; the value-driven animation supplies the curve whenever balancePaise changes.</p>
+    <span class="notes-label">SAY</span><p>Click: the nuance: numericText is a presentation effect for text. It does not change how money is calculated; the authoritative demo amount is still an integer number of paise.</p>
+    <span class="notes-label">SAY</span><p>Click: the frames from the Animation Lab, which uses this card: ₹25,000.00, then a digit rolling, then ₹23,500.00. Only the changing digits move.</p>
+    <span class="notes-label">CONNECT</span><p>And the new transaction row.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Animate transaction insertion (section 10)</p>
+  <h2>Insert inside withAnimation; the row transitions in</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Insertion</span></div><pre class="cb" style="font-size:12px">withAnimation(.easeInOut(duration: 0.3)) {
+    transactions.insert(newTransaction, at: 0)
+}
+
+// in a VStack (our Animation Lab)
+ForEach(transactions) { transaction in
+    TransactionRow(transaction: transaction)
+        .transition(.move(edge: .top)
+                        .combined(with: .opacity))
+}</pre></div>
+        <div class="card accent"><span class="label">List</span><ul style="margin:6px 0 0"><li>Insertion animation is more <b>platform-managed</b></li><li>May differ from a VStack</li></ul></div>
+      </div>
+      <div class="step"><div class="" style="display:grid;grid-template-columns:repeat(4,minmax(0,165px));gap:8px;justify-content:center"><figure style="margin:0"><img src="img/lab1.png" alt="frame at 138 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">138 ms</figcaption></figure><figure style="margin:0"><img src="img/lab2.png" alt="frame at 239 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">239 ms</figcaption></figure><figure style="margin:0"><img src="img/lab3.png" alt="frame at 338 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">338 ms</figcaption></figure><figure style="margin:0"><img src="img/lab4.png" alt="frame at 439 ms" style="width:100%;display:block;border:1px solid var(--line-2);border-radius:8px"><figcaption class="shot-cap" style="margin-top:4px">439 ms</figcaption></figure></div>
+        <p class="small muted" style="margin:6px 0 0;text-align:center">&ldquo;Demo Payment&rdquo; slides in; rows below move down</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Inserting a transaction inside withAnimation associates an animation with that change. In a custom VStack or LazyVStack you can give rows a transition; our Animation Lab uses move from the top combined with opacity, our choice. In a List, animation behaviour is more platform-managed and may differ.</p>
+    <span class="notes-label">SAY</span><p>Click: the frames: the new Demo Payment row fades and moves in at the top while Coffee Shop and Electricity Bill move down to make room. SwiftUI knows which rows are new and which only moved because each has a stable ID.</p>
+    <span class="notes-label">CONNECT</span><p>What if the IDs are not stable?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Why animation and identity are connected (section 19)</p>
+  <h2>New IDs: every row leaves and arrives again</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Experiment (authored)</span><ul style="margin:6px 0 0"><li>Three rows with <code>onAppear</code> / <code>onDisappear</code></li><li>Refresh the same data, inside <code>withAnimation</code>:</li><li>A: keep the IDs &middot; B: <code>Transaction(id: UUID(), …)</code></li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">A: same IDs</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">(no row appeared or removed)</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">B: new IDs</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">row appeared: Salary Credit<br>row appeared: Electricity Bill<br>row appeared: Coffee Shop<br>row removed: Coffee Shop<br>row removed: Electricity Bill<br>row removed: Salary Credit</p></div></div>
+        <div class="rule step" data-label="Rule"><ul style="margin:6px 0 0"><li>Stable identity is a prerequisite for predictable collection transitions</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 2.10 gave transactions stable IDs; Lesson 3.5 showed identity owns state. Together: when a transaction is inserted, SwiftUI matches existing rows to their previous identities, so it knows which views are new. We tested a refresh: the same three transactions reassigned inside withAnimation, once keeping the IDs, once regenerating them.</p>
+    <span class="notes-label">SAY</span><p>Click: same IDs: nothing appeared or disappeared; SwiftUI saw the same three rows. Click: new IDs: SwiftUI saw three new rows and three removed ones: every row was inserted and removed, so every row would run its transition, and any row-local state would be lost. Same data on screen, completely different identity.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s engineering rule: stable identity is a prerequisite for predictable collection transitions.</p>
+    <span class="notes-label">CONNECT</span><p>Under the hood: what can animate?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Interpolation</h2>
+    <p class="lead">Animatable data, step by step</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What SwiftUI interpolates, and how to join in.</p>
+    <span class="notes-label">CONNECT</span><p>The formula.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; How SwiftUI knows what can animate (sections 16&ndash;17)</p>
+  <h2><i>v</i>(<i>t</i>) = <i>v</i>&#8320; + (<i>v</i>&#8321; &minus; <i>v</i>&#8320;)<i>t</i></h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Animatable</span><ul style="margin:6px 0 0"><li>Values SwiftUI can interpolate: size, offset, opacity, shape parameters</li><li>Exposed through <code>animatableData</code></li></ul></div>
+        <p style="font-size:24px;margin:6px 0;text-align:center"><i>v</i>(0.5) = 80 + (180 &minus; 80) &times; 0.5 = <b>130</b></p>
+        <div class="step"><div class="card accent"><span class="label">Not everything animates</span><ul style="margin:6px 0 0"><li>Some properties change <b>discretely</b></li><li>Others need an <code>Animatable</code> implementation</li></ul></div></div>
+      </div>
+      <div class="step"><div class="card accent"><span class="label">linear(0.5), measured diameters</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">&hellip;<br>205 ms&ensp;116.7<br>255 ms&ensp;126.7<br>305 ms&ensp;136.7<br>&hellip;<br>+3.3 per frame: 100 points over 30 frames</p></div>
+        <p class="small muted" style="margin:8px 0 0">Times from the <code>withAnimation</code> call; the first frame lands about 16 ms later, so 130 falls between the 255 and 305 ms frames.</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>SwiftUI uses the Animatable protocol and related mechanisms: many modifiers expose animatable values such as size, offset, opacity and shape parameters. Animatable data is data that can be interpolated between two values. The linear case is this formula: v of t equals the start, plus the difference times t, with t the normalised progress from 0 to 1. At t = 0.5, 80 plus 100 times a half: 130 points.</p>
+    <span class="notes-label">SAY</span><p>Click: not every property animates: some change discretely, others need an Animatable implementation or a suitable modifier.</p>
+    <span class="notes-label">SAY</span><p>Click: our linear measurement matches the formula: a steady 3.3 points per frame, 116.7, 126.7, 136.7. Our clock starts at the withAnimation call and the first frame comes about 16 ms later, so the 130-point midpoint falls between our 255 and 305 ms samples. The text&rsquo;s note applies: the screen itself renders in physical pixels.</p>
+    <span class="notes-label">CONNECT</span><p>Join the mechanism with our own modifier.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Build our own Animatable modifier (section 18)</p>
+  <h2>SwiftUI feeds the in-between values</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:20px;align-items:start">
+      <div class="cw"><div class="ch"><span>AnimatedNumber (text)</span></div><pre class="cb" style="font-size:11.5px">struct AnimatedNumber: AnimatableModifier {
+    var value: Double
+
+    var animatableData: Double {
+        get { value }
+        set { value = newValue }
+    }
+
+    func body(content: Content) -&gt; some View {
+        Text(value,
+             format: .number.precision(.fractionLength(0)))
+            .font(.largeTitle.bold())
+    }
+}
+
+Text(&quot;&quot;)
+    .modifier(AnimatedNumber(value: Double(balancePaise) / 100))
+    .animation(.easeInOut(duration: 0.5), value: balancePaise)</pre></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="step"><div class="card accent"><span class="label">₹25,000 &rarr; ₹23,500, values passed to body</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">30 values in 0.5 s:<br>24997, 24947, 24832, 24652, 24420,<br>24164, 23920, 23721, 23584, 23513 &hellip; 23500</p></div></div>
+        <div class="tip step" data-label="Swift 6 mode"><ul style="margin:6px 0 0"><li>Add <code>nonisolated</code> to <code>animatableData</code></li><li>Fine as written in an Xcode 26 app</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">For NPay&rsquo;s balance</span><ul style="margin:6px 0 0"><li><code>numericText()</code> is simpler</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Connect animations to Swift protocols: a custom modifier that animates a number. animatableData exposes the value SwiftUI can interpolate; as the animation progresses, SwiftUI supplies intermediate values through it, and body draws the current one.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran it with one extra line that records each value body receives: 30 values in half a second as the balance went from ₹25,000 to ₹23,500, following the ease-in-out curve: 24997, 24947, 24832, and so on to 23500. The state changed once; the modifier saw 30 values.</p>
+    <span class="notes-label">SAY</span><p>Click: a compiler finding. In plain Swift 6 language mode, as in a Swift package, this exact code fails: ViewModifier makes animatableData main-actor isolated, but Animatable requires it nonisolated. Marking it nonisolated fixes it. In a new Xcode 26 app project, whose template sets default MainActor isolation, and in Swift 5 mode, it compiles as written. Click: as the text says, for NPay&rsquo;s balance numericText is simpler; the SDK also marks AnimatableModifier as superseded: conform to Animatable directly.</p>
+    <span class="notes-label">CONNECT</span><p>What if the target changes mid-animation?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; What happens when animation is interrupted? (section 20)</p>
+  <h2>Retargeted from where it is, not where it was going</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Experiment (authored)</span><ul style="margin:6px 0 0"><li>80 &rarr; 180, linear 1 s</li><li>At 427 ms: back to 80, linear 1 s</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Measured diameters</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">404 ms&ensp;118.3<br>421 ms&ensp;120.0&ensp;&larr; retarget<br>454 ms&ensp;121.0<br>504 ms&ensp;123.6<br>peak 129.0, then down to 80.0 at 1,437 ms</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">What we saw</span><ul style="margin:6px 0 0"><li>No jump: it kept its motion, slowed, reversed</li><li>SwiftUI blended old and new animations</li></ul></div></div>
+        <div class="rule step" data-label="For money"><ul style="margin:6px 0 0"><li>State is correct <b>immediately</b></li><li>Animation is feedback, never the business operation</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Imagine the user taps Add Money repeatedly: the balance changes again before the previous animation finishes. SwiftUI may retarget the animation from its current presentation toward the latest target; the exact behaviour depends on the animation type, the properties and the transaction. Our experiment: grow from 80 to 180 over a second, linearly, and at 427 ms send it back to 80.</p>
+    <span class="notes-label">SAY</span><p>Click: no jump. At the moment of the change it was at 120; it kept rising, more slowly, peaked at 129, then came back down to 80 by 1.4 seconds. SwiftUI blended the running animation with the new one instead of restarting. Click: that is the text&rsquo;s "retarget or otherwise coordinate".</p>
+    <span class="notes-label">SAY</span><p>Click: why it matters for finance: users must never wait for an animation before the state is correct. The state updates immediately, by the app&rsquo;s logic; the animation is presentation feedback, not the authoritative operation.</p>
+    <span class="notes-label">CONNECT</span><p>Animations also cost something.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 8</p>
+    <h2>Cost and review</h2>
+    <p class="lead">Measure, don&rsquo;t assume</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Performance, experiments, and NPay&rsquo;s animated code.</p>
+    <span class="notes-label">CONNECT</span><p>Cost.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Performance: animations are not free (sections 13, 21)</p>
+  <h2>Tendencies, not guarantees</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start">
+      <table class="tbl"><thead><tr><th>Animation</th><th>Typical work</th></tr></thead><tbody><tr><td>Opacity</td><td>often compositing</td></tr><tr><td>Scale</td><td>transform / compositing in many cases</td></tr><tr><td>Offset</td><td>position- or transform-related presentation</td></tr><tr><td>Frame changes</td><td>can involve <b>layout</b></td></tr><tr><td>Complex list changes</td><td>reconciliation and layout</td></tr><tr><td>Custom drawing</td><td>repeated drawing work</td></tr></tbody></table>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Instruments (Product &rarr; Profile)</span><ul style="margin:6px 0 0"><li>Animation hitches, Core Animation, Time Profiler</li><li>Look for hitches, layout, CPU, main-thread blocking, repeated bodies</li></ul></div></div>
+        <div class="rule step" data-label="Principle"><ul style="margin:6px 0 0"><li>Measure on a device like your users&rsquo;</li><li>We didn&rsquo;t profile here: the simulator isn&rsquo;t that device</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Animations can involve layout, rendering, compositing, or a mix. Opacity is often compositing-friendly. Scale is a transform, efficient in many cases. Offset is position- or transform-related. Frame changes, like our circle, can mean layout on every frame. Complex list changes need reconciliation and layout; custom drawing repeats drawing work. These are tendencies, not guarantees: the cost depends on the hierarchy and the rendering environment.</p>
+    <span class="notes-label">SAY</span><p>Click: measure with Instruments via Product, Profile: depending on the Xcode version, animation hitch analysis, Core Animation and the Time Profiler. Look for frame hitches, excessive layout, CPU use during the animation, main-thread blocking, repeated expensive view evaluation.</p>
+    <span class="notes-label">SAY</span><p>Click: the principle: do not optimise based on assumptions; measure on a device representative of your users. We deliberately did not profile on the simulator, which runs on a Mac and says little about a phone&rsquo;s rendering cost. Unit 8 covers performance.</p>
+    <span class="notes-label">CONNECT</span><p>The text&rsquo;s experiments, all run.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; Xcode experiments (section 15)</p>
+  <h2>Six experiments, six answers</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Experiment</th><th>Simulator</th></tr></thead><tbody><tr><td>Numeric text animation</td><td>digits roll during the change (Part 6)</td></tr><tr><td>Linear versus spring</td><td>linear 3.3/frame; spring peaks at 184.1 (Part 3)</td></tr><tr><td>Insert a transaction</td><td>stable IDs: only the new row transitions (Part 6)</td></tr><tr><td>Success transition</td><td>scale + opacity over ~350 ms (Part 5)</td></tr><tr><td>Remove withAnimation</td><td>no animation: checkmark appears at once (Part 5)</td></tr><tr><td>Enable Reduce Motion</td><td>read as true; no entrance animation (Part 5)</td></tr></tbody></table>
+    <p class="small muted" style="margin:6px 0 0">The text runs these on NPay&rsquo;s demo balance editor, which our 3.3 code dropped; the Animation Lab provides the balance change instead.</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s experiment table, with our answers. Numeric text: the digits roll. Linear versus spring: linear moves 3.3 points per frame; the spring overshoots to 184.1. Inserting a transaction: with stable IDs only the new row transitions. The success transition: scale plus opacity over about a third of a second. Removing withAnimation: no animation. Reduce Motion: read as true, and the entrance animation is skipped.</p>
+    <span class="notes-label">SAY</span><p>One practical note: the text changes the balance with the demo balance editor from Unit 2. Our 3.3 code follows the text&rsquo;s project structure, which no longer has the editor, so the Animation Lab&rsquo;s Simulate button provides the balance change.</p>
+    <span class="notes-label">CONNECT</span><p>What changed in NPay itself?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 8 &middot; NPay after Lesson 3.6 (integration, authored)</p>
+  <h2>Two files changed; the money logic didn&rsquo;t</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <table class="tbl"><thead><tr><th>File</th><th>Change</th></tr></thead><tbody><tr><td>BalanceCard</td><td>numeric text transition + value animation</td></tr><tr><td>PaymentSuccessScreen</td><td>checkmark transition, spring, Reduce Motion</td></tr><tr><td>Store, router, payment flow</td><td><b>unchanged</b></td></tr></tbody></table>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Why so small</span><ul style="margin:6px 0 0"><li>Animation is presentation</li><li>State logic from 3.5 stays as it was</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Not added</span><ul style="margin:6px 0 0"><li>Insertion animation on Home: the payment happens on another tab, so it would play unseen</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text names its next checkpoint: integrate the animated balance card, transaction updates and success feedback into the complete app. We did the parts that make sense, flagged as ours: BalanceCard gets numericText and a value-driven animation; PaymentSuccessScreen gets the checkmark transition, the spring and the Reduce Motion check from Section 22. The store, router and payment flow are unchanged.</p>
+    <span class="notes-label">SAY</span><p>Click: that is the lesson in one line: animation is presentation; the state logic stays as it was. Click: we did not add an insertion animation to Home&rsquo;s recent transactions: in NPay the payment is recorded while the Payments tab is showing, so it would animate where nobody sees it. The Animation Lab shows the technique.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.6 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></span><p style="font-size:23px"><b>State once, frames many</b><br><span class="muted" style="font-size:19px">withAnimation attaches a curve; SwiftUI interpolates</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Transitions need identity</b><br><span class="muted" style="font-size:19px">insertion and removal; stable IDs; animated changes</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></span><p style="font-size:23px"><b>Motion is optional</b><br><span class="muted" style="font-size:19px">Reduce Motion, measured cost, money never waits</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. You change state once; withAnimation or .animation(value:) attaches a curve, and SwiftUI interpolates animatable values frame by frame: a linear 3.3 points per frame, a spring that overshoots and settles. Transitions are about views entering and leaving, so they depend on identity: stable IDs give predictable insertions, and without an animated change nothing moves. And motion is presentation: respect Reduce Motion, measure before optimising, and never make the money wait for an animation.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does withAnimation mutate a Bool through intermediate values?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>withAnimation</code> repeatedly mutate a Boolean state through intermediate values?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Measured: 1 state change; the frame got 30 values.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking the state itself animates.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. Measured: 1 state change; the frame got 30 values.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is the role of animatableData?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the role of <code>Animatable.animatableData</code>?</p><ol class="q-opts"><li>Store network responses</li><li>Expose interpolatable data</li><li>Manage navigation</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">AnimatedNumber received 30 values through it.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating it as ordinary storage.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. AnimatedNumber received 30 values through it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why do stable transaction IDs matter for animation?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why do stable transaction IDs matter for animations?</p><ol class="q-opts"><li>They increase frame rate automatically</li><li>They create a new process</li><li>They help preserve logical view identity</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">New IDs made every row leave and arrive again.</p>
+          <p class="q-trap"><b>Common trap:</b> Regenerating IDs on refresh.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. New IDs made every row leave and arrive again.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can frame animation involve layout work?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-frame"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can animating a view&rsquo;s frame involve layout work?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Size changes can mean layout each frame; measure with Instruments.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming all animation is free.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. Size changes can mean layout each frame; measure with Instruments.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should animation decide whether a payment succeeded?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should an animation determine whether a payment succeeded?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">State is correct at once; animation is feedback.</p>
+          <p class="q-trap"><b>Common trap:</b> Waiting on animations for business state.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. State is correct at once; animation is feedback.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should NPay respect Reduce Motion?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should NPay respect Reduce Motion?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">Our success screen skipped the spring when it was on.</p>
+          <p class="q-trap"><b>Common trap:</b> Making motion mandatory.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Everyone says yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. Our success screen skipped the spring when it was on.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="spring(response 0.45, damping 0.7) from 80 to 180: the peak?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">A frame animates from 80 to 180 with <code>.spring(response: 0.45, dampingFraction: 0.7)</code>. The largest value it reaches is about&hellip;</p><ol class="q-opts"><li>180 exactly</li><li>184</li><li>200</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Measured peak 184.1, settling to 180 by about 1.3 s.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting springs to stop at the target.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Measured peak 184.1, settling to 180 by about 1.3 s.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Remove withAnimation: does .transition still animate?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">The checkmark keeps <code>.transition(.scale.combined(with: .opacity))</code>, but <code>showContent = true</code> is no longer inside <code>withAnimation</code>. What happens?</p><ol class="q-opts"><li>It still scales in</li><li>It appears at once</li><li>It never appears</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Our first frame after appear already showed it full size.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking .transition animates by itself.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Our first frame after appear already showed it full size.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.5: what resets a view&#x27;s local @State?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 3.5: which of these resets a view&rsquo;s local <code>@State</code>?</p><ol class="q-opts"><li>Its parent re-rendering</li><li>A new explicit <code>.id()</code></li><li>A tab switch in a stable TabView</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A new identity, new state; new values alone keep it.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing values with identity.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.5.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. A new identity, new state; new values alone keep it.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.6 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">3.7</td><td><b>Reusable components &amp; NPay design system</b></td><td>buttons, cards, typography, spacing; environment propagation</td></tr><tr><td class="mono">3.10</td><td><b>Accessibility</b></td><td>Reduce Motion and more, in depth</td></tr><tr><td class="mono">Unit 8</td><td><b>Performance</b></td><td>Instruments on a real device: hitches, layout, main thread</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.7 builds reusable buttons, cards, typography and spacing into an NPay design system. The text points to Lesson 3.10 for accessibility in depth, including motion. And Unit 8 profiles performance properly with Instruments on a real device.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 3.6 &middot; Lab</p>
+  <h2>Motion with meaning</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Animate NPay&rsquo;s presentation; measure what you see.</p><ol class="lab"><li>Run AnimationExperiment; try three curves.</li><li>Add numericText to BalanceCard.</li><li>Animate the success checkmark; then drop withAnimation.</li><li>Turn on Reduce Motion; check the success screen.</li><li>Insert rows with stable IDs, then with new IDs.</li><li>Profile one animation on a real device.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>A note on each curve&rsquo;s feel</li><li>Your stable-vs-new ID observation</li><li>One sentence: why animation never decides a payment</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: easeInOut starts and ends slowly, a spring overshoots slightly; the balance digits roll while the paise value changes once; without withAnimation the checkmark just appears, and with Reduce Motion the code skips the spring; regenerated IDs make every row disappear and reappear.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 3.6 complete</p>
+    <h2>SwiftUI Animations<br>&amp; Transitions</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 3.7 &mdash; Reusable Components &amp; NPay Design System</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now animate state changes explicitly or by value, read and choose curves, tell transitions from animations and why identity matters, explain what Animatable interpolates while state changes once, animate the balance and new rows safely, respect Reduce Motion, and measure before optimising.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 3.7: reusable SwiftUI components and an NPay design system: buttons, cards, typography and spacing built on composition and the environment.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

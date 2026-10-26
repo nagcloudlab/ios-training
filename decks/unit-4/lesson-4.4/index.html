@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4.4 — Dependency Injection in iOS</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 04 · Lesson 4.4 — Dependency Injection in iOS">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 04 &middot; Lesson 4.4</p>
+    <h1 style="font-size:54px;line-height:1.05">Dependency Injection<br>in iOS</h1>
+    <p class="lead" style="max-width:760px">Make the payment feature <b>independent of how payments happen</b>: demo today, a mock in tests, an API tomorrow.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.3 showed how @Observable lets SwiftUI react to the ViewModel. Today a different problem: PaymentViewModel depends directly on NPayStore. When the demo payments become a backend API, would we rewrite the ViewModel? We introduce a PaymentService contract, a demo and a mock implementation, a factory that assembles them, and we run the same ViewModel against all of them, including inside NPay itself.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.4 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p>Define dependency injection, and dependency inversion</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></span><p>Design a service contract for payments</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Swap implementations without touching the ViewModel</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Test success and failure with a mock</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p>Assemble objects in a composition root</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Match each dependency&rsquo;s lifetime to its job</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.4 &middot; Where we are</p>
+  <h2>Today: who supplies the dependencies</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 04 &middot; Application Architecture &amp; MVVM</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 04 progress: lesson 4.4 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">4.1</text><text x="12" y="50" style="font-size:14px">Architecture</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">4.2</text><text x="126.667" y="50" style="font-size:14px">MVVM</text><text x="126.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">4.3</text><text x="241.333" y="50" style="font-size:14px">Observation</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd lit"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">4.4</text><text x="356" y="50" style="font-size:14px">Dependency</text><text x="356" y="68" style="font-size:14px">injection</text></g>
+        <g class="nd ghost"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">4.5</text><text x="470.667" y="50" style="font-size:14px">Repository</text><text x="470.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">4.6</text><text x="585.333" y="50" style="font-size:14px">Use cases</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">4.7</text><text x="700" y="50" style="font-size:14px">UI state</text><text x="700" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">4.8</text><text x="814.667" y="50" style="font-size:14px">Modules</text><text x="814.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">4.9</text><text x="929.333" y="50" style="font-size:14px">Testing</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">4.10</text><text x="1044" y="50" style="font-size:14px">Integration</text><text x="1044" y="68" style="font-size:14px">lab</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>4.3: how Observation tracks the ViewModel.</span><span><b>Today</b>Dependency injection: contracts, mocks, factories.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last time we looked inside @Observable. Today we change what the ViewModel depends on: an abstract PaymentService instead of the concrete store. The text arrived in two parts; the second restarts at Section 14.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The problem</h2>
+    <p class="lead">One ViewModel, many implementations</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Demo, mock, API: the ViewModel shouldn&rsquo;t care.</p>
+    <span class="notes-label">CONNECT</span><p>Three environments.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Understand the problem (section 1)</p>
+  <h2>The ViewModel shouldn&rsquo;t know which one it gets</h2>
+  <div class="body">
+    <i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1080 254" style="max-height:270px" role="img" aria-labelledby="three">
+        <title id="three">PaymentViewModel depends on a PaymentService protocol; demo, mock and API implementations conform</title>
+        <g class="nd"><rect class="sh" x="330" y="0" width="420" height="58" rx="12"/><use href="#i-layers" x="344" y="16" width="26" height="26"/><text x="382" y="26">PaymentViewModel</text><text class="sm" x="382" y="44">form state, submission</text></g>
+        <path class="wire" d="M540 59V84M533 77l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="330" y="86" width="420" height="58" rx="12"/><use href="#i-key" x="344" y="102" width="26" height="26"/><text x="382" y="112">PaymentService protocol</text><text class="sm" x="382" y="130">the contract</text></g>
+        <path class="wire dash" d="M160 196L540 146"/>
+        <g class="nd"><rect class="sh" x="0" y="198" width="320" height="56" rx="12"/><text x="16" y="223">Demo</text><text class="sm" x="16" y="241">local simulation</text></g>
+        <path class="wire dash" d="M540 196L540 146"/>
+        <g class="nd"><rect class="sh" x="380" y="198" width="320" height="56" rx="12"/><text x="396" y="223">Mock</text><text class="sm" x="396" y="241">controlled test</text></g>
+        <path class="wire dash" d="M920 196L540 146"/>
+        <g class="nd ghost"><rect class="sh" x="760" y="198" width="320" height="56" rx="12"/><text x="776" y="223">API</text><text class="sm" x="776" y="241">future backend</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="step"><div class="cw"><div class="ch"><span>Today, from Lesson 4.2</span></div><pre class="cb" style="font-size:13px">private let store: NPayStore
+
+init(store: NPayStore) { self.store = store }</pre></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Imagine three environments for NPay: a local demo simulation, a controlled mock for tests, and a future backend API. One PaymentViewModel should work with all three. Click: the trick is a contract in the middle, a PaymentService protocol, that each implementation conforms to; dashed lines are conformances. The API one is greyed out: it doesn&rsquo;t exist yet.</p>
+    <span class="notes-label">SAY</span><p>Click: today the ViewModel holds an NPayStore directly. That works, but swapping demo payments for an API would mean rewriting it. The ViewModel shouldn&rsquo;t need to know which implementation it receives: that&rsquo;s the central idea of dependency injection.</p>
+    <span class="notes-label">CONNECT</span><p>What exactly is it?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; What is dependency injection? (section 2)</p>
+  <h2>Supply the dependency from outside</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Without injection</span></div><pre class="cb" style="font-size:13.5px">final class PaymentViewModel {
+    private let service = DemoPaymentService()
+}</pre></div>
+        <div class="card accent"><span class="label">Coupled</span><ul style="margin:6px 0 0"><li>The ViewModel creates its dependency</li><li>Always DemoPaymentService</li></ul></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="cw"><div class="ch"><span>With injection</span></div><pre class="cb" style="font-size:13.5px">final class PaymentViewModel {
+    private let service: PaymentService
+
+    init(service: PaymentService) {
+        self.service = service
+    }
+}</pre></div></div>
+        <div class="step"><div class="card accent"><span class="label">Decoupled</span><ul style="margin:6px 0 0"><li>The ViewModel receives it</li><li>The caller chooses the implementation</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A dependency is an object or capability another component needs to do its work. Dependency injection means supplying it from outside rather than constructing it inside. Without injection, the ViewModel creates a DemoPaymentService itself: it is coupled to that one class.</p>
+    <span class="notes-label">SAY</span><p>Click: with injection, the ViewModel stores a PaymentService and receives it in its initializer. Click: the caller decides which implementation to supply.</p>
+    <span class="notes-label">SAY</span><p>Nothing new in Swift: protocols, initializer parameters and reference types from Unit 1. Dependency injection is an architectural pattern, not a SwiftUI feature; Lesson 4.2&rsquo;s init(store:) was already a small case of it.</p>
+    <span class="notes-label">CONNECT</span><p>Write the contract.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>The contract and the demo</h2>
+    <p class="lead">PaymentService, then DemoPaymentService</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What, not how; then one how.</p>
+    <span class="notes-label">CONNECT</span><p>The contract.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Our first dependency contract (section 3)</p>
+  <h2>A request in, a receipt out</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentService.swift (import Foundation)</span></div><pre class="cb" style="font-size:12.5px">struct PaymentRequest {
+    let recipient: String
+    let amountPaise: Int
+}
+
+struct PaymentReceipt {
+    let transactionID: UUID
+    let recipient: String
+    let amountPaise: Int
+}
+
+@MainActor
+protocol PaymentService {
+    func send(_ request: PaymentRequest) async throws
+        -&gt; PaymentReceipt
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Three types</span><ul style="margin:6px 0 0"><li>PaymentRequest: validated input</li><li>PaymentReceipt: the result</li><li>PaymentService: behaviour, no implementation</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">async throws</span><ul style="margin:6px 0 0"><li>A real payment waits and can fail</li></ul></div></div>
+        <div class="warn step" data-label="Simplification"><ul style="margin:6px 0 0"><li>@MainActor on the protocol, for this local lesson</li><li>Revisited with networking</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Create PaymentService.swift. PaymentRequest represents the validated input we intend to submit: recipient and amount in paise. PaymentReceipt is the result after the operation: the transaction ID, recipient and amount. PaymentService defines the behaviour, send a request and get a receipt, without saying how.</p>
+    <span class="notes-label">SAY</span><p>Click: send is async throws because a future implementation will involve asynchronous work and failures, a network call for instance, even though today&rsquo;s demo is immediate.</p>
+    <span class="notes-label">SAY</span><p>Click: the @MainActor on the protocol is a deliberate simplification for this local lesson; we revisit concurrency boundaries when networking is introduced in Unit 5.</p>
+    <span class="notes-label">CONNECT</span><p>The first implementation.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; The demo implementation (section 4)</p>
+  <h2>It receives the shared store; it owns no balance</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>DemoPaymentService</span></div><pre class="cb" style="font-size:11px">enum PaymentServiceError: Error {
+    case rejected
+}
+
+@MainActor
+final class DemoPaymentService: PaymentService {
+    private let store: NPayStore
+
+    init(store: NPayStore) {
+        self.store = store
+    }
+
+    func send(
+        _ request: PaymentRequest
+    ) async throws -&gt; PaymentReceipt {
+        guard let id = store.recordDemoPayment(
+            recipient: request.recipient,
+            amountPaise: request.amountPaise
+        ) else {
+            throw PaymentServiceError.rejected
+        }
+        return PaymentReceipt(
+            transactionID: id,
+            recipient: request.recipient,
+            amountPaise: request.amountPaise)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What it does</span><ul style="margin:6px 0 0"><li>Calls <code>recordDemoPayment</code></li><li>nil &rarr; throws <code>.rejected</code></li><li>An ID &rarr; returns a receipt</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Mac, NPay&rsquo;s real NPayStore</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">send ₹1,500.50 &rarr; receipt<br>store: 2,349,950 paise, 4 transactions</p></div></div>
+        <div class="rule step" data-label="Single source of truth"><ul style="margin:6px 0 0"><li>The same store as Home and History</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The demo implementation. A small error enum with one case, rejected. DemoPaymentService receives an NPayStore in its initializer, and send asks the store to record the demo payment: if the store returns nil, it throws rejected; otherwise it returns a receipt with the store&rsquo;s transaction ID. It relies on recordDemoPayment returning an optional UUID, which ours does.</p>
+    <span class="notes-label">SAY</span><p>Click: we compiled the text&rsquo;s code on the Mac together with NPay&rsquo;s real NPayStore, Money and PaymentValidator: sending ₹1,500.50 produced a receipt and the store went to 2,349,950 paise with four transactions.</p>
+    <span class="notes-label">SAY</span><p>Click: what matters: DemoPaymentService does not own a new balance. It receives the same store Home and History use. A single source of truth, the lesson from 3.1 and 4.2 again.</p>
+    <span class="notes-label">CONNECT</span><p>Who creates whom?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Creation versus dependency</h2>
+    <p class="lead">Who builds it, who depends on it</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>And injection versus inversion.</p>
+    <span class="notes-label">CONNECT</span><p>Who creates whom.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Who creates whom? (section 5)</p>
+  <h2>Creation in one place; dependency on the contract</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1060 290" style="max-height:300px" role="img" aria-labelledby="who">
+        <title id="who">Without injection the ViewModel creates the service; with injection a composition root creates both and both depend on the contract</title>
+        <text x="200" y="16" text-anchor="middle">Without injection</text><text x="760" y="16" text-anchor="middle">With injection</text>
+        <g class="nd alert" data-lit="1"><rect class="sh" x="40" y="30" width="320" height="56" rx="12"/><use href="#i-layers" x="54" y="45" width="26" height="26"/><text x="92" y="55">PaymentViewModel</text><text class="sm" x="92" y="73">creates DemoPaymentService</text></g>
+        <path class="wire" d="M200 87V118M193 111l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="40" y="120" width="320" height="56" rx="12"/><use href="#i-db" x="54" y="135" width="26" height="26"/><text x="92" y="145">DemoPaymentService</text><text class="sm" x="92" y="163">tightly coupled</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="560" y="30" width="400" height="56" rx="12"/><use href="#i-gear" x="574" y="45" width="26" height="26"/><text x="612" y="55">Composition root</text><text class="sm" x="612" y="73">creates and connects</text></g>
+        <path class="wire dash" d="M660 87L620 118M613 111l7 7 7-7"/>
+        <path class="wire dash" d="M860 87L900 118M893 111l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="500" y="120" width="240" height="56" rx="12"/><use href="#i-layers" x="514" y="135" width="26" height="26"/><text x="552" y="154">PaymentViewModel</text></g>
+        <g class="nd"><rect class="sh" x="780" y="120" width="240" height="56" rx="12"/><use href="#i-db" x="794" y="135" width="26" height="26"/><text x="832" y="154">DemoPaymentService</text></g>
+        <path class="wire" data-lit="3+" d="M620 177L760 230M753 223l7 7 7-7"/>
+        <path class="wire" data-lit="3+" d="M900 177L760 230M753 223l7 7 7-7"/>
+        <g class="nd" data-lit="3+"><rect class="sh" x="620" y="232" width="280" height="56" rx="12"/><use href="#i-key" x="634" y="247" width="26" height="26"/><text x="672" y="257">PaymentService</text><text class="sm" x="672" y="275">the contract</text></g>
+      </svg>
+    </div>
+    <p class="small muted" style="margin:6px 0 0">Dashed: creation. Solid: code dependency (the ViewModel uses it; the service conforms to it).</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click: without injection, in orange: the ViewModel creates DemoPaymentService internally, tightly coupled to that implementation.</p>
+    <span class="notes-label">SAY</span><p>Click: with injection: a composition root creates and connects the objects, the dashed lines. Click: and in code, the ViewModel depends only on the PaymentService contract, while DemoPaymentService conforms to it, the solid lines. The diagram separates object creation from code dependencies: the root constructs the concrete service and hands it to the ViewModel.</p>
+    <span class="notes-label">CONNECT</span><p>Two terms that sound alike.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Injection versus inversion (section 15)</p>
+  <h2>A technique and a principle</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th></th><th>What it is</th><th>Says</th></tr></thead><tbody><tr><td>Dependency Injection</td><td>A technique</td><td>Supply dependencies from outside</td></tr><tr><td>Dependency Inversion Principle</td><td>A design principle</td><td>Policy and details both depend on abstractions</td></tr></tbody></table>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px">
+      <div class="step"><div class="card accent"><span class="label">Injection without inversion</span><ul style="margin:6px 0 0"><li>Inject a concrete class: no protocol</li><li><code>init(store: NPayStore)</code> in 4.2</li></ul></div></div>
+      <div class="step"><div class="card accent"><span class="label">Inversion undermined</span><ul style="margin:6px 0 0"><li>A protocol exists&hellip;</li><li>&hellip;but the consumer still constructs the concrete type</li></ul></div></div>
+    </div>
+    <div class="gap"></div>
+    <div class="rule step" data-label="Together"><ul style="margin:6px 0 0"><li>Often combined; neither guarantees the other</li></ul></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Dependency injection is a technique: supplying dependencies to a component. The dependency inversion principle is a design principle: high-level policy, here the payment ViewModel, should not depend directly on low-level details like DemoPaymentService; both should depend on an abstraction, the PaymentService protocol. In the text&rsquo;s before-and-after diagram, the arrows are source-code dependencies and conformance, not the runtime call sequence.</p>
+    <span class="notes-label">SAY</span><p>Click: you can inject a concrete class without any protocol: Lesson 4.2&rsquo;s init(store: NPayStore) was injection without inversion. Click: and you can define an abstraction yet still construct the concrete implementation inside the consumer, undermining the separation.</p>
+    <span class="notes-label">SAY</span><p>Click: they often work together, but neither automatically guarantees the other.</p>
+    <span class="notes-label">CONNECT</span><p>Refactor the ViewModel.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>The refactored ViewModel</h2>
+    <p class="lead">It knows only PaymentService</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Submission through the contract.</p>
+    <span class="notes-label">CONNECT</span><p>The code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Refactor PaymentViewModel (section 6)</p>
+  <h2>No DemoPaymentService, no NPayStore</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentViewModel.submit() (condensed)</span></div><pre class="cb" style="font-size:10px;line-height:1.45">private let service: any PaymentService   // init(service:)
+func submit() async -&gt; PaymentReceipt? {
+    guard !isSubmitting else { return nil }
+    let trimmed = recipient.trimmingCharacters(
+        in: .whitespacesAndNewlines)
+    guard let amount = Money.parsePaise(amountText),
+          amount &gt; 0, !trimmed.isEmpty else {
+        errorMessage = &quot;Check your payment details.&quot;
+        return nil
+    }
+    let request = PaymentRequest(recipient: trimmed,
+                                 amountPaise: amount)
+    isSubmitting = true
+    defer { isSubmitting = false }
+    do {
+        let receipt = try await service.send(request)
+        recipient = &quot;&quot;; amountText = &quot;&quot;; errorMessage = nil
+        return receipt
+    } catch {
+        errorMessage = &quot;Payment could not be completed.&quot;
+        return nil
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">submit()</span><ul style="margin:6px 0 0"><li>Guard, parse, check</li><li>Send through the service</li><li>Clear the form, or set an error</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">The balance check?</span><ul style="margin:6px 0 0"><li>Not here: the service enforces it</li><li>Demo, ₹30,000 &rarr; &ldquo;Payment could not be completed.&rdquo;</li></ul></div></div>
+        <div class="warn step" data-label="Standalone"><ul style="margin:6px 0 0"><li>Review is reconnected in Part 7</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The ViewModel keeps the input properties and gains isSubmitting. Its only dependency is now any PaymentService, received in the initializer. submit() refuses a second submit while one is running; parses the amount and checks the recipient, setting "Check your payment details." if they fail; builds a PaymentRequest with the trimmed recipient; sets isSubmitting, with a defer to clear it; sends through the service; on success clears the form, on failure sets "Payment could not be completed."</p>
+    <span class="notes-label">SAY</span><p>The ViewModel no longer knows DemoPaymentService or NPayStore. Click: the service enforces the balance at execution time. On the Mac, ₹30,000 against a ₹25,000 balance came back as the generic "Payment could not be completed.": the store refused it and the demo service threw rejected. Lesson 4.7&rsquo;s structured UI state can say why.</p>
+    <span class="notes-label">SAY</span><p>Click: the text is explicit that this is a standalone submission experiment; the review sheet and confirmation are reconnected during integration, which we did, Part 7.</p>
+    <span class="notes-label">CONNECT</span><p>What does "any" mean here?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Why any PaymentService? (sections 7, 16)</p>
+  <h2>An existential: one value, any conforming type</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 7</span></div><pre class="cb" style="font-size:14px">private let service: any PaymentService</pre></div>
+        <div class="card accent"><span class="label">any</span><ul style="margin:6px 0 0"><li>Holds a value of some conforming type</li><li>Demo or Mock, decided by the caller</li><li>Makes existential use explicit</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Protocol required?</span><ul style="margin:6px 0 0"><li>No: concrete types can be injected</li><li>Use one when it earns its keep</li></ul></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Section 16, measured on the Mac</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">viewModel&rsquo;s stored service === the service passed in:&ensp;<b>true</b><br>MemoryLayout&lt;any PaymentService&gt;.size: 40 bytes<br>MemoryLayout&lt;DemoPaymentService&gt;.size:&ensp;&ensp;8 bytes</p></div></div>
+        <div class="rule step" data-label="No copy"><ul style="margin:6px 0 0"><li>Assigning to an existential creates no new service</li><li>The layout is an implementation detail</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentService is a protocol. any PaymentService stores a value whose concrete type conforms to it: DemoPaymentService or MockPaymentService. The any keyword makes existential use explicit. Click: is a protocol required for dependency injection? No: you can inject concrete types. Protocols pay off when multiple implementations, testing or an abstraction boundary justify them; a protocol for every class adds complexity.</p>
+    <span class="notes-label">SAY</span><p>Click: Section 16 asks whether any PaymentService creates a new service instance. We checked on the Mac: reading the ViewModel&rsquo;s stored service back with Mirror gives the very same object, identity true. For interest: the existential box is 40 bytes on this Mac, room for a value plus type information, while a class reference is 8; but the precise representation and dispatch are compiler implementation details.</p>
+    <span class="notes-label">SAY</span><p>Click: assigning a class instance to an existential-typed property does not construct a new service object.</p>
+    <span class="notes-label">CONNECT</span><p>Now the payoff: a mock.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Mocks and testing</h2>
+    <p class="lead">Control the dependency, test the ViewModel</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Success and failure, deterministic.</p>
+    <span class="notes-label">CONNECT</span><p>The mock.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; A mock service, and one call three ways (sections 8&ndash;9)</p>
+  <h2>await viewModel.submit(), unchanged</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>MockPaymentService</span></div><pre class="cb" style="font-size:10.5px">@MainActor
+final class MockPaymentService: PaymentService {
+
+    var shouldFail = false
+    private(set) var requests: [PaymentRequest] = []
+
+    func send(
+        _ request: PaymentRequest
+    ) async throws -&gt; PaymentReceipt {
+        requests.append(request)
+        if shouldFail {
+            throw PaymentServiceError.rejected
+        }
+        return PaymentReceipt(
+            transactionID: UUID(),
+            recipient: request.recipient,
+            amountPaise: request.amountPaise)
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Injected</th><th>Receipt</th><th>errorMessage</th></tr></thead><tbody><tr><td>Demo</td><td>₹1,500.50</td><td>nil (store 2,349,950)</td></tr><tr><td>Mock, success</td><td>₹1,500.50</td><td>nil (store untouched)</td></tr><tr><td>Mock, failure</td><td>nil</td><td>could not be completed</td></tr><tr><td>Demo, ₹30,000</td><td>nil</td><td>could not be completed</td></tr><tr><td>Mock, &ldquo;abc&rdquo;</td><td>nil</td><td>check your details (not sent)</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">Mac run; the same submit() each time.</p></div>
+        <div class="rule step" data-label="Only the implementation differs"><ul style="margin:6px 0 0"><li>No real store, no network for the mock</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The mock records every request it receives in requests, readable but not writable from outside, and can be told to fail with shouldFail. Otherwise it returns a receipt with a fresh UUID. It modifies no store and makes no network request.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s interactive experiment, run for real on the Mac: the same ViewModel, the same await viewModel.submit(), different injected services. Demo: a receipt, and the real store dropped to 2,349,950. Mock succeeding: a receipt, store untouched. Mock failing: no receipt, "Payment could not be completed." Demo with thirty thousand rupees: the store refused, the same message. Mock with "abc": the ViewModel never sent anything, "Check your payment details."</p>
+    <span class="notes-label">SAY</span><p>Click: the ViewModel contract stayed the same; only the injected implementation differed.</p>
+    <span class="notes-label">CONNECT</span><p>Turn that into tests.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Testing without SwiftUI (section 18)</p>
+  <h2>Success and failure, in milliseconds</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 18 (the failure lab sets mock.shouldFail = true)</span></div><pre class="cb" style="font-size:11.5px">@MainActor
+func runPaymentViewModelLab() async {
+    let mock = MockPaymentService()
+    let viewModel = PaymentViewModel(service: mock)
+
+    viewModel.recipient = &quot;ravi@npay&quot;
+    viewModel.amountText = &quot;1500.50&quot;
+
+    let receipt = await viewModel.submit()
+
+    assert(receipt != nil)
+    assert(mock.requests.count == 1)
+    assert(mock.requests[0].amountPaise == 150_050)
+
+    print(&quot;PaymentViewModel test passed&quot;)
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Mac, Debug build (asserts active)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:13px;line-height:1.55">PaymentViewModel test passed<br>Failure-path test passed</p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Proved</span><ul style="margin:6px 0 0"><li>Submission goes through the protocol</li><li>₹1,500.50 became 150,050 paise</li><li>On failure: errorMessage set, isSubmitting false</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Ours: two submits at once, a slow mock</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">receipts 1, requests sent <b>1</b></p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 18 tests the ViewModel with the mock. Create a mock, inject it, set ravi@npay and 1500.50, await submit, and assert: a receipt came back, the mock received exactly one request, and its amount was 150,050 paise. The failure lab sets shouldFail and asserts no receipt, an error message, and isSubmitting back to false.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran both on the Mac in a Debug build, where assert is active: "PaymentViewModel test passed", "Failure-path test passed". Click: that proves submission works through the protocol, the rupee text became paise correctly, and the failure path leaves the ViewModel consistent, without launching NPay, showing a sheet or making a network request. Lesson 4.9 turns these into a real test suite.</p>
+    <span class="notes-label">SAY</span><p>Click: one more, ours: a mock that waits 300 milliseconds, and two submits started together. One receipt, one request: the isSubmitting guard held because the first submit was suspended in the service when the second arrived.</p>
+    <span class="notes-label">CONNECT</span><p>Where are the objects assembled?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Composition and lifetime</h2>
+    <p class="lead">Assemble in one place; own deliberately</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Factories, injection styles, ARC, scopes.</p>
+    <span class="notes-label">CONNECT</span><p>The factory.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; The composition root (sections 10&ndash;11, 19)</p>
+  <h2>One factory builds the feature</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>App/NPayFactory.swift</span></div><pre class="cb" style="font-size:12.5px">@MainActor
+enum NPayFactory {
+
+    static func makePaymentViewModel(
+        store: NPayStore
+    ) -&gt; PaymentViewModel {
+
+        let service = DemoPaymentService(store: store)
+
+        return PaymentViewModel(service: service)
+    }
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">A framework?</span><ul style="margin:6px 0 0"><li>Not yet: a factory is enough</li><li>Containers can hide ownership</li></ul></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Constructor injection</th><th>Environment injection</th></tr></thead><tbody><tr><td>Passed in the initializer</td><td>Supplied through the view hierarchy</td></tr><tr><td>Explicit at the call site</td><td>Convenient for descendants</td></tr><tr><td>ViewModels, services, repositories</td><td>Shared UI context</td></tr><tr><td>Required dependencies are visible</td><td>Needs deliberate setup</td></tr></tbody></table></div>
+        <div class="rule step" data-label="NPay"><ul style="margin:6px 0 0"><li>Constructor: services, repositories</li><li>Environment: presentation preferences (3.9)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Where are dependencies assembled? In a composition root. NPayFactory centralizes construction: makePaymentViewModel takes the shared store, builds a DemoPaymentService with it, and returns a ViewModel with that service. NPay&rsquo;s root owns the store; a payment feature root owns the ViewModel in @State, so it is not recreated in body and the draft survives tab changes, Lessons 4.2 and 4.3.</p>
+    <span class="notes-label">SAY</span><p>Click: should NPay use a dependency injection framework? Not yet: a few shared dependencies, a simple factory. A container helps when construction rules, scopes and graphs grow complex, but introduced too early it hides the ownership and initialization we are trying to master.</p>
+    <span class="notes-label">SAY</span><p>Click: two injection styles. Constructor injection passes the dependency in the initializer, explicit at the call site, good for ViewModels and services, required dependencies visible. Environment injection supplies it through the view hierarchy, convenient for descendants, good for shared UI context, but it needs deliberate setup: Lesson 3.9 showed a missing environment object crashing. Click: NPay uses constructor injection for payment services and repositories, the environment for presentation preferences. Neither manages persistence or security for you.</p>
+    <span class="notes-label">CONNECT</span><p>Who keeps whom alive?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Lifetime and ARC (sections 12, 17)</p>
+  <h2>Strong references point one way</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 940 200" style="max-height:210px" role="img" aria-labelledby="arc">
+        <title id="arc">PaymentViewModel holds DemoPaymentService, which holds NPayStore; the app root also owns the store</title>
+        <g class="nd"><rect class="sh" x="0" y="40" width="280" height="56" rx="12"/><use href="#i-layers" x="14" y="55" width="26" height="26"/><text x="52" y="74">PaymentViewModel</text></g>
+        <path class="wire" d="M281 68H328M321 61l7 7-7 7"/>
+        <g class="nd"><rect class="sh" x="330" y="40" width="280" height="56" rx="12"/><use href="#i-db" x="344" y="55" width="26" height="26"/><text x="382" y="74">DemoPaymentService</text></g>
+        <path class="wire" d="M611 68H658M651 61l7 7-7 7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="660" y="40" width="280" height="56" rx="12"/><use href="#i-db" x="674" y="55" width="26" height="26"/><text x="712" y="74">NPayStore</text></g>
+        <g class="nd"><rect class="sh" x="660" y="150" width="280" height="50" rx="12"/><use href="#i-gear" x="674" y="162" width="26" height="26"/><text x="712" y="172">App root</text><text class="sm" x="712" y="190">also owns the store</text></g>
+        <path class="wire" d="M800 149V98M793 105l7-7 7 7"/>
+      </svg>
+    </div>
+        <div class="step"><div class="card accent"><span class="label">Mac: a factory-built ViewModel leaves scope</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">PaymentViewModel deinit<br>DemoPaymentService deinit<br>store still 2,349,950 (the root holds it)</p></div></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Lifetime</th><th>NPay example</th></tr></thead><tbody><tr><td>Transient</td><td>A short-lived validation helper</td></tr><tr><td>Feature</td><td>PaymentViewModel, for a payment workflow</td></tr><tr><td>Application</td><td>NPayStore, NPayRouter, owned by the root</td></tr></tbody></table></div>
+        <div class="rule step" data-label="Match the job"><ul style="margin:6px 0 0"><li>A store per screen: inconsistent balances (4.2)</li><li>Design choices, not SwiftUI scopes</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Both the service and the ViewModel are reference types. The ViewModel holds the service strongly; the service holds the store strongly; the application root also owns the store. Click: no cycle: the store never references the ViewModel.</p>
+    <span class="notes-label">SAY</span><p>Click: we checked on the Mac: a ViewModel built by the factory, left to go out of scope. PaymentViewModel deinit, then DemoPaymentService deinit, and the store, still owned elsewhere, kept its balance. Dependency injection doesn&rsquo;t remove ARC concerns, but explicit ownership makes them easy to reason about.</p>
+    <span class="notes-label">SAY</span><p>Click: lifetimes. Transient: a short-lived validation helper. Feature: the PaymentViewModel for an active workflow. Application: NPayStore and NPayRouter, owned by the root. These are design choices, not automatic SwiftUI scopes. Click: give each payment screen its own store and balances diverge, Lesson 4.2 measured that; make every helper application-wide and you extend lifetimes for nothing. The lifetime should match the responsibility.</p>
+    <span class="notes-label">CONNECT</span><p>Now, NPay itself.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Dependency injection in NPay</h2>
+    <p class="lead">Same screen; three services</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The review flow kept; the service swapped.</p>
+    <span class="notes-label">CONNECT</span><p>The integration.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Xcode lab, integrated (section 13)</p>
+  <h2>Swap the service; nothing else changes</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Our integration (review flow kept)</span></div><pre class="cb" style="font-size:11.5px">// PaymentsFeatureRoot
+_viewModel = State(initialValue:
+    NPayFactory.makePaymentViewModel(store: store))
+
+// PaymentsScreen: the review sheet&#x27;s Confirm
+PaymentReviewSheet(request: request) {
+    Task {
+        pendingSuccessID =
+            await viewModel.submit()?.transactionID
+        self.review = nil
+    }
+}</pre></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Service</th><th>Confirm</th><th>Home</th><th>Form</th></tr></thead><tbody><tr><td>Demo</td><td>success</td><td>₹23,499.50 + row</td><td>cleared</td></tr><tr><td>Mock, succeeding</td><td>success</td><td>₹25,000.00</td><td>cleared</td></tr><tr><td>Mock, failing</td><td>error</td><td>₹25,000.00</td><td>kept</td></tr><tr><td>Demo, stale review</td><td>error</td><td>unchanged</td><td>kept</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">Simulator; the mock is injected through a debug hook in the factory; mock.requests: [ravi@npay 150050].</p></div>
+        <div class="rule step" data-label="Checklist"><ul style="margin:6px 0 0"><li>Concrete services in the ViewModel: 0</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The lab, done in NPay, flagged as ours. PaymentsFeatureRoot now gets its ViewModel from NPayFactory. The review flow stays: Review Payment still prepares Lesson 4.2&rsquo;s snapshot for the sheet, and the sheet&rsquo;s Confirm now starts a Task that awaits viewModel.submit() and passes the receipt&rsquo;s ID on for navigation. To keep 4.2&rsquo;s balance validation and the "Available" line, the factory also gives the ViewModel a read-only balance closure; the ViewModel still never sees the store type.</p>
+    <span class="notes-label">SAY</span><p>Click: then the same screens with three services. Demo: Payment Recorded, Home ₹23,499.50, History "Sent to ravi@npay", form cleared. A succeeding mock, injected through a debug hook in the factory: Payment Recorded again, but Home still ₹25,000.00 and no History row, because the mock touches no store; it recorded one request, ravi@npay, 150,050 paise. A failing mock: the inline "Payment could not be completed.", no navigation, the draft kept for another try. And the stale review from 4.2: the demo service refused, same message.</p>
+    <span class="notes-label">SAY</span><p>Click: the checklist&rsquo;s last item: the ViewModel contains no concrete service construction. We searched it: zero occurrences of DemoPaymentService or NPayStore.</p>
+    <span class="notes-label">CONNECT</span><p>What that looks like.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; The same screens, a mock behind them (section 13)</p>
+  <h2>Mock success, then mock failure</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:180px 180px minmax(0,1fr);gap:20px;align-items:start">
+      <div style="width:180px;max-width:100%;margin:0 auto"><div class="shot" style="height:391px"><img src="img/mock.png" alt="Mock: success screen"></div><p class="shot-cap">Mock: success screen</p></div>
+      <div class="step"><div style="width:180px;max-width:100%;margin:0 auto"><div class="shot" style="height:391px"><img src="img/mockfail.png" alt="Mock: failure, draft kept"></div><p class="shot-cap">Mock: failure, draft kept</p></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Success with the mock</span><ul style="margin:6px 0 0"><li>The screen can&rsquo;t tell</li><li>The balance didn&rsquo;t move</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Failure with the mock</span><ul style="margin:6px 0 0"><li>Deterministic: no real store or network needed</li><li>The ViewModel&rsquo;s error, shown inline</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Left: the success screen after a payment through the succeeding mock: the screen cannot tell which service produced the receipt; the balance did not move.</p>
+    <span class="notes-label">SAY</span><p>Click: right: the failing mock. "Payment could not be completed." under the fields, the draft kept. That failure is deterministic: we didn&rsquo;t need a broken network or an empty account to see it, which is exactly what tests need.</p>
+    <span class="notes-label">CONNECT</span><p>Should everything get a protocol?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Useful boundaries; NPay after 4.4 (sections 20&ndash;21)</p>
+  <h2>Protocols where they earn their place</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 560 300" style="max-height:310px" role="img" aria-labelledby="arch">
+        <title id="arch">Composition root, PaymentsScreen, PaymentViewModel, PaymentService protocol, DemoPaymentService</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="560" height="52" rx="12"/><use href="#i-gear" x="14" y="13" width="26" height="26"/><text x="52" y="23">NPayRootView / composition root</text><text class="sm" x="52" y="41">owns shared dependencies</text></g>
+        <path class="wire" d="M280 53V60M273 53l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="62" width="560" height="52" rx="12"/><use href="#i-phone" x="14" y="75" width="26" height="26"/><text x="52" y="85">PaymentsScreen</text><text class="sm" x="52" y="103">SwiftUI presentation</text></g>
+        <path class="wire" d="M280 115V122M273 115l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="124" width="560" height="52" rx="12"/><use href="#i-layers" x="14" y="137" width="26" height="26"/><text x="52" y="147">PaymentViewModel</text><text class="sm" x="52" y="165">form state, submission</text></g>
+        <path class="wire" d="M280 177V184M273 177l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="0" y="186" width="560" height="52" rx="12"/><use href="#i-key" x="14" y="199" width="26" height="26"/><text x="52" y="209">PaymentService protocol</text><text class="sm" x="52" y="227">abstract payment contract</text></g>
+        <path class="wire" d="M280 239V246M273 239l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="248" width="560" height="52" rx="12"/><use href="#i-db" x="14" y="261" width="26" height="26"/><text x="52" y="271">DemoPaymentService</text><text class="sm" x="52" y="289">uses the shared NPayStore</text></g>
+      </svg>
+    </div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Use a protocol for</span><ul style="margin:6px 0 0"><li>Swapping a payment implementation</li><li>Isolating infrastructure</li><li>Testing important behaviour</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Prefer a concrete type for</span><ul style="margin:6px 0 0"><li>A simple, stable formatter</li><li>Anything with one implementation</li></ul></div></div>
+        <div class="rule step" data-label="Unit 5"><ul style="margin:6px 0 0"><li>A backend behind the same contract</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>NPay after this lesson: the root composes shared dependencies; PaymentsScreen presents; PaymentViewModel holds form state and coordinates submission; click: it depends on the PaymentService protocol; DemoPaymentService implements it with the shared store. The ViewModel is independent of the concrete demo implementation.</p>
+    <span class="notes-label">SAY</span><p>Click: but abstractions are not free: every protocol is a contract to maintain. Use one where it provides a meaningful boundary: replacing a payment implementation, isolating infrastructure, testing important behaviour. Click: for a simple, stable formatter with one implementation, a protocol, factory, mock and container add more complexity than value. Good architecture is about useful boundaries, not the number of protocols.</p>
+    <span class="notes-label">SAY</span><p>Click: in Unit 5 a backend arrives behind this same contract, without rewriting the SwiftUI payment screen.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.4 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p style="font-size:23px"><b>Receive, don&rsquo;t create</b><br><span class="muted" style="font-size:19px">the ViewModel holds any PaymentService</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p style="font-size:23px"><b>Mocks make tests deterministic</b><br><span class="muted" style="font-size:19px">success and failure, no store, no network</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p style="font-size:23px"><b>A factory assembles; lifetimes match jobs</b><br><span class="muted" style="font-size:19px">store app-wide, ViewModel per feature</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Dependency injection means a component receives what it needs instead of creating it: PaymentViewModel now holds any PaymentService and never mentions the store or the demo class, and dependency inversion is the principle that makes the abstraction worth having. Because of that, a mock can drive success and failure deterministically, on the Mac or inside NPay, without changing a line of the ViewModel. And one factory assembles the objects, with each lifetime matching its job: the store application-wide, the ViewModel per feature.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>10 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is dependency injection?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is dependency injection?</p><ol class="q-opts"><li>Creating every dependency inside the ViewModel</li><li>Storing dependencies in UserDefaults</li><li>Supplying dependencies from outside a component</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why"><code>init(service:)</code>: the caller chooses.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking DI needs a framework.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. <code>init(service:)</code>: the caller chooses.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does dependency injection always require a protocol?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does dependency injection always require a protocol?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">4.2&rsquo;s <code>init(store: NPayStore)</code> injected a concrete type.</p>
+          <p class="q-trap"><b>Common trap:</b> A protocol for every class.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. 4.2&rsquo;s <code>init(store: NPayStore)</code> injected a concrete type.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why use a MockPaymentService?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why use a MockPaymentService?</p><ol class="q-opts"><li>To control behaviour during testing</li><li>To replace the iOS runtime</li><li>To persist transactions automatically</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">shouldFail: a failure on demand.</p>
+          <p class="q-trap"><b>Common trap:</b> Waiting for real failures to test.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. shouldFail: a failure on demand.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Who should create DemoPaymentService?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Who should create DemoPaymentService?</p><ol class="q-opts"><li>BalanceCard</li><li>The composition root or factory</li><li>Every TextField</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">NPayFactory builds it with the shared store.</p>
+          <p class="q-trap"><b>Common trap:</b> Scattering construction across views.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. NPayFactory builds it with the shared store.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should DemoPaymentService create an independent NPayStore?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should DemoPaymentService create an independent NPayStore?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">A second store means a second balance (4.2).</p>
+          <p class="q-trap"><b>Common trap:</b> Losing the single source of truth.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. A second store means a second balance (4.2).</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does dependency injection automatically prevent retain cycles?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does dependency injection automatically prevent retain cycles?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">No cycle here only because the store doesn&rsquo;t point back.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming a pattern manages memory.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. No cycle here only because the store doesn&rsquo;t point back.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does any PaymentService represent?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>any PaymentService</code> represent?</p><ol class="q-opts"><li>A new background thread</li><li>An existential value conforming to PaymentService</li><li>A SwiftUI navigation destination</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">And it holds the same object: identity true.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking it copies or creates a service.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. And it holds the same object: identity true.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="MockPaymentService succeeds inside NPay. Home shows?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">NPay runs with a succeeding MockPaymentService injected. You pay ₹1,500.50 and return to Home. The balance shows&hellip;</p><ol class="q-opts"><li>₹23,499.50</li><li>₹25,000.00</li><li>An error</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The mock returns a receipt; it touches no store.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming the success screen means money moved.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The mock returns a receipt; it touches no store.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="submit() with amountText &quot;abc&quot;: how many requests reach the mock?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">With amountText "abc", <code>await viewModel.submit()</code> sends how many requests to the mock?</p><ol class="q-opts"><li>0</li><li>1</li><li>It crashes</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">The ViewModel stops at parsing: &ldquo;Check your payment details.&rdquo;</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting the service to validate everything.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. The ViewModel stops at parsing: &ldquo;Check your payment details.&rdquo;</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 4.3: is a ViewModel&#x27;s let dependency tracked by Observation?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 10</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">From Lesson 4.3: does <code>@Observable</code> track a ViewModel&rsquo;s <code>private let service</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Only stored vars get @ObservationTracked; a let never changes.</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting every property to be observed.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 4.3.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Only stored vars get @ObservationTracked; a let never changes.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.4 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">4.5</td><td><b>Repository pattern</b></td><td>data access behind a protocol, like PaymentService</td></tr><tr><td class="mono">4.6</td><td><b>Use cases</b></td><td>SendPaymentUseCase between ViewModel and service</td></tr><tr><td class="mono">4.9</td><td><b>Architecture testing</b></td><td>today&rsquo;s asserts become a test suite</td></tr><tr><td class="mono">Unit 5</td><td><b>Networking</b></td><td>an API implementation of the same contract</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.5 applies the same idea to data access: repository protocols with in-memory, cached and eventually API implementations behind the same ViewModel. 4.6 adds a use case between ViewModel and service, 4.9 turns today&rsquo;s asserts into a test suite, and Unit 5 writes the API implementation.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.4 &middot; Lab</p>
+  <h2>Inject the payment service</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Contract, demo, mock, factory.</p><ol class="lab"><li>Add PaymentRequest, PaymentReceipt, PaymentService.</li><li>Write DemoPaymentService with the shared store.</li><li>Write MockPaymentService.</li><li>Inject the service; build it in NPayFactory.</li><li>Keep the review flow; Confirm calls submit().</li><li>Run section 18&rsquo;s two labs; then NPay with the mock.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your service files and factory</li><li>Console output of both labs</li><li>Screenshots: demo, mock success, mock failure</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: both labs print "passed"; the demo service moves the balance to ₹23,499.50, a succeeding mock shows success with the balance unchanged, a failing mock shows the error and keeps the draft.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 4.4 complete</p>
+    <h2>Dependency Injection<br>in iOS</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 4.5 &mdash; Repository Pattern</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now inject a service through a protocol, test a ViewModel with a mock, assemble objects in a composition root, tell injection from inversion, and match each dependency&rsquo;s lifetime to its job.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 4.5: the repository pattern, separating NPay&rsquo;s data access from payment behaviour.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

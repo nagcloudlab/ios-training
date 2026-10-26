@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4.7 — UI State Modeling &amp; Async Payment Lifecycle</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 04 · Lesson 4.7 — UI State Modeling &amp; Async Payment Lifecycle">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 04 &middot; Lesson 4.7</p>
+    <h1 style="font-size:54px;line-height:1.05">UI State Modeling &amp;<br>Async Payment Lifecycle</h1>
+    <p class="lead" style="max-width:760px">Loading, success, failure, <b>and &ldquo;we don&rsquo;t know&rdquo;</b>: one enum instead of four Booleans.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.6 gave NPay a SendPaymentUseCase. Now: while a payment is in flight, what does the screen show? What if it fails, if the user taps Confirm twice, or leaves before it finishes? We replace loose Boolean flags with an explicit state machine, connect it to the review sheet, and then test the hard cases for real: cancellation after the money moved, and results that arrive after the user has started over.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.7 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Replace Boolean flags with an enum state</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></span><p>Define legal transitions and block duplicates</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p>Explain what await does, and doesn&rsquo;t</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></span><p>Render every state with a switch</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p>Tell cancellation, failure and unknown apart</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p>Tie each result to its own submission</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.7 &middot; Where we are</p>
+  <h2>Today: the payment&rsquo;s lifecycle as state</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 04 &middot; Application Architecture &amp; MVVM</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 04 progress: lesson 4.7 of 10</title>
+        <g class="nd"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">4.1</text><text x="12" y="50" style="font-size:14px">Architecture</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">4.2</text><text x="126.667" y="50" style="font-size:14px">MVVM</text><text x="126.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">4.3</text><text x="241.333" y="50" style="font-size:14px">Observation</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">4.4</text><text x="356" y="50" style="font-size:14px">Dependency</text><text x="356" y="68" style="font-size:14px">injection</text></g>
+        <g class="nd"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">4.5</text><text x="470.667" y="50" style="font-size:14px">Repository</text><text x="470.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">4.6</text><text x="585.333" y="50" style="font-size:14px">Use cases</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd lit"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">4.7</text><text x="700" y="50" style="font-size:14px">UI state</text><text x="700" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">4.8</text><text x="814.667" y="50" style="font-size:14px">Modules</text><text x="814.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">4.9</text><text x="929.333" y="50" style="font-size:14px">Testing</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">4.10</text><text x="1044" y="50" style="font-size:14px">Integration</text><text x="1044" y="68" style="font-size:14px">lab</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>4.6: SendPaymentUseCase; Confirm submits the reviewed command.</span><span><b>Today</b>PaymentUIState: idle, submitting, success, failure, unknown.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Last time the business operation got its own use case. Today the screen gets an honest model of that operation&rsquo;s progress. The text came in three pieces; the third continues from Section 15.</p>
+    <span class="notes-label">CONNECT</span><p>Four Booleans.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>From flags to an enum</h2>
+    <p class="lead">Make contradictions unrepresentable</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One value, one state.</p>
+    <span class="notes-label">CONNECT</span><p>The flags.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; Booleans, then an enum (sections 1&ndash;3)</p>
+  <h2>2&#8308; = 16 combinations, most of them nonsense</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Four independent flags</span></div><pre class="cb" style="font-size:13px">var isLoading = false
+var isSuccess = false
+var hasError = false
+var isProcessing = false
+
+// One of 16 combinations:
+isLoading = true
+isSuccess = true
+hasError = true</pre></div>
+        <div class="card accent"><span class="label">Loading, successful or failed?</span><ul style="margin:6px 0 0"><li>Representable, contradictory</li></ul></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="cw"><div class="ch"><span>One enum, with associated values</span></div><pre class="cb" style="font-size:13px">enum PaymentUIState {
+    case idle
+    case validating
+    case submitting
+    case success(PaymentRecord)
+    case failure(String)
+}</pre></div></div>
+        <div class="step"><div class="card accent"><span class="label">Why better</span><ul style="margin:6px 0 0"><li>Exactly one case at a time</li><li>Success carries the record; failure the message</li><li>Enums from Unit 1</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Imagine a ViewModel with isLoading, isSuccess, hasError and isProcessing: four independent Booleans, two to the fourth, sixteen combinations, and most make no sense. Loading, successful and failed all at once: is NPay loading, successful or failed? The state is contradictory, yet perfectly representable. The text&rsquo;s interactive toggles showed this; the arithmetic is enough.</p>
+    <span class="notes-label">SAY</span><p>Click: instead, one enum: idle, validating, submitting, success, failure. NPay can be in exactly one of these at a time; you cannot set submitting and success simultaneously in one enum value. Section 3 adds associated values: success carries the PaymentRecord, failure carries the message.</p>
+    <span class="notes-label">SAY</span><p>Click: an enum with associated values represents a state machine far more precisely than loosely related flags. This is Unit 1&rsquo;s enums, put to work.</p>
+    <span class="notes-label">CONNECT</span><p>The machine itself.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>The state machine</h2>
+    <p class="lead">States and the transitions between them</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>And no second submission while busy.</p>
+    <span class="notes-label">CONNECT</span><p>The lifecycle.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; The payment lifecycle and its transitions (sections 4&ndash;6)</p>
+  <h2>A state machine is states plus allowed moves</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1010 196" style="max-height:200px" role="img" aria-labelledby="sm">
+        <title id="sm">Idle, validating, submitting, then success or failure</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="70" width="190" height="56" rx="12"/><text x="16" y="95">Idle</text><text class="sm" x="16" y="113">waiting</text></g>
+        <path class="wire" d="M191 98H228M221 91l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="230" y="70" width="210" height="56" rx="12"/><text x="246" y="95">Validating</text><text class="sm" x="246" y="113">command, policy</text></g>
+        <path class="wire" d="M441 98H478M471 91l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="480" y="70" width="210" height="56" rx="12"/><text x="496" y="95">Submitting</text><text class="sm" x="496" y="113">awaiting the operation</text></g>
+        <path class="wire" d="M691 90L760 35M753 28l7 7-7 7"/>
+        <path class="wire" d="M691 106L760 161M753 154l7 7-7 7"/>
+        <g class="nd" data-lit="4+"><rect class="sh" x="762" y="6" width="240" height="56" rx="12"/><use href="#i-check" x="776" y="21" width="26" height="26"/><text x="814" y="31">Success</text><text class="sm" x="814" y="49">PaymentRecord</text></g>
+        <g class="nd" data-lit="4+"><rect class="sh" x="762" y="134" width="240" height="56" rx="12"/><use href="#i-cross" x="776" y="149" width="26" height="26"/><text x="814" y="159">Failure</text><text class="sm" x="814" y="177">error information</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:20px;align-items:start">
+      <div class="step"><table class="tbl compact"><thead><tr><th>Current</th><th>Event</th><th>Next</th></tr></thead><tbody><tr><td>Idle</td><td>Confirm payment</td><td>Validating</td></tr><tr><td>Validating</td><td>Passes / fails</td><td>Submitting / Failure</td></tr><tr><td>Submitting</td><td>Succeeds / fails</td><td>Success / Failure</td></tr><tr><td>Failure</td><td>Retry or edit</td><td>Idle / Validating</td></tr><tr><td>Success</td><td>New payment</td><td>Idle</td></tr></tbody></table></div>
+      <div class="rule step" data-label="Scope"><ul style="margin:6px 0 0"><li>The submission flow only</li><li>Form, sheet, navigation: separate state</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The lifecycle. Click through: idle, waiting for the user; validating the command and policy; submitting, awaiting the operation; and then one of two outcomes: success with a PaymentRecord, or failure with error information. The text also had an interactive simulator stepping through these legal transitions; this diagram is the same machine.</p>
+    <span class="notes-label">SAY</span><p>Click: a state machine is not just an enum; it defines which transitions are allowed. Confirm moves idle to validating; validation passes to submitting or fails; the operation succeeds or fails; from failure the user retries or edits; after success a new payment returns to idle. Bugs come from unexpected transitions, like starting a second submission while one is processing.</p>
+    <span class="notes-label">SAY</span><p>Click: and the nuance: this models the submission flow. Form editing, the review sheet and payment execution are related but distinct concerns; don&rsquo;t force every UI detail into one enormous enum. Part 7 returns to this.</p>
+    <span class="notes-label">CONNECT</span><p>Block the unexpected transition.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; Prevent duplicate submission (section 7)</p>
+  <h2>isBusy: one rule, used twice</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 7</span></div><pre class="cb" style="font-size:12.5px">extension PaymentUIState {
+    var isBusy: Bool {
+        switch self {
+        case .validating, .submitting:
+            true
+        default:
+            false
+        }
+    }
+}
+
+guard !state.isBusy else { return }    // ViewModel
+
+.disabled(viewModel.state.isBusy)      // SwiftUI</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Mac run, the text&rsquo;s ViewModel: Confirm twice while busy</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">one call: success<br>the other: failure("A payment is already processing")<br>payments recorded: <b>1</b></p></div></div>
+        <div class="step"><div class="card accent"><span class="label">Two guards</span><ul style="margin:6px 0 0"><li>The ViewModel rejects the second call</li><li>The view disables the button</li></ul></div></div>
+        <div class="warn step" data-label="Not idempotency"><ul style="margin:6px 0 0"><li>Local UI workflow only</li><li>The backend needs a request identifier</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A computed isBusy is true while validating or submitting. The ViewModel uses it to reject another submission; SwiftUI uses it to disable the button.</p>
+    <span class="notes-label">SAY</span><p>Click: we tested the ViewModel guard on the Mac: two submissions at once, with a repository that takes a moment. One succeeded; the other returned "A payment is already processing", Section 20&rsquo;s wording; one payment recorded. Click: two guards, one rule.</p>
+    <span class="notes-label">SAY</span><p>Click: but this protects the local UI workflow against overlapping submissions. It does not guarantee financial idempotency, which a real backend must enforce with an authoritative request identifier, Lesson 4.5&rsquo;s point.</p>
+    <span class="notes-label">CONNECT</span><p>Build the ViewModel around the state.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>State in the ViewModel</h2>
+    <p class="lead">One property for the lifecycle</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>And what await really does.</p>
+    <span class="notes-label">CONNECT</span><p>The ViewModel.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; PaymentViewModel with explicit UI state (section 8)</p>
+  <h2>isSubmitting + errorMessage + successRecord &rarr; state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentViewModel (condensed)</span></div><pre class="cb" style="font-size:10.5px">private(set) var state: PaymentUIState = .idle
+
+func submit(_ command: SendPaymentCommand) async {
+    guard !state.isBusy else { return }
+
+    state = .validating
+    // Command value objects were validated at creation.
+    state = .submitting
+
+    do {
+        let record = try await sendPayment.execute(command)
+        recipient = &quot;&quot;; amountText = &quot;&quot;
+        state = .success(record)
+    } catch PaymentDomainError.insufficientBalance {
+        state = .failure(&quot;Insufficient balance&quot;)
+    } catch PaymentDomainError.limitExceeded {
+        state = .failure(&quot;Demo payment limit exceeded&quot;)
+    } catch {
+        state = .failure(&quot;Unable to complete payment&quot;)
+    }
+}
+
+func reset() {
+    guard !state.isBusy else { return }
+    state = .idle
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">What changed</span><ul style="margin:6px 0 0"><li>One enum replaces three properties</li><li><code>private(set)</code>: only the ViewModel moves it</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Mac run, the text&rsquo;s ViewModel, 200 ms latency (ours)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">50 ms in: submitting, isBusy true<br>states a view observed:<br>&ensp;[submitting, success(150050)]</p></div></div>
+        <div class="rule step" data-label="Nuance"><ul style="margin:6px 0 0"><li><code>.validating</code> is never seen: same turn</li><li>Don&rsquo;t add delays to show it</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The core implementation: the ViewModel keeps recipient and amountText, and a private(set) state starting at idle. submit refuses if busy, sets validating, then submitting, awaits the use case, and moves to success with the record or to failure with a message for insufficient balance, the limit, or anything else. reset returns to idle unless busy. Previously we had isSubmitting, errorMessage and a success record; now one enum.</p>
+    <span class="notes-label">SAY</span><p>Click: we recorded what a view could actually observe, using Observation&rsquo;s change tracking, with a repository that takes 200 milliseconds. Fifty milliseconds in, the state is submitting and busy. The states observed: submitting, then success. Click: validating never appeared: it is set and replaced in the same synchronous turn, before any view update. The text predicts exactly this, and says not to insert artificial delays just to make every state visible.</p>
+    <span class="notes-label">CONNECT</span><p>Why can SwiftUI show submitting at all?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; async/await and UI state (sections 9&ndash;10)</p>
+  <h2>await is a suspension point, not a thread</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 120" style="max-height:126px" role="img" aria-labelledby="async">
+        <title id="async">Main actor sets submitting, awaits, the repository actor works, the result returns, the main actor sets the outcome, SwiftUI shows it</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="172" height="120" rx="14"/><use href="#i-phone" x="72" y="14" width="28" height="28"/><text x="86" y="84" text-anchor="middle">Main actor</text><text class="sm" x="86" y="104" text-anchor="middle">state = .submitting</text></g>
+        <path class="wire" d="M173 60H186M179 53l7 7-7 7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="188" y="0" width="172" height="120" rx="14"/><use href="#i-clock" x="260" y="14" width="28" height="28"/><text x="274" y="84" text-anchor="middle">await execute()</text><text class="sm" x="274" y="104" text-anchor="middle">may suspend here</text></g>
+        <path class="wire" d="M361 60H374M367 53l7 7-7 7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="376" y="0" width="172" height="120" rx="14"/><use href="#i-db" x="448" y="14" width="28" height="28"/><text x="462" y="84" text-anchor="middle">Repository actor</text><text class="sm" x="462" y="104" text-anchor="middle">isolated account state</text></g>
+        <path class="wire" d="M549 60H562M555 53l7 7-7 7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="564" y="0" width="172" height="120" rx="14"/><use href="#i-check" x="636" y="14" width="28" height="28"/><text x="650" y="84" text-anchor="middle">Result</text><text class="sm" x="650" y="104" text-anchor="middle">record or thrown error</text></g>
+        <path class="wire" d="M737 60H750M743 53l7 7-7 7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="752" y="0" width="172" height="120" rx="14"/><use href="#i-phone" x="824" y="14" width="28" height="28"/><text x="838" y="84" text-anchor="middle">Main actor</text><text class="sm" x="838" y="104" text-anchor="middle">success or failure</text></g>
+        <path class="wire" d="M925 60H938M931 53l7 7-7 7"/>
+        <g class="nd" data-lit="6+"><rect class="sh" x="940" y="0" width="172" height="120" rx="14"/><use href="#i-eye" x="1012" y="14" width="28" height="28"/><text x="1026" y="84" text-anchor="middle">SwiftUI</text><text class="sm" x="1026" y="104" text-anchor="middle">shows the new state</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px">
+      <div class="step"><div class="card accent"><span class="label">While suspended</span><ul style="margin:6px 0 0"><li>The main actor runs other work</li><li>SwiftUI can render <code>.submitting</code></li></ul></div></div>
+      <div class="warn step" data-label="Not a background thread"><ul style="margin:6px 0 0"><li>await doesn&rsquo;t pick a thread</li><li>Actor isolation and the callee do</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Click through the asynchronous lifecycle: on the main actor, state becomes submitting; await execute is a possible suspension point; the repository actor processes its isolated account state; the result, a record or a thrown error, comes back; on the main actor, state becomes success or failure; SwiftUI displays the new state.</p>
+    <span class="notes-label">SAY</span><p>Click: while the operation is suspended, the main actor can run other eligible work, including SwiftUI rendering the submitting state. That is why the ProgressView can appear at all.</p>
+    <span class="notes-label">SAY</span><p>Click: does await create a background thread? No. async/await is a concurrency abstraction, not a promise to run on a particular thread; where code runs depends on actor isolation and on the operation called. Lesson 3.11 showed the flip side: synchronous work on the main actor delivered no frames.</p>
+    <span class="notes-label">CONNECT</span><p>Render the state.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>Rendering and the review sheet</h2>
+    <p class="lead">Switch over the state</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Busy, failed, succeeded: in NPay.</p>
+    <span class="notes-label">CONNECT</span><p>The switch.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Render UI from the state; keep the sheet while busy (sections 11&ndash;12)</p>
+  <h2>The compiler checks every case</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 180px minmax(0,.7fr);gap:18px;align-items:start">
+      <div class="cw"><div class="ch"><span>Review sheet&rsquo;s statusContent (in NPay)</span></div><pre class="cb" style="font-size:10.5px">@ViewBuilder
+private var statusContent: some View {
+    switch viewModel.state {
+    case .idle:
+        EmptyView()
+    case .validating:
+        Text(&quot;Validating payment...&quot;)
+    case .submitting:
+        ProgressView(&quot;Processing demo payment...&quot;)
+    case .success:
+        Label(&quot;Payment recorded&quot;,
+              systemImage: &quot;checkmark.circle.fill&quot;)
+            .foregroundStyle(.green)
+    case .failure(let message):
+        Text(message)
+            .foregroundStyle(.red)
+    case .statusUnknown:
+        ContentUnavailableView(/* section 17 */)
+    }
+}</pre></div>
+      <div class="step"><div style="width:180px;max-width:100%;margin:0 auto"><div class="shot" style="height:391px"><img src="img/slow.png" alt="Submitting (3 s latency)"></div><p class="shot-cap">Submitting (3 s latency)</p></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Simulator, 0.8 s after Confirm</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11px;line-height:1.55">Processing demo payment...<br>Confirm disabled<br>swipe-to-dismiss blocked<br>Edit Details disabled (ours)</p></div></div>
+        <div class="warn step" data-label="Found"><ul style="margin:6px 0 0"><li>interactiveDismissDisabled stops the swipe only</li><li>Edit Details still dismissed: we disabled it</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The view switches over the state: nothing when idle, text while validating, a ProgressView while submitting, a green label on success, the red message on failure; we added the statusUnknown case from Section 17. A switch makes the compiler check that every case is handled: add a state later, and Swift points at every switch that needs updating. In NPay this lives in the review sheet, flagged as ours.</p>
+    <span class="notes-label">SAY</span><p>Click: Section 12: keep the review sheet visible while busy, with interactiveDismissDisabled tied to isBusy. To see the submitting state, our test run added three seconds of latency through a debug-only hook; no delay exists in the app. Click: 0.8 seconds after Confirm: the spinner and "Processing demo payment...", Confirm disabled, and the sheet refused a swipe-down.</p>
+    <span class="notes-label">SAY</span><p>Click: what the run found: interactiveDismissDisabled only stops the swipe. The sheet&rsquo;s own Edit Details button could still dismiss it mid-payment, so we disabled it while busy too. As the text says, all this improves the experience; it is not a transaction guarantee.</p>
+    <span class="notes-label">CONNECT</span><p>Success, and navigation.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Success navigates; failure stays (sections 13&ndash;14, 21)</p>
+  <h2>Only a successful result may navigate</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) 170px;gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Confirm, in NPay (section 21)</span></div><pre class="cb" style="font-size:11px">Task {
+    let result = await viewModel.submit(request.command)
+
+    switch result {
+    case .success(let record):
+        pendingSuccessID = record.id
+        review = nil              // then onDismiss navigates
+    case .failure:
+        break                     // sheet stays; it shows the error
+    case .statusUnknown:
+        break                     // status check, never a guess
+    }
+}</pre></div>
+        <div class="step"><table class="tbl compact"><thead><tr><th>Simulator</th><th>Result</th></tr></thead><tbody><tr><td>₹1,500.50</td><td>sheet closes; onDismiss &rarr; Payment Recorded; ₹23,499.50</td></tr><tr><td>₹20,000; ₹10,000 left during review</td><td>sheet <b>stays</b>: &ldquo;Insufficient balance&rdquo;; no route; Edit Details keeps the draft</td></tr></tbody></table></div>
+      </div>
+      <div class="step"><div style="width:170px;max-width:100%;margin:0 auto"><div class="shot" style="height:370px"><img src="img/stale.png" alt="Failure: the sheet stays"></div><p class="shot-cap">Failure: the sheet stays</p></div></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>We want submitting, then success, then dismiss the review, then navigate. Section 13 read the shared state after the await; Section 21 improves the contract: submit returns this submission&rsquo;s own result. On success: remember the record&rsquo;s ID and dismiss; the sheet&rsquo;s onDismiss navigates, so the modal dismissal and the push are coordinated, as in Lesson 3.4. On failure: stay. On unknown: a status check, never a guess.</p>
+    <span class="notes-label">SAY</span><p>Click: run in NPay. ₹1,500.50: the sheet closed, onDismiss navigated, Payment Recorded, ₹23,499.50. A payment refused because the balance dropped during review: the sheet stayed open showing "Insufficient balance", no success route, and Edit Details returned to the form with the draft kept. Click: the screenshot. A button tap does not mean a payment succeeded; only a successful operation result does.</p>
+    <span class="notes-label">CONNECT</span><p>That message almost didn&rsquo;t appear.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; What happens if the payment fails? (section 14)</p>
+  <h2>The error must be mapped to reach the user</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Mac run, the text&rsquo;s ViewModel and 4.6&rsquo;s use case: ₹500 from ₹100</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">repository throws AccountRepositoryError.insufficientBalance<br>use case passes it through<br>ViewModel: <b>failure("Unable to complete demo payment")</b></p></div>
+        <div class="step"><div class="card accent"><span class="label">Over the policy limit</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">failure("Demo payment limit exceeded")</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Why</span><ul style="margin:6px 0 0"><li>The ViewModel catches <code>PaymentDomainError</code></li><li>The repository throws its own error</li></ul></div></div>
+        <div class="step"><div class="cw"><div class="ch"><span>Our fix, in SendPaymentUseCase</span></div><pre class="cb" style="font-size:11.5px">} catch AccountRepositoryError.insufficientBalance {
+    throw PaymentDomainError.insufficientBalance
+}</pre></div></div>
+        <div class="rule step" data-label="Section 14"><ul style="margin:6px 0 0"><li>&ldquo;The use case or service maps the failure&rdquo;</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 14 says: the repository throws insufficientBalance, the use case or service maps it, and the ViewModel shows "Insufficient balance". We ran the text&rsquo;s ViewModel on Lesson 4.6&rsquo;s use case: ₹500 from ₹100. The result was "Unable to complete demo payment". Click: the policy limit, thrown by the use case itself as PaymentDomainError, did produce its specific message.</p>
+    <span class="notes-label">SAY</span><p>Click: why: the ViewModel catches PaymentDomainError.insufficientBalance, but the repository throws its own AccountRepositoryError, and 4.6&rsquo;s use case passes it through untranslated. Lesson 4.6&rsquo;s concurrency run showed the same gap.</p>
+    <span class="notes-label">SAY</span><p>Click: our fix, flagged: the use case translates the repository&rsquo;s three errors into domain errors. Click: that is what Section 14 assumes, and with it NPay&rsquo;s sheet shows "Insufficient balance", as on the last slide.</p>
+    <span class="notes-label">CONNECT</span><p>Now the hard cases: cancellation.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Cancellation and unknown outcomes</h2>
+    <p class="lead">Cancelling a task isn&rsquo;t reversing a payment</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>And failure isn&rsquo;t the only bad news.</p>
+    <span class="notes-label">CONNECT</span><p>Cancellation.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Cancellation (section 15)</p>
+  <h2>The task was cancelled; the money had moved</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Mac run, the text&rsquo;s ViewModel: Task.cancel() 50 ms in (ours)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11.5px;line-height:1.55">cancel before the payment is recorded:<br>&ensp;result failure("Unable to complete demo payment")<br>&ensp;repository: 0 payments, 2500000<br><br>cancel after it is recorded, before the reply:<br>&ensp;result <b>failure</b>("Unable to complete demo payment")<br>&ensp;repository: <b>1 payment</b>, 2349950</p></div>
+        <p class="small muted" style="margin:0">Latency before or after recording stands in for the network.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Not interchangeable</span><ul style="margin:6px 0 0"><li>Cancelling local UI work</li><li>Cancelling a network request</li><li>Cancelling or reversing a payment</li><li>An unknown status to reconcile</li></ul></div></div>
+        <div class="warn step" data-label="Principle"><ul style="margin:6px 0 0"><li>Task cancellation is not transaction reversal</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The user starts a payment and switches to History before it finishes. Should the operation be cancelled? We tested cancellation on the Mac, ours: the task wrapping submit is cancelled fifty milliseconds in, with a repository whose delay comes either before recording, like a request still travelling, or after, like a reply on its way back.</p>
+    <span class="notes-label">SAY</span><p>Cancelled before recording: the ViewModel said failure, and indeed nothing was recorded. Cancelled after recording: the ViewModel said failure, yet the repository holds one payment and the balance fell to 2,349,950. The screen says failed; the money moved.</p>
+    <span class="notes-label">SAY</span><p>Click: the text&rsquo;s distinction: cancelling local UI work, cancelling a network request, actually cancelling or reversing a payment, and an unknown status needing reconciliation are not interchangeable. Click: task cancellation is not transaction reversal. The app may need to query the payment status before deciding to retry or show failure.</p>
+    <span class="notes-label">CONNECT</span><p>So the state needs another case.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Model unknown outcomes (sections 16&ndash;17)</p>
+  <h2>statusUnknown: not success, not failure</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 17</span></div><pre class="cb" style="font-size:11.5px">enum PaymentUIState {
+    case idle
+    case validating
+    case submitting
+    case success(PaymentRecord)
+    case failure(String)
+    case statusUnknown
+    // isBusy as before
+}
+
+case .statusUnknown:
+    ContentUnavailableView {
+        Label(&quot;Payment status unavailable&quot;,
+              systemImage: &quot;questionmark.circle&quot;)
+    } description: {
+        Text(&quot;Check transaction status before retrying.&quot;)
+    }</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">When</span><ul style="margin:6px 0 0"><li>The server recorded it; the reply was lost</li><li>The app can&rsquo;t know which</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Our cancelled-after-recording run</span><ul style="margin:6px 0 0"><li>Should have been statusUnknown</li><li>It said failure: retrying could pay twice</li></ul></div></div>
+        <div class="rule step" data-label="Real networking"><ul style="margin:6px 0 0"><li>Classify errors carefully (Unit 5)</li><li>Ambiguous &ne; definitive failure</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>For a real payment app we need a state for an uncertain outcome: statusUnknown. It means the app cannot currently determine whether the operation completed; it does not mean the payment failed. The view renders it as "Payment status unavailable: check transaction status before retrying."</p>
+    <span class="notes-label">SAY</span><p>The scenario: NPay sends a payment, the server records it, the connection drops before the response arrives. The app cannot safely conclude the payment failed, and blindly retrying could duplicate it unless the backend enforces idempotency.</p>
+    <span class="notes-label">SAY</span><p>Click: our cancelled-after-recording run is exactly that case, and the ViewModel reported failure. Click: Section 20&rsquo;s local version never returns statusUnknown, because the in-memory repository gives definitive answers; with networking in Unit 5, transport failures must be classified carefully, and an ambiguous one must not become a definitive failure.</p>
+    <span class="notes-label">CONNECT</span><p>Results that arrive late.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Stale results</h2>
+    <p class="lead">Whose result is this?</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Request identifiers and a result-returning submit.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Stale asynchronous results (sections 18&ndash;19)</p>
+  <h2>Associate each result with its submission</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 18</span></div><pre class="cb" style="font-size:12.5px">private var activeSubmissionID: UUID?
+
+let submissionID = UUID()
+activeSubmissionID = submissionID
+
+// ... after the await:
+guard activeSubmissionID == submissionID else {
+    return
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Mac (ours; startOver() clears the active ID)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:11px;line-height:1.55">payment A starts; the user starts over 50 ms later; A finishes:<br>&ensp;without the check: new flow shows <b>success(150050)</b><br>&ensp;with the check:&ensp;&ensp;&ensp;&ensp;new flow shows idle<br>&ensp;repository: A recorded either way</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">It protects</span><ul style="margin:6px 0 0"><li>The presentation from stale results</li></ul></div></div>
+        <div class="warn step" data-label="It doesn&rsquo;t"><ul style="margin:6px 0 0"><li>Cancel or reverse payment A</li><li>Replace a server idempotency key</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Payment A is in flight; the user navigates away and starts a different payment flow; then A finishes. Should A&rsquo;s result update the new screen? Not necessarily. Section 18 tracks an activeSubmissionID: each submission gets a fresh UUID, and after the await the result is applied only if its ID is still the active one.</p>
+    <span class="notes-label">SAY</span><p>Click: we ran it, ours: payment A starts, fifty milliseconds later the user starts over, which clears the active ID, then A completes. Without the check, the brand-new flow suddenly shows success for payment A. With the check, the new flow stays idle. And A was recorded either way.</p>
+    <span class="notes-label">SAY</span><p>Click: so it protects the presentation layer against stale results. Click: it does not cancel or reverse the payment, and a UI request ID is not a server-enforced idempotency key, though a production design may relate them. The text&rsquo;s six-step walkthrough was shared at step one; this run plays it out.</p>
+    <span class="notes-label">CONNECT</span><p>A safer submit contract.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; A safer submission contract (sections 20&ndash;21)</p>
+  <h2>Return the result; still publish the state</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>Section 20 (condensed)</span></div><pre class="cb" style="font-size:10.5px">enum PaymentSubmissionResult {
+    case success(PaymentRecord)
+    case failure(String)
+    case statusUnknown
+}
+
+func submit(_ command: SendPaymentCommand)
+    async -&gt; PaymentSubmissionResult {
+    guard !state.isBusy else {
+        return .failure(&quot;A payment is already processing&quot;)
+    }
+    state = .validating
+    state = .submitting
+    do {
+        let record = try await sendPayment.execute(command)
+        state = .success(record)
+        recipient = &quot;&quot;; amountText = &quot;&quot;
+        return .success(record)
+    } catch PaymentDomainError.insufficientBalance {
+        state = .failure(&quot;Insufficient balance&quot;)
+        return .failure(&quot;Insufficient balance&quot;)
+    } // ... limitExceeded, then a generic failure
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Before</span><ul style="margin:6px 0 0"><li>submit() returned Void</li><li>The caller read shared state after the await</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Now</span><ul style="margin:6px 0 0"><li>The caller gets this call&rsquo;s result</li><li>Views still render <code>state</code></li></ul></div></div>
+        <div class="rule step" data-label="In NPay"><ul style="margin:6px 0 0"><li>Confirm switches on the result (Part 4)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Section 20 improves the contract. The earlier submit returned nothing, so the caller had to inspect mutable state after awaiting it, and that state might already belong to something else. Now submit returns a PaymentSubmissionResult: success with the record, failure with a message, or statusUnknown, and still sets state for rendering.</p>
+    <span class="notes-label">SAY</span><p>Click: the caller receives the result of exactly the command it submitted; the views keep rendering the published state. Two complementary responsibilities. Click: NPay&rsquo;s Confirm already switches on this result, as Part 4 showed. For the local demo the repository gives definitive answers, so no unknown outcome is invented for ordinary validation errors.</p>
+    <span class="notes-label">CONNECT</span><p>Test it.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Testing and scope</h2>
+    <p class="lead">Test the transitions; keep concerns apart</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>And not one enormous enum.</p>
+    <span class="notes-label">CONNECT</span><p>The test.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Testing the state machine (section 22)</p>
+  <h2>The test passed; read what it checks</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <table class="tbl compact"><thead><tr><th>Scenario</th><th>Expected state</th></tr></thead><tbody><tr><td>Initial ViewModel</td><td>idle</td></tr><tr><td>Submission starts</td><td>submitting</td></tr><tr><td>Repository succeeds</td><td>success(record)</td></tr><tr><td>Repository rejects</td><td>failure(message)</td></tr><tr><td>Unknown remote outcome</td><td>statusUnknown</td></tr></tbody></table>
+        <div class="step"><div class="card accent"><span class="label">Section 22, Mac (₹500 from ₹100)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">Correct failure result<br>Correct UI state</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">It checks</span><ul style="margin:6px 0 0"><li><code>case .failure</code>, any message</li><li>No receipt, no navigation</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">It missed</span><ul style="margin:6px 0 0"><li>The message was the generic one (Part 4)</li><li>Assert the message too</li></ul></div></div>
+        <div class="rule step" data-label="Lesson 4.9"><ul style="margin:6px 0 0"><li>One test per transition, with exact values</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s table of transitions to verify: idle at first, submitting during, success with the record, failure with a message, statusUnknown for a genuinely unknown remote outcome. Click: Section 22&rsquo;s failure test: ₹500 from ₹100. It printed "Correct failure result" and "Correct UI state": the ViewModel reports failure and fabricates no receipt.</p>
+    <span class="notes-label">SAY</span><p>Click: but notice what it checks: case .failure, with any message. Click: on Lesson 4.6&rsquo;s use case the message was the generic "Unable to complete demo payment", the mapping gap from Part 4, and the test still passed. A test that asserts the exact message would have caught it. Click: Lesson 4.9 writes one test per transition, with exact values.</p>
+    <span class="notes-label">CONNECT</span><p>Should everything go in the enum?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Why not one enormous enum? (section 23)</p>
+  <h2>Separate concerns; impossible combinations within each</h2>
+  <div class="body">
+    <i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1020 160" style="max-height:170px" role="img" aria-labelledby="split">
+        <title id="split">Payment feature: form, submission, presentation and navigation state</title>
+        <g class="nd solid"><rect class="sh" x="330" y="0" width="360" height="54" rx="12"/><use class="on" href="#i-layers" x="344" y="14" width="26" height="26"/><text class="on" x="382" y="33">Payment feature</text></g>
+        <path class="wire" d="M510 55L120 98M113 91l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="0" y="100" width="240" height="56" rx="12"/><use href="#i-frame" x="14" y="115" width="26" height="26"/><text x="52" y="125">Form state</text><text class="sm" x="52" y="143">recipient, amount</text></g>
+        <path class="wire" d="M510 55L380 98M373 91l7 7 7-7"/>
+        <g class="nd" data-lit="1+"><rect class="sh" x="260" y="100" width="240" height="56" rx="12"/><use href="#i-clock" x="274" y="115" width="26" height="26"/><text x="312" y="125">Submission state</text><text class="sm" x="312" y="143">idle, busy, result</text></g>
+        <path class="wire" d="M510 55L640 98M633 91l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="520" y="100" width="240" height="56" rx="12"/><use href="#i-phone" x="534" y="115" width="26" height="26"/><text x="572" y="125">Presentation state</text><text class="sm" x="572" y="143">review sheet</text></g>
+        <path class="wire" d="M510 55L900 98M893 91l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="780" y="100" width="240" height="56" rx="12"/><use href="#i-decision" x="794" y="115" width="26" height="26"/><text x="832" y="125">Navigation state</text><text class="sm" x="832" y="143">success route</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px">
+      <div class="step"><div class="card accent"><span class="label">Elsewhere already</span><ul style="margin:6px 0 0"><li>Focus: @FocusState (2.11)</li><li>Sheet: <code>review</code>; route: NPayRouter</li><li>Draft: the ViewModel; appearance: preferences</li></ul></div></div>
+      <div class="rule step" data-label="Goal"><ul style="margin:6px 0 0"><li>Make invalid combinations hard</li><li>Not the fewest variables</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>PaymentUIState models submission status. NPay also has text-field focus, review-sheet visibility, navigation paths, appearance preferences and the payment draft. Combine them into one enum? No: that would produce an overly complex state machine. Click: the payment feature has form state, submission state, in teal, presentation state and navigation state, each with its own owner.</p>
+    <span class="notes-label">SAY</span><p>Click: and they already live in the right places: focus in @FocusState, the sheet in the screen&rsquo;s review property, the route in NPayRouter, the draft in the ViewModel, appearance in preferences, Lesson 3.12&rsquo;s ownership table. Click: the goal is not to minimize state variables at all costs; it is to make invalid combinations hard to represent while keeping independent concerns separate.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.7 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p style="font-size:23px"><b>One enum, one lifecycle</b><br><span class="muted" style="font-size:19px">idle, validating, submitting, success, failure, unknown</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></span><p style="font-size:23px"><b>Results belong to submissions</b><br><span class="muted" style="font-size:19px">return the result; check the active ID</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><p style="font-size:23px"><b>Cancelled &ne; reversed &ne; failed</b><br><span class="muted" style="font-size:19px">cancelled after recording: the money moved</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. Model the submission lifecycle as one enum with associated values, guard it with isBusy, and render it with an exhaustive switch; four Booleans allow sixteen states, most of them nonsense. Tie every asynchronous result to the submission that produced it: return it from submit, and ignore results whose submission is no longer active. And keep cancellation, failure and unknown apart: our cancelled task reported failure after the money had already moved, which is exactly what statusUnknown and status checks exist for.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>11 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why use an enum for payment lifecycle state?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why use an enum for payment lifecycle state?</p><ol class="q-opts"><li>To create more threads</li><li>To represent mutually exclusive states</li><li>To replace the repository</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">One case at a time; 16 Boolean combinations gone.</p>
+          <p class="q-trap"><b>Common trap:</b> Adding flags for every new situation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. One case at a time; 16 Boolean combinations gone.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does await guarantee that code runs on a background thread?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does <code>await</code> guarantee that code runs on a background thread?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It marks a suspension point; isolation decides where code runs.</p>
+          <p class="q-trap"><b>Common trap:</b> Equating async with background.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. It marks a suspension point; isolation decides where code runs.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does cancelling a Swift task necessarily reverse a payment?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-shield"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does canceling a Swift task necessarily reverse a payment?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Cancelled after recording: 1 payment, 2349950.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating cancellation as undo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some say yes.</p>
+    <span class="notes-label">SAY</span><p>No. Cancelled after recording: 1 payment, 2349950.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does statusUnknown represent?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-eye"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does <code>statusUnknown</code> represent?</p><ol class="q-opts"><li>Definitive payment failure</li><li>The app can&rsquo;t determine the authoritative outcome</li><li>Guaranteed success</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Check status before retrying.</p>
+          <p class="q-trap"><b>Common trap:</b> Reporting failure when unsure.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. Check status before retrying.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why return PaymentSubmissionResult from submit()?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why return <code>PaymentSubmissionResult</code> from <code>submit()</code>?</p><ol class="q-opts"><li>To persist data automatically</li><li>To replace SwiftUI rendering</li><li>To associate the result with that invocation</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">No reading shared state after the await.</p>
+          <p class="q-trap"><b>Common trap:</b> Reading mutable state that may have moved on.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. No reading shared state after the await.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should a failed payment navigate to the success screen?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should a failed payment navigate to the success screen?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">The sheet stayed: &ldquo;Insufficient balance&rdquo;, no route.</p>
+          <p class="q-trap"><b>Common trap:</b> Navigating on tap instead of on result.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. The sheet stayed: &ldquo;Insufficient balance&rdquo;, no route.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Does a UI submission guard guarantee server-side idempotency?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Does a UI submission guard guarantee server-side idempotency?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">isBusy stops a double tap here, not a retry elsewhere.</p>
+          <p class="q-trap"><b>Common trap:</b> Confusing local guards with the server.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. isBusy stops a double tap here, not a retry elsewhere.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should form focus and navigation paths be forced into PaymentUIState?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should form focus and navigation paths be forced into <code>PaymentUIState</code>?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">Separate concerns, separate owners.</p>
+          <p class="q-trap"><b>Common trap:</b> One enum for everything.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. Separate concerns, separate owners.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="state = .validating; state = .submitting in one turn: which does a view see?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>submit</code> sets <code>.validating</code> then <code>.submitting</code> with no await between. Which states can a view observe before the result?</p><ol class="q-opts"><li>Both</li><li>Only submitting</li><li>Neither</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Observed: [submitting, success(150050)].</p>
+          <p class="q-trap"><b>Common trap:</b> Expecting every assignment to render.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Observed: [submitting, success(150050)].</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="₹500 from ₹100 on 4.6&#x27;s use case: the message?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 10 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text">The text&rsquo;s ViewModel on Lesson 4.6&rsquo;s use case submits ₹500 against ₹100. The failure message is&hellip;</p><ol class="q-opts"><li>Insufficient balance</li><li>Unable to complete demo payment</li><li>Demo payment limit exceeded</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The repository&rsquo;s error wasn&rsquo;t mapped.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming errors translate themselves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Many pick A.</p>
+    <span class="notes-label">SAY</span><p>B. The repository&rsquo;s error wasn&rsquo;t mapped.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 4.6: what should Confirm submit?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 11 of 11</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 4.6: what should the review sheet&rsquo;s Confirm submit?</p><ol class="q-opts"><li>The current form fields</li><li>The immutable command the user reviewed</li><li>The last successful payment</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">The reviewed command paid 150050, not 200000.</p>
+          <p class="q-trap"><b>Common trap:</b> Re-reading the form.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 4.6.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. The reviewed command paid 150050, not 200000.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.7 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">4.8</td><td><b>Modular project structure</b></td><td>the payment feature&rsquo;s files, organized</td></tr><tr><td class="mono">4.9</td><td><b>Architecture testing</b></td><td>one test per transition, with exact messages</td></tr><tr><td class="mono">Unit 5</td><td><b>Networking</b></td><td>classifying errors; statusUnknown for real</td></tr><tr><td class="mono">Unit 8</td><td><b>Concurrency</b></td><td>task lifetime, cancellation, structured concurrency</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.8 organizes the growing payment feature into a modular structure. 4.9 tests every transition with exact values. Unit 5 brings networks, where statusUnknown stops being hypothetical, and Unit 8 covers task lifetime and structured cancellation.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.7 &middot; Lab</p>
+  <h2>PaymentUIState</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">An honest model of the payment&rsquo;s progress.</p><ol class="lab"><li>Add PaymentUIState with isBusy and statusUnknown.</li><li>Replace isSubmitting and errorMessage with state.</li><li>Return PaymentSubmissionResult from submit.</li><li>Render statusContent in the review sheet.</li><li>Block dismissal while busy; stay open on failure.</li><li>Test a failure, asserting the message.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your state enum and ViewModel</li><li>Screens: submitting and failure</li><li>A test that checks the exact message</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: success navigates; a refused payment keeps the sheet with &ldquo;Insufficient balance&rdquo; once the use case maps the repository error; a double Confirm records one payment.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 4.7 complete</p>
+    <h2>UI State Modeling &amp;<br>Async Payment Lifecycle</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 4.8 &mdash; Modular Project Structure</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now model a lifecycle with an enum, guard and render it, return results tied to their submission, and keep cancellation, failure and unknown outcomes apart.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 4.8: modular project structure for NPay&rsquo;s features.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+../../../NPay/Features/Payments/ValidatedPaymentRequest.swift

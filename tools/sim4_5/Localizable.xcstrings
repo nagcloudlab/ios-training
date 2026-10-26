@@ -1,0 +1,30 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "balance.available" : {
+      "comment" : "Title above the balance amount",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Available Balance" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "उपलब्ध बैलेंस" } },
+        "ta" : { "stringUnit" : { "state" : "translated", "value" : "கிடைக்கும் இருப்பு" } }
+      }
+    },
+    "payment.send" : {
+      "comment" : "Primary action: start a payment",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send Money" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "पैसे भेजें" } },
+        "ta" : { "stringUnit" : { "state" : "translated", "value" : "பணம் அனுப்பு" } }
+      }
+    },
+    "transactions.recent" : {
+      "comment" : "Section header for the latest transactions",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recent Transactions" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "हाल के लेन-देन" } },
+        "ta" : { "stringUnit" : { "state" : "translated", "value" : "சமீபத்திய பரிவர்த்தனைகள்" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

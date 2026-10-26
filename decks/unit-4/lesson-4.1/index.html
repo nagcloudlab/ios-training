@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4.1 — Why iOS Applications Need Architecture</title>
+<link rel="stylesheet" href="../../../shared/deck.css">
+</head>
+<body data-deck="Unit 04 · Lesson 4.1 — Why iOS Applications Need Architecture">
+<div class="deck">
+
+<section class="slide title" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#134e4a 100%)">
+  <div class="body" style="z-index:1;position:relative">
+    <p class="kicker" style="letter-spacing:.2em">Unit 04 &middot; Lesson 4.1</p>
+    <h1 style="font-size:54px;line-height:1.05">Why iOS Applications<br>Need Architecture</h1>
+    <p class="lead" style="max-width:760px">NPay works at 500 lines. What happens at <b>50,000</b>? MVC, MVVM and Clean Architecture, through NPay&rsquo;s own problems.</p>
+  </div>
+  <svg style="position:absolute;right:-30px;top:-30px;width:460px;opacity:.06;pointer-events:none" viewBox="0 0 460 460"><circle cx="230" cy="230" r="200" stroke="#5eead4" stroke-width="1" fill="none"/><circle cx="230" cy="230" r="140" stroke="#5eead4" stroke-width=".5" fill="none"/><circle cx="230" cy="230" r="80" stroke="#5eead4" stroke-width=".5" fill="none"/></svg>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Unit 3 left NPay with a working architecture for navigation, payment forms, review sheets, history and shared state. Before we add networking and databases, we improve how the code is organised. The question for today: why does an app that works perfectly at 500 lines become hard to maintain at 50,000? We answer it with NPay&rsquo;s own code, make our first small refactoring, and prove the app still behaves exactly the same.</p>
+    <span class="notes-label">CONNECT</span><p>Here's what you'll be able to explain by the end.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.1 &middot; Outcomes</p>
+  <h2>By the end, you will be able to explain</h2>
+  <div class="body">
+    <div class="cols c3 stagger step">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p>Name the responsibilities an app must separate</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p>Compare MVC, MVVM and Clean Architecture</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></span><p>Describe NPay&rsquo;s target architecture</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p>Extract business rules into plain Swift</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></span><p>Explain why repository protocols matter</p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span><p>Refactor while preserving observable behaviour</p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>6 things you should be able to explain by the end of this lesson.</p>
+    <span class="notes-label">CONNECT</span><p>First, where we are.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.1 &middot; Where we are</p>
+  <h2>Today: organising NPay&rsquo;s code</h2>
+  <div class="body">
+    <p class="kicker" style="margin:0 0 10px;color:var(--muted)">Unit 04 &middot; Application Architecture &amp; MVVM</p>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1136 84" style="max-height:96px" role="img" aria-labelledby="prog">
+        <title id="prog">Unit 04 progress: lesson 4.1 of 10</title>
+        <g class="nd lit"><rect class="sh" x="0" y="0" width="104" height="84" rx="12"/><text class="sm" x="12" y="24">4.1</text><text x="12" y="50" style="font-size:14px">Architecture</text><text x="12" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="114.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="126.667" y="24">4.2</text><text x="126.667" y="50" style="font-size:14px">MVVM</text><text x="126.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="229.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="241.333" y="24">4.3</text><text x="241.333" y="50" style="font-size:14px">Observation</text><text x="241.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="344" y="0" width="104" height="84" rx="12"/><text class="sm" x="356" y="24">4.4</text><text x="356" y="50" style="font-size:14px">Dependency</text><text x="356" y="68" style="font-size:14px">injection</text></g>
+        <g class="nd ghost"><rect class="sh" x="458.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="470.667" y="24">4.5</text><text x="470.667" y="50" style="font-size:14px">Repository</text><text x="470.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="573.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="585.333" y="24">4.6</text><text x="585.333" y="50" style="font-size:14px">Use cases</text><text x="585.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="688" y="0" width="104" height="84" rx="12"/><text class="sm" x="700" y="24">4.7</text><text x="700" y="50" style="font-size:14px">UI state</text><text x="700" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="802.667" y="0" width="104" height="84" rx="12"/><text class="sm" x="814.667" y="24">4.8</text><text x="814.667" y="50" style="font-size:14px">Modules</text><text x="814.667" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="917.333" y="0" width="104" height="84" rx="12"/><text class="sm" x="929.333" y="24">4.9</text><text x="929.333" y="50" style="font-size:14px">Testing</text><text x="929.333" y="68" style="font-size:14px"></text></g>
+        <g class="nd ghost"><rect class="sh" x="1032" y="0" width="104" height="84" rx="12"/><text class="sm" x="1044" y="24">4.10</text><text x="1044" y="50" style="font-size:14px">Integration</text><text x="1044" y="68" style="font-size:14px">lab</text></g>
+      </svg>
+    </div>
+    <div class="gap-lg"></div>
+    <div class="bridge lg" style="margin-top:0"><span><b>Last time</b>3.12: the complete Unit 3 app, verified.</span><span><b>Today</b>Architecture: why and where we&rsquo;re heading.</span></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 3.12 ended Unit 3 with a verified app and a list of limitations: the store holds payment rules, screens reach the shared store directly, and nothing is tested automatically. Unit 4 addresses exactly those. Today is the why and the first small step.</p>
+    <span class="notes-label">CONNECT</span><p>The problem.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 1</p>
+    <h2>The problem</h2>
+    <p class="lead">One store, too many jobs</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>What works at 500 lines breaks at 50,000.</p>
+    <span class="notes-label">CONNECT</span><p>NPayStore today.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; The problem with our current NPay architecture (section 1)</p>
+  <h2>Every new feature lands in NPayStore</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>NPayStore (outline from the text)</span></div><pre class="cb" style="font-size:11px">@MainActor
+@Observable
+final class NPayStore {
+    var balancePaise = 2_500_000
+    var transactions: [Transaction] = []
+    var paymentDraft = PaymentDraft()
+
+    func recordDemoPayment(
+        recipient: String,
+        amountPaise: Int
+    ) -&gt; UUID? {
+        // Validate recipient
+        // Validate amount
+        // Check balance
+        // Deduct money
+        // Create transaction
+        // Update history
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 960 352" style="max-height:250px" role="img" aria-labelledby="grow">
+        <title id="grow">NPayStore with balance, transactions, payment validation, payment execution, draft state and future networking</title>
+        <g class="nd solid"><rect class="sh" x="330" y="150" width="300" height="64" rx="12"/><use class="on" href="#i-db" x="344" y="169" width="26" height="26"/><text class="on" x="382" y="179">NPayStore</text><text class="sm on" x="382" y="197">application state + payment logic</text></g>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="300" height="52" rx="12"/><text x="16" y="32">Balance</text></g>
+        <path class="wire" d="M150 53L480 149"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="330" y="0" width="300" height="52" rx="12"/><text x="346" y="32">Transactions</text></g>
+        <path class="wire" d="M480 53L480 149"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="660" y="0" width="300" height="52" rx="12"/><text x="676" y="32">Payment validation</text></g>
+        <path class="wire" d="M810 53L480 149"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="300" width="300" height="52" rx="12"/><text x="16" y="332">Payment execution</text></g>
+        <path class="wire" d="M150 299L480 215"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="330" y="300" width="300" height="52" rx="12"/><text x="346" y="332">Draft state</text></g>
+        <path class="wire" d="M480 299L480 215"/>
+        <g class="nd alert"><rect class="sh" x="660" y="300" width="300" height="52" rx="12"/><text x="676" y="332">Future networking</text></g>
+        <path class="wire faint" d="M810 299L480 215"/>
+      </svg>
+    </div></div>
+        <div class="step"><div class="card accent"><span class="label">Next: backend API, biometrics, persistence, limits, retries</span><ul style="margin:6px 0 0"><li>Where would each one go?</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Our NPayStore holds the balance, the transactions and the payment draft, and its recordDemoPayment validates the recipient and amount, checks the balance, deducts money, creates the transaction and updates history. For a learning prototype, that works.</p>
+    <span class="notes-label">SAY</span><p>Click through what it is responsible for: the balance; the transactions; payment validation; payment execution; the draft state. And in orange, the one we have not added yet: networking.</p>
+    <span class="notes-label">SAY</span><p>Click: NPay now needs a backend API, biometric authentication, persistence, payment limits and retry handling. If every one of them lands in NPayStore, it becomes one large object with too many responsibilities.</p>
+    <span class="notes-label">CONNECT</span><p>What goes wrong, concretely?</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 1 &middot; What could go wrong? (section 1)</p>
+  <h2>Change, test, replace: all harder</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Change</span><ul style="margin:6px 0 0"><li>Edit validation, break unrelated state</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Test</span><ul style="margin:6px 0 0"><li>Testing payment logic needs the whole store</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">Replace</span><ul style="margin:6px 0 0"><li>Swap demo payments for an API: the UI is coupled to networking</li></ul></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Our 3.12 code</th><th>Lines</th><th>Holds</th></tr></thead><tbody><tr><td><code>NPayStore</code></td><td>63</td><td>balance, transactions, draft, payment rules</td></tr><tr><td><code>PaymentsScreen</code></td><td>160</td><td>6 state properties; 14 uses of the store</td></tr><tr><td><code>NPayRootView</code></td><td>92</td><td>owners, tabs, every route&rsquo;s screen</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">Counted in the Unit 3 app (authored measurement).</p></div>
+        <div class="rule step" data-label="Architecture"><ul style="margin:6px 0 0"><li>Manages these dependencies</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s three risks. Change: if we change payment validation, we might accidentally affect unrelated state. Click: test: to test payment logic, we may need to construct the entire store. Click: replace: when local demo payments become an API, the UI could become tightly coupled to networking.</p>
+    <span class="notes-label">SAY</span><p>Click: a measurement from our own Unit 3 app: NPayStore is sixty-three lines; PaymentsScreen is a hundred and sixty, with six state properties and fourteen uses of the store; NPayRootView, ninety-two. Small today, but every one of those numbers grows with each feature.</p>
+    <span class="notes-label">SAY</span><p>Click: architecture helps us manage these dependencies.</p>
+    <span class="notes-label">CONNECT</span><p>So what is architecture?</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 2</p>
+    <h2>What architecture is</h2>
+    <p class="lead">Clear responsibilities, clear boundaries</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>And three well-known shapes.</p>
+    <span class="notes-label">CONNECT</span><p>The responsibilities.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; What is application architecture? (section 2)</p>
+  <h2>Divide responsibilities; define how they talk</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i>
+    <div class="diagram">
+      <svg class="art" viewBox="0 0 1120 120" style="max-height:128px" role="img" aria-labelledby="resp">
+        <title id="resp">Presentation, presentation state, business rules, data access, navigation</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="208" height="120" rx="14"/><use href="#i-phone" x="90" y="14" width="28" height="28"/><text x="104" y="84" text-anchor="middle">Presentation</text><text class="sm" x="104" y="104" text-anchor="middle">what the user sees</text></g>
+        <g class="nd" data-lit="2"><rect class="sh" x="228" y="0" width="208" height="120" rx="14"/><use href="#i-layers" x="318" y="14" width="28" height="28"/><text x="332" y="84" text-anchor="middle">Presentation state</text><text class="sm" x="332" y="104" text-anchor="middle">what the screen needs to display</text></g>
+        <g class="nd" data-lit="3"><rect class="sh" x="456" y="0" width="208" height="120" rx="14"/><use href="#i-check" x="546" y="14" width="28" height="28"/><text x="560" y="84" text-anchor="middle">Business rules</text><text class="sm" x="560" y="104" text-anchor="middle">what makes a payment valid</text></g>
+        <g class="nd" data-lit="4"><rect class="sh" x="684" y="0" width="208" height="120" rx="14"/><use href="#i-db" x="774" y="14" width="28" height="28"/><text x="788" y="84" text-anchor="middle">Data access</text><text class="sm" x="788" y="104" text-anchor="middle">where account data comes from</text></g>
+        <g class="nd" data-lit="5+"><rect class="sh" x="912" y="0" width="208" height="120" rx="14"/><use href="#i-decision" x="1002" y="14" width="28" height="28"/><text x="1016" y="84" text-anchor="middle">Navigation</text><text class="sm" x="1016" y="104" text-anchor="middle">where the user goes next</text></g>
+      </svg>
+    </div>
+    <div class="gap"></div>
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px">
+      <div class="step"><div class="card accent"><span class="label">In NPay today</span><ul style="margin:6px 0 0"><li>PaymentsScreen: presentation <i>and</i> rules</li><li>NPayStore: data <i>and</i> rules</li><li>NPayRouter: navigation only</li></ul></div></div>
+      <div class="rule step" data-label="Goal"><ul style="margin:6px 0 0"><li>Clear boundaries between these five</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Application architecture defines how responsibilities are divided and how components communicate. For NPay we want to separate five things. Click: presentation, what the user sees. Click: presentation state, what the screen needs to display. Click: business rules, what makes a payment valid. Click: data access, where account and transaction information comes from. Click: navigation, where the user goes next.</p>
+    <span class="notes-label">SAY</span><p>Click: in NPay today, the Payments screen holds presentation and validation rules; the store holds data and rules too; only the router is already clean, a single responsibility since Lesson 3.2. Click: the goal is clear boundaries between all five.</p>
+    <span class="notes-label">CONNECT</span><p>Three common shapes for those boundaries.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 2 &middot; MVC, MVVM and Clean Architecture (section 3)</p>
+  <h2>Three shapes; NPay uses MVVM plus Clean ideas</h2>
+  <div class="body">
+    <i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 1100 260" style="max-height:200px" role="img" aria-labelledby="mvx">
+        <title id="mvx">MVC: view, controller, model; MVVM: view, ViewModel, model; Clean: UI, use cases, domain</title>
+        <text x="170" y="18" text-anchor="middle">MVC</text>
+        <g class="nd"><rect class="sh" x="20" y="34" width="300" height="56" rx="12"/><text x="36" y="68">View</text></g>
+        <path class="wire" d="M170 91V114M163 107l7 7 7-7"/>
+        <g class="nd" data-lit="1"><rect class="sh" x="20" y="116" width="300" height="56" rx="12"/><text x="36" y="150">Controller</text></g>
+        <path class="wire" d="M170 173V196M163 189l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="20" y="198" width="300" height="56" rx="12"/><text x="36" y="232">Model</text></g>
+        <text x="550" y="18" text-anchor="middle">MVVM</text>
+        <g class="nd"><rect class="sh" x="400" y="34" width="300" height="56" rx="12"/><text x="416" y="68">View</text></g>
+        <path class="wire" d="M550 91V114M543 107l7 7 7-7"/>
+        <g class="nd" data-lit="2+"><rect class="sh" x="400" y="116" width="300" height="56" rx="12"/><text x="416" y="150">ViewModel</text></g>
+        <path class="wire" d="M550 173V196M543 189l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="400" y="198" width="300" height="56" rx="12"/><text x="416" y="232">Model</text></g>
+        <text x="930" y="18" text-anchor="middle">Clean</text>
+        <g class="nd"><rect class="sh" x="780" y="34" width="300" height="56" rx="12"/><text x="796" y="68">UI</text></g>
+        <path class="wire" d="M930 91V114M923 107l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="780" y="116" width="300" height="56" rx="12"/><text x="796" y="150">Use Cases</text></g>
+        <path class="wire" d="M930 173V196M923 189l7 7 7-7"/>
+        <g class="nd"><rect class="sh" x="780" y="198" width="300" height="56" rx="12"/><text x="796" y="232">Domain</text></g>
+      </svg>
+    </div>
+    <p class="small muted" style="margin:4px 0 10px">Simplified teaching diagrams: real architectures have more relationships.</p>
+    <div class="cols" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:18px">
+      <div class="card accent"><span class="label">MVC</span><ul style="margin:6px 0 0"><li>Controller coordinates views and models</li><li>Historically common in UIKit</li></ul></div><div class="card accent"><span class="label">MVVM</span><ul style="margin:6px 0 0"><li>ViewModel holds the screen&rsquo;s state and behaviour</li><li>Fits SwiftUI&rsquo;s state-driven model</li></ul></div><div class="card accent"><span class="label">Clean</span><ul style="margin:6px 0 0"><li>Dependency direction; rules apart from technology</li><li>Complements MVVM</li></ul></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three shapes, as simplified teaching diagrams. Click: MVC, Model-View-Controller, historically common in UIKit: the controller coordinates user interaction and updates between views and models.</p>
+    <span class="notes-label">SAY</span><p>Click: MVVM, Model-View-ViewModel: the ViewModel holds the state and behaviour a screen needs, separate from how the screen looks. It fits SwiftUI&rsquo;s state-driven approach naturally. Click: Clean Architecture emphasises dependency direction and keeping business rules apart from external technologies such as networking and storage. It complements MVVM rather than replacing it.</p>
+    <span class="notes-label">SAY</span><p>NPay&rsquo;s choice, in the title: MVVM for presentation, with domain use cases and repository abstractions introduced incrementally across Unit 4.</p>
+    <span class="notes-label">CONNECT</span><p>What that looks like for one feature.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 3</p>
+    <h2>Where we&rsquo;re heading</h2>
+    <p class="lead">View, ViewModel, use case, repository</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The direction for all of Unit 4.</p>
+    <span class="notes-label">CONNECT</span><p>The target.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; Our target NPay architecture (section 4)</p>
+  <h2>Five layers for the payment feature</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 620 328" style="max-height:340px" role="img" aria-labelledby="tgt">
+        <title id="tgt">SwiftUI view, ViewModel, use case, repository protocol, implementation</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="620" height="56" rx="12"/><use href="#i-phone" x="14" y="15" width="26" height="26"/><text x="52" y="25">SwiftUI View</text><text class="sm" x="52" y="43">PaymentsScreen: renders the form</text></g>
+        <path class="wire" d="M310 57V66M303 59l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="68" width="620" height="56" rx="12"/><use href="#i-layers" x="14" y="83" width="26" height="26"/><text x="52" y="93">ViewModel</text><text class="sm" x="52" y="111">PaymentViewModel: form state, submission</text></g>
+        <path class="wire" d="M310 125V134M303 127l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="136" width="620" height="56" rx="12"/><use href="#i-check" x="14" y="151" width="26" height="26"/><text x="52" y="161">Use Case</text><text class="sm" x="52" y="179">SendPaymentUseCase: payment rules</text></g>
+        <path class="wire" d="M310 193V202M303 195l7 7 7-7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="204" width="620" height="56" rx="12"/><use href="#i-key" x="14" y="219" width="26" height="26"/><text x="52" y="229">Repository Protocol</text><text class="sm" x="52" y="247">PaymentRepository: abstracts payments</text></g>
+        <path class="wire" d="M310 261V270M303 263l7 7 7-7"/>
+        <g class="nd" data-lit="5+"><rect class="sh" x="0" y="272" width="620" height="56" rx="12"/><use href="#i-db" x="14" y="287" width="26" height="26"/><text x="52" y="297">Implementation</text><text class="sm" x="52" y="315">DemoPaymentRepository now; an API later</text></g>
+      </svg>
+    </div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Each layer knows less</span><ul style="margin:6px 0 0"><li>The view: nothing about rules</li><li>The ViewModel: nothing about layout</li><li>The use case: nothing about storage</li></ul></div></div>
+        <div class="rule step" data-label="Unit 4"><ul style="margin:6px 0 0"><li>Built toward lesson by lesson</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The direction for Unit 4. Click: the SwiftUI view, PaymentsScreen, renders the form. Click: the ViewModel, PaymentViewModel, manages form state and submission. Click: the use case, SendPaymentUseCase, applies the payment rules. Click: the repository protocol, PaymentRepository, abstracts payment operations. Click: the implementation: DemoPaymentRepository now, an API implementation later.</p>
+    <span class="notes-label">SAY</span><p>Click: each layer knows less than the one before it needs to: the view nothing about rules, the ViewModel nothing about layout, the use case nothing about where data is stored. Click: we build toward this across Unit 4, one lesson at a time.</p>
+    <span class="notes-label">CONNECT</span><p>How state flows through it.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 3 &middot; How MVVM changes state flow (section 7) &middot; conceptual</p>
+  <h2>The view delegates; the ViewModel coordinates</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><i class="step cue"></i><div class="diagram">
+      <svg class="art" viewBox="0 0 520 338" style="max-height:350px" role="img" aria-labelledby="flow">
+        <title id="flow">Confirm tap, ViewModel, use case, repository, result, SwiftUI update</title>
+        <g class="nd" data-lit="1"><rect class="sh" x="0" y="0" width="520" height="48" rx="12"/><use href="#i-tap" x="14" y="11" width="26" height="26"/><text x="52" y="21">User taps Confirm</text><text class="sm" x="52" y="39">SwiftUI Button action</text></g>
+        <path class="wire" d="M260 49V56M253 49l7 7 7-7"/>
+        <g class="nd" data-lit="2"><rect class="sh" x="0" y="58" width="520" height="48" rx="12"/><use href="#i-layers" x="14" y="69" width="26" height="26"/><text x="52" y="79">PaymentViewModel</text><text class="sm" x="52" y="97">coordinates, exposes UI state</text></g>
+        <path class="wire" d="M260 107V114M253 107l7 7 7-7"/>
+        <g class="nd" data-lit="3"><rect class="sh" x="0" y="116" width="520" height="48" rx="12"/><use href="#i-check" x="14" y="127" width="26" height="26"/><text x="52" y="137">SendPaymentUseCase</text><text class="sm" x="52" y="155">applies payment rules</text></g>
+        <path class="wire" d="M260 165V172M253 165l7 7 7-7"/>
+        <g class="nd" data-lit="4"><rect class="sh" x="0" y="174" width="520" height="48" rx="12"/><use href="#i-db" x="14" y="185" width="26" height="26"/><text x="52" y="195">PaymentRepository</text><text class="sm" x="52" y="213">performs the operation</text></g>
+        <path class="wire" d="M260 223V230M253 223l7 7 7-7"/>
+        <g class="nd" data-lit="5"><rect class="sh" x="0" y="232" width="520" height="48" rx="12"/><use href="#i-layers" x="14" y="243" width="26" height="26"/><text x="52" y="253">ViewModel receives result</text><text class="sm" x="52" y="271">success or error state</text></g>
+        <path class="wire" d="M260 281V288M253 281l7 7 7-7"/>
+        <g class="nd" data-lit="6+"><rect class="sh" x="0" y="290" width="520" height="48" rx="12"/><use href="#i-phone" x="14" y="301" width="26" height="26"/><text x="52" y="311">SwiftUI updates</text><text class="sm" x="52" y="329">shows the result</text></g>
+      </svg>
+    </div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Unit 3</span><ul style="margin:6px 0 0"><li>The view called the shared store directly</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">The ViewModel doesn&rsquo;t know</span><ul style="margin:6px 0 0"><li>The physical layout of the screen</li></ul></div></div>
+        <div class="step"><div class="card accent"><span class="label">The view doesn&rsquo;t know</span><ul style="margin:6px 0 0"><li>Whether payments are in memory or an API</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>In Unit 3 our view called the shared store directly. With MVVM, the view delegates. Click through: the user taps Confirm, a SwiftUI Button action; the PaymentViewModel coordinates submission and exposes UI state; the SendPaymentUseCase executes the payment rules; the PaymentRepository performs the operation; the ViewModel receives the result and updates success or error state; SwiftUI updates the screen.</p>
+    <span class="notes-label">SAY</span><p>This is the target, conceptually; none of the use case or repository exists in NPay yet. Click: the ViewModel does not need to know the physical layout of the payment screen. Click: and the view does not need to know whether the repository uses in-memory data or an API.</p>
+    <span class="notes-label">CONNECT</span><p>Let&rsquo;s take the first small step.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 4</p>
+    <h2>First refactoring</h2>
+    <p class="lead">Move validation out of the View</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>A pure Swift validator, testable alone.</p>
+    <span class="notes-label">CONNECT</span><p>The code.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Move validation out of the View (section 5)</p>
+  <h2>PaymentValidator: rules without SwiftUI</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentValidator.swift (import Foundation)</span></div><pre class="cb" style="font-size:10.5px">enum PaymentValidationError: Error {
+    case emptyRecipient
+    case invalidAmount
+    case insufficientBalance
+}
+
+struct PaymentValidator {
+
+    func validate(
+        recipient: String,
+        amountPaise: Int,
+        balancePaise: Int
+    ) throws {
+
+        guard !recipient.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ).isEmpty else {
+            throw PaymentValidationError.emptyRecipient
+        }
+
+        guard amountPaise &gt; 0 else {
+            throw PaymentValidationError.invalidAmount
+        }
+
+        guard amountPaise &lt;= balancePaise else {
+            throw PaymentValidationError.insufficientBalance
+        }
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">Three rules, three errors</span><ul style="margin:6px 0 0"><li>Recipient not blank</li><li>Amount above zero</li><li>Amount within the balance</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">What changed</span><ul style="margin:6px 0 0"><li>No dependency on SwiftUI</li><li>Callable from a ViewModel, a use case, a test</li></ul></div></div>
+        <div class="rule step" data-label="First step"><ul style="margin:6px 0 0"><li>Toward testable architecture</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Start small. Our payment form validates the amount inside the SwiftUI view. We extract a pure Swift validation component: an error enum with three cases, empty recipient, invalid amount, insufficient balance; and a PaymentValidator struct whose validate method takes the recipient, the amount in paise and the balance in paise, and throws.</p>
+    <span class="notes-label">SAY</span><p>The rules: the recipient, trimmed of whitespace, must not be empty; the amount must be above zero; the amount must not exceed the balance. Only Foundation is imported. Click: the rules no longer depend on SwiftUI: we can call them from a ViewModel, a use case or a unit test. Click: this is our first step toward a testable architecture.</p>
+    <span class="notes-label">CONNECT</span><p>Test it without launching NPay.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 4 &middot; Test the validator without launching NPay (section 6)</p>
+  <h2>No screen, no simulator</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Section 6</span></div><pre class="cb" style="font-size:12px">let validator = PaymentValidator()
+
+do {
+    try validator.validate(
+        recipient: &quot;ravi@npay&quot;,
+        amountPaise: 150_000,
+        balancePaise: 2_500_000
+    )
+
+    print(&quot;Valid payment&quot;)
+} catch {
+    print(&quot;Validation failed:&quot;, error)
+}</pre></div>
+        <div class="step"><div class="card accent"><span class="label">Output (Mac, swiftc)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:14px;line-height:1.55">Valid payment</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Input (balance 2,500,000)</th><th>Result</th></tr></thead><tbody><tr><td>"ravi@npay", 150,050</td><td>valid</td></tr><tr><td>"&ensp;&ensp;&ensp;", 150,000</td><td>emptyRecipient</td></tr><tr><td>"ravi@npay", 0</td><td>invalidAmount</td></tr><tr><td>"ravi@npay", &minus;100</td><td>invalidAmount</td></tr><tr><td>"ravi@npay", 3,000,000</td><td>insufficientBalance</td></tr><tr><td>"ravi@npay", 2,500,000</td><td>valid (the whole balance)</td></tr></tbody></table>
+          <p class="small muted" style="margin:6px 0 0">More cases, run the same way (ours).</p></div>
+        <div class="step"><div class="card accent"><span class="label">swift test (Swift Testing, ours)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12.5px;line-height:1.55">&#10004; Test run with 5 tests in 1 suite passed</p></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The text&rsquo;s test: create a validator, validate ravi@npay, ₹1,500 against ₹25,000, print "Valid payment" or the error. Click: we compiled it on the Mac with swiftc, no app, no simulator: "Valid payment".</p>
+    <span class="notes-label">SAY</span><p>Click: more cases, run the same way: a blank recipient throws emptyRecipient; zero and negative amounts throw invalidAmount; thirty thousand rupees against twenty-five thousand throws insufficientBalance; the whole balance exactly is valid, because the rule is less than or equal.</p>
+    <span class="notes-label">SAY</span><p>Click: and as real unit tests: we put the validator in a small Swift package with five Swift Testing tests, valid, blank, zero, over the balance and the whole balance, and swift test passed all five. Testing business rules without rendering a screen is one of the major benefits of separating domain logic from presentation; Lesson 4.9 does this for ViewModels and use cases.</p>
+    <span class="notes-label">CONNECT</span><p>The next abstraction: where payments go.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 5</p>
+    <h2>Protocols</h2>
+    <p class="lead">Depend on a contract, not an implementation</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Swap demo for API without touching ViewModels.</p>
+    <span class="notes-label">CONNECT</span><p>The protocol.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 5 &middot; Why protocols matter (section 8)</p>
+  <h2>One contract, many implementations</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start">
+      <div class="cw"><div class="ch"><span>PaymentRepository and a demo conformance</span></div><pre class="cb" style="font-size:12.5px">protocol PaymentRepository {
+    func sendPayment(
+        recipient: String,
+        amountPaise: Int
+    ) async throws -&gt; UUID
+}
+
+struct DemoPaymentRepository: PaymentRepository {
+    func sendPayment(
+        recipient: String,
+        amountPaise: Int
+    ) async throws -&gt; UUID {
+        UUID()
+    }
+}</pre></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><div class="card accent"><span class="label">Called through any PaymentRepository (Mac)</span><p style="font-family:var(--code-font);margin:4px 0 0;font-size:12px;line-height:1.55">id: 455AE80B-DDD4-48D2-AD5C-125C804069CF<br>balancePaise afterwards: 2500000</p></div></div>
+        <div class="warn step" data-label="Contract only"><ul style="margin:6px 0 0"><li>Returns an ID; changes no balance, no history</li><li>A real demo repository comes later (4.5)</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">From Unit 1</span><ul style="margin:6px 0 0"><li>Protocols, async, throws</li><li>Dependency abstraction</li></ul></div></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Suppose NPay first uses an in-memory payment repository and later a network-backed one. We do not want to rewrite every ViewModel. So we define an abstraction: PaymentRepository, with one async throwing method, sendPayment, returning the new payment&rsquo;s UUID. Different implementations conform to the same contract; DemoPaymentRepository is the simplest.</p>
+    <span class="notes-label">SAY</span><p>Click: we called it through the protocol type on the Mac: it returned an ID, and the balance was unchanged. Click: that is the text&rsquo;s point: this implementation is only a contract demonstration; it does not update NPay&rsquo;s balance or history. A real in-memory demo repository connected to account state comes in Lesson 4.5.</p>
+    <span class="notes-label">SAY</span><p>Click: these are Unit 1 fundamentals at work: protocol-oriented programming, async and throwing functions, and dependency abstraction.</p>
+    <span class="notes-label">CONNECT</span><p>Now the lab: refactor without changing behaviour.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 6</p>
+    <h2>Refactor safely</h2>
+    <p class="lead">Same app, better structure</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The validator inside NPay; behaviour checked before and after.</p>
+    <span class="notes-label">CONNECT</span><p>The change.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Xcode lab: first architecture refactoring (section 10)</p>
+  <h2>Move the rules; prove nothing else moved</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:22px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cw"><div class="ch"><span>Calling the validator (ours)</span></div><pre class="cb" style="font-size:11px">// PaymentsScreen
+private var isValid: Bool {
+    guard let amount = parsedAmount else {
+        return false
+    }
+    do {
+        try PaymentValidator().validate(
+            recipient: store.paymentDraft.recipient,
+            amountPaise: amount,
+            balancePaise: store.balancePaise)
+        return true
+    } catch {
+        return false
+    }
+}</pre></div>
+        <div class="card accent"><span class="label">Also</span><ul style="margin:6px 0 0"><li><code>NPayStore.recordDemoPayment</code> calls it</li></ul></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="step"><table class="tbl compact"><thead><tr><th>Same script, simulator</th><th>3.12 code</th><th>4.1 code</th></tr></thead><tbody><tr><td>empty recipient, ₹1</td><td>disabled</td><td>disabled</td></tr><tr><td>blank recipient, ₹1</td><td>disabled</td><td>disabled</td></tr><tr><td>zero amount</td><td>disabled</td><td>disabled</td></tr><tr><td>₹30,000 (over the balance)</td><td>disabled</td><td>disabled</td></tr><tr><td>₹25,000 (the whole balance)</td><td>enabled</td><td>enabled</td></tr><tr><td>₹1,500.50 &rarr; confirm</td><td>₹23,499.50</td><td>₹23,499.50</td></tr><tr><td>store: &ldquo;&rdquo;, ₹30,000, ₹0</td><td>rejected</td><td>rejected</td></tr></tbody></table></div>
+        <div class="rule step" data-label="Practice"><ul style="margin:6px 0 0"><li>Refactor the structure; keep observable behaviour</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The lab: create PaymentValidator.swift, move the validation logic into it, and call it from the existing payment code. We did exactly that in NPay, flagged as ours: the Payments screen&rsquo;s isValid now asks the validator, and the store&rsquo;s recordDemoPayment calls the same validator instead of repeating the rules.</p>
+    <span class="notes-label">SAY</span><p>Click: then the important part: verify. One script drove the real app, once on the Unit 3 code and once on the refactored code. Empty, blank, zero and over-the-balance inputs kept Review Payment disabled in both; the whole balance enabled it in both; a ₹1,500.50 payment ended at ₹23,499.50 in both; and the store refused an empty recipient, thirty thousand rupees and zero in both. Identical.</p>
+    <span class="notes-label">SAY</span><p>Click: that is the practice: refactor the architecture while preserving observable behaviour, and check it, rather than assume it.</p>
+    <span class="notes-label">CONNECT</span><p>What the user sees for an invalid amount.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 6 &middot; Invalid payments are still rejected (section 10)</p>
+  <h2>Same message, same disabled button</h2>
+  <div class="body">
+    <div class="cols" style="grid-template-columns:180px minmax(0,1fr);gap:24px;align-items:start">
+      <div style="width:180px;max-width:100%;margin:0 auto"><div class="shot" style="height:391px"><img src="img/invalid.png" alt="₹30,000 against ₹25,000"></div><p class="shot-cap">₹30,000 against ₹25,000</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card accent"><span class="label">On screen</span><ul style="margin:6px 0 0"><li>&ldquo;Enter a valid amount within your balance.&rdquo;</li><li>Review Payment disabled</li></ul></div>
+        <div class="step"><div class="card accent"><span class="label">Noticed</span><ul style="margin:6px 0 0"><li>The same message shows for an empty recipient</li><li>It names the amount even when the recipient is wrong</li></ul></div></div>
+        <div class="rule step" data-label="Next"><ul style="margin:6px 0 0"><li>The validator&rsquo;s error cases can drive specific messages: 4.2 and 4.7</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The refactored app with thirty thousand rupees against a balance of twenty-five thousand: the same message as before, and Review Payment disabled.</p>
+    <span class="notes-label">SAY</span><p>Click: something the before-and-after run surfaced: the message also appears when the recipient is empty, and it talks about the amount. That was true before the refactoring too; we preserved behaviour, including this. Click: now that validation throws specific errors, the ViewModel in Lesson 4.2 and the UI-state modelling in Lesson 4.7 can turn them into specific messages.</p>
+    <span class="notes-label">CONNECT</span><p>Where Unit 4 goes from here.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Part 7</p>
+    <h2>Unit 4 roadmap</h2>
+    <p class="lead">Ten lessons to a complete MVVM NPay</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>One step per lesson.</p>
+    <span class="notes-label">CONNECT</span><p>The sequence.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Part 7 &middot; Unit 4 learning sequence (section 9)</p>
+  <h2>From a validator to a complete MVVM app</h2>
+  <div class="body">
+    <table class="tbl compact"><thead><tr><th>Lesson</th><th>Topic</th><th>NPay implementation</th></tr></thead><tbody><tr><td>4.1</td><td>Architecture fundamentals</td><td>Extract payment validation</td></tr><tr><td>4.2</td><td>MVVM internals</td><td>PaymentViewModel</td></tr><tr><td>4.3</td><td>Observation framework</td><td>Observable ViewModels</td></tr><tr><td>4.4</td><td>Dependency injection</td><td>Inject repositories and services</td></tr><tr><td>4.5</td><td>Repository pattern</td><td>Demo payment repository</td></tr><tr><td>4.6</td><td>Domain models and use cases</td><td>SendPaymentUseCase</td></tr><tr><td>4.7</td><td>UI state modeling</td><td>Loading, success, error</td></tr><tr><td>4.8</td><td>Modular project structure</td><td>Feature organization</td></tr><tr><td>4.9</td><td>Architecture testing</td><td>ViewModel and use-case tests</td></tr><tr><td>4.10</td><td>Integration lab</td><td>Complete MVVM NPay</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>The Unit 4 sequence. Today, architecture fundamentals and the extracted validator. 4.2, MVVM internals and the PaymentViewModel. 4.3, the Observation framework behind observable ViewModels. 4.4, dependency injection of repositories and services. 4.5, the repository pattern with a real demo payment repository. 4.6, domain models and the SendPaymentUseCase. 4.7, UI state: loading, success, error. 4.8, modular project structure. 4.9, testing ViewModels and use cases. 4.10, the integration lab: a complete MVVM NPay.</p>
+    <span class="notes-label">CONNECT</span><p>The recap.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.1 &middot; Recap</p>
+  <h2>What to remember</h2>
+  <div class="body">
+    <div class="cols c3" style="gap:20px;align-items:stretch">
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><p style="font-size:23px"><b>Separate responsibilities</b><br><span class="muted" style="font-size:19px">presentation, state, rules, data, navigation</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></span><p style="font-size:23px"><b>MVVM plus Clean ideas</b><br><span class="muted" style="font-size:19px">ViewModel per screen; use cases and repositories behind it</span></p></div>
+      <div class="card accent outcome"><span class="icon-badge"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><p style="font-size:23px"><b>Refactor, then verify</b><br><span class="muted" style="font-size:19px">PaymentValidator: 5 tests pass; NPay behaves the same</span></p></div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Three things to remember. An app stays maintainable when responsibilities are separated: presentation, presentation state, business rules, data access and navigation, each with clear boundaries; NPayStore and PaymentsScreen are where ours blur. NPay&rsquo;s direction is MVVM for presentation, with use cases and repository protocols behind it, Clean Architecture ideas complementing MVVM. And our first step was small and verified: the payment rules now live in a plain Swift PaymentValidator that five unit tests exercise without an app, and the same behaviour script gives identical results before and after.</p>
+    <span class="notes-label">CONNECT</span><p>Now check your understanding.</p>
+  </aside>
+</section>
+
+<section class="slide chapter">
+  <div class="body">
+    <p class="kicker">Review</p>
+    <h2>Check your understanding</h2>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>9 questions, in different formats. Everyone commits to an answer before it is revealed.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What is the main responsibility of a ViewModel?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 1 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What is the main responsibility of a ViewModel?</p><ol class="q-opts"><li>Store Xcode build settings</li><li>Manage screen state and presentation behaviour</li><li>Draw pixels manually</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">State and behaviour for one screen; SwiftUI draws.</p>
+          <p class="q-trap"><b>Common trap:</b> Turning the ViewModel into a second view.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick B.</p>
+    <span class="notes-label">SAY</span><p>B. State and behaviour for one screen; SwiftUI draws.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Can MVVM and Clean Architecture be used together?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 2 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-diff"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Can MVVM and Clean Architecture be used together?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">Yes</span>
+          <p class="q-why">MVVM for presentation; use cases and repositories behind it.</p>
+          <p class="q-trap"><b>Common trap:</b> Treating architectures as either/or.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say yes.</p>
+    <span class="notes-label">SAY</span><p>Yes. MVVM for presentation; use cases and repositories behind it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Why extract PaymentValidator from SwiftUI?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 3 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">Why extract PaymentValidator from SwiftUI?</p><ol class="q-opts"><li>To improve SF Symbols</li><li>To create a new process</li><li>To make rules independently testable</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Five tests ran with no app and no simulator.</p>
+          <p class="q-trap"><b>Common trap:</b> Thinking extraction is about speed.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. Five tests ran with no app and no simulator.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="What does a repository protocol provide?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 4 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-key"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">What does a repository protocol provide?</p><ol class="q-opts"><li>An abstraction for data operations</li><li>A tab bar</li><li>A new application window</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">Demo now, API later, same contract.</p>
+          <p class="q-trap"><b>Common trap:</b> Coupling ViewModels to one data source.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick A.</p>
+    <span class="notes-label">SAY</span><p>A. Demo now, API later, same contract.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="Should a ViewModel directly control pixel rendering?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 5 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+        <span class="label">Question</span>
+        <p class="q-text">Should a ViewModel directly control pixel rendering?</p>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">No</span>
+          <p class="q-why">It exposes state; the view and SwiftUI render it.</p>
+          <p class="q-trap"><b>Common trap:</b> Mixing layout into the ViewModel.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most say no.</p>
+    <span class="notes-label">SAY</span><p>No. It exposes state; the view and SwiftUI render it.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="validate(&quot;ravi@npay&quot;, 2,500,000, balance 2,500,000)?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 6 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>validate(recipient: "ravi@npay", amountPaise: 2_500_000, balancePaise: 2_500_000)</code>. What happens?</p><ol class="q-opts"><li>Returns normally</li><li>Throws insufficientBalance</li><li>Throws invalidAmount</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">A</span>
+          <p class="q-why">The rule is <code>&lt;=</code>: the whole balance is allowed.</p>
+          <p class="q-trap"><b>Common trap:</b> Off-by-one on a boundary.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick B.</p>
+    <span class="notes-label">SAY</span><p>A. The rule is <code>&lt;=</code>: the whole balance is allowed.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="validate(&quot;   &quot;, 150,000, 2,500,000)?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 7 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+        <span class="label">Predict the result</span>
+        <p class="q-text"><code>validate(recipient: "   ", amountPaise: 150_000, balancePaise: 2_500_000)</code> throws&hellip;</p><ol class="q-opts"><li>Nothing</li><li>emptyRecipient</li><li>invalidAmount</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">Whitespace is trimmed before the empty check.</p>
+          <p class="q-trap"><b>Common trap:</b> Forgetting the trim.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. Whitespace is trimmed before the empty check.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="DemoPaymentRepository.sendPayment: what happens to the balance?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 8 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-db"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">After <code>try await DemoPaymentRepository().sendPayment(recipient: "ravi@npay", amountPaise: 150_050)</code>, NPay&rsquo;s balance is&hellip;</p><ol class="q-opts"><li>₹23,499.50</li><li>₹25,000.00</li><li>Undefined</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">B</span>
+          <p class="q-why">A contract demo: it returns an ID and touches no state.</p>
+          <p class="q-trap"><b>Common trap:</b> Assuming a conformance does real work.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Some pick A.</p>
+    <span class="notes-label">SAY</span><p>B. A contract demo: it returns an ID and touches no state.</p>
+    <span class="notes-label">CONNECT</span><p>Next question.</p>
+  </aside>
+</section>
+
+<section class="slide question" data-title="From 3.12: who owns paymentsPath?">
+  <div class="q-top">
+    <p class="kicker">Check your understanding &middot; 9 of 9</p>
+    <div class="q-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></div>
+  </div>
+  <div class="body">
+    <div class="q-row">
+      <div class="q-card">
+        <div class="q-icon"><svg viewBox="0 0 24 24"><use href="#i-decision"/></svg></div>
+        <span class="label">Choose one</span>
+        <p class="q-text">From Lesson 3.12: who owns <code>paymentsPath</code>?</p><ol class="q-opts"><li>NPayStore</li><li>PaymentsScreen</li><li>NPayRouter</li></ol>
+      </div>
+      <div class="q-panel">
+        <div class="q-ans step anim-up">
+          <span class="q-verdict">C</span>
+          <p class="q-why">Navigation state belongs to the router.</p>
+          <p class="q-trap"><b>Common trap:</b> Mixing navigation into the data owner.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Spaced review from Lesson 3.12.</p>
+    <span class="notes-label">ASK</span><p>Give everyone a few seconds, then take a quick vote.</p>
+    <span class="notes-label">EXPECT</span><p>Most pick C.</p>
+    <span class="notes-label">SAY</span><p>C. Navigation state belongs to the router.</p>
+    <span class="notes-label">CONNECT</span><p>Where this goes next.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.1 &middot; Where this goes next</p>
+  <h2>Where this goes next</h2>
+  <div class="body">
+    <table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Builds on today</th></tr></thead><tbody><tr><td class="mono">4.2</td><td><b>MVVM internals</b></td><td>PaymentViewModel calls PaymentValidator</td></tr><tr><td class="mono">4.5</td><td><b>Repository pattern</b></td><td>a real demo repository behind PaymentRepository</td></tr><tr><td class="mono">4.6</td><td><b>Use cases</b></td><td>SendPaymentUseCase owns the rules</td></tr><tr><td class="mono">4.9</td><td><b>Architecture testing</b></td><td>tests like today&rsquo;s five, for ViewModels too</td></tr></tbody></table>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Lesson 4.2 builds PaymentViewModel on top of today&rsquo;s validator. Lesson 4.5 gives PaymentRepository a real in-memory implementation; 4.6 moves the rules into SendPaymentUseCase; 4.9 extends today&rsquo;s five tests to ViewModels and use cases.</p>
+    <span class="notes-label">CONNECT</span><p>One last thing before we finish: your lab.</p>
+  </aside>
+</section>
+
+<section class="slide">
+  <p class="kicker">Lesson 4.1 &middot; Lab</p>
+  <h2>First architecture refactoring</h2>
+  <div class="body cols" style="grid-template-columns:1.15fr 1fr;align-items:start">
+    <div><p class="lead" style="margin-top:0">Extract the rules; keep the behaviour.</p><ol class="lab"><li>Create <code>PaymentValidator.swift</code>.</li><li>Move the payment rules into it.</li><li>Call it from the payment form and the store.</li><li>Run five cases before and after; compare.</li><li>Optional: add Swift Testing tests.</li><li>Note which messages could be more specific.</li></ol></div>
+    <div><div><div class="card accent"><span class="label">You hand in</span><ul style="margin:6px 0 0"><li>Your validator and its call sites</li><li>Your before/after table</li><li>Optional: a passing swift test run</li></ul></div></div></div>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>Expected, as in our run: identical results before and after; valid payments still reach ₹23,499.50 and invalid ones stay disabled or refused.</p>
+    <span class="notes-label">CONNECT</span><p>That completes the lesson.</p>
+  </aside>
+</section>
+
+<section class="slide end">
+  <div class="body">
+    <p class="kicker">Lesson 4.1 complete</p>
+    <h2>Why iOS Applications<br>Need Architecture</h2>
+    <p class="lead" style="max-width:820px;margin:0 auto">Next: Lesson 4.2 &mdash; MVVM Internals &amp; PaymentViewModel</p>
+  </div>
+  <aside class="notes-src">
+    <span class="notes-label">SAY</span><p>You can now explain why NPay needs architecture, compare MVC, MVVM and Clean Architecture, describe the target layers, extract business rules into testable Swift, and refactor without changing behaviour.</p>
+    <span class="notes-label">SAY</span><p>Next, Lesson 4.2: MVVM internals, building NPay&rsquo;s first observable ViewModel.</p>
+  </aside>
+</section>
+
+</div>
+<script src="../../../shared/art.js"></script>
+<script src="../../../shared/deck.js"></script>
+</body>
+</html>
