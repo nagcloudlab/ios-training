@@ -11,6 +11,7 @@ for n in 3 4 5 6 7 8 9; do
   $PY tools/gen0$n.py decks/unit-0/lesson-0.$n/index.html
 done
 $PY tools/gen10.py decks/unit-0/lesson-0.10/index.html
+$PY tools/gen0_all.py decks/unit-0/unit-00-complete/index.html   # merged code-free Unit 00 (reads the ten decks above)
 $PY tools/gen1_1.py decks/unit-1/lesson-1.1/index.html
 $PY tools/gen1_2.py decks/unit-1/lesson-1.2/index.html
 $PY tools/gen1_3.py decks/unit-1/lesson-1.3/index.html
